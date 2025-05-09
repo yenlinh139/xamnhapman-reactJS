@@ -1,0 +1,301 @@
+// Container
+#headerMap {
+  background-color: #2875E2;
+  color: var(--textColorWhite);
+     
+    .navbar-toggler {
+      border: none;
+      color: var(--textColorWhite);
+    }
+    .icon-menu {
+      border: none;
+      color: var(--textColorWhite);
+      background: none;
+      font-weight: 900;
+      font-size: 20px;
+      padding: 0 10px;
+    }
+
+    .searchMap {
+      display: flex;
+      align-items: center;
+      background-color: var(--textColorWhite);
+      border-radius: 4px;
+      gap: 8px;
+      color: #666;
+      margin: 10px 20px;
+
+      button {
+        padding: 8px 12px;
+        background-color: var(--primary);
+        color: var(--textColorDark);
+        border: none;
+        border-radius: 0 4px 4px 0;
+        cursor: pointer;
+        font-weight: 600;
+
+        &:hover {
+          background-color: var(--hoverPrimary);
+          color: var(--textColorWhite)
+        }
+      }
+    }
+
+    li {
+      .text-menu {
+        display: flex;
+        font-size: 15px;
+        line-height: 40px;
+        margin: 5px 15px;
+        display: flex;
+        padding: 5px 0 ;
+        align-items: center;
+        color: var(--textColorWhite) ;
+        border: none;
+        transition: all 0.2s ease-in;
+        text-decoration: none;
+        font-weight: 600;
+        text-transform: uppercase;
+
+        &:hover {
+          color: var(--primary);
+          transition: all 0.2s ease-in;
+        }
+
+        
+      }
+      .text-menu.active {
+        color: var(--primary);
+      
+        &:hover {
+          color: #dedede;
+          transition: all 0.2s ease-in;
+        }
+      }
+    }
+  
+  .iconMenu {
+    max-height: 50px;
+    margin-right: 15px;
+    .avatar {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+    }
+    i {
+      font-size: 26px;
+      max-width: 35px;
+    }
+  }
+
+  .dropdown-menu[data-bs-popper] {
+    right: 0;
+    left: auto;
+  }
+   
+  .dropdown-item {
+    list-style: none;
+    padding: 8px 16px;
+    margin: 4px 0;
+    transition: background-color 0.3s ease;
+
+    &:hover {
+      background-color: var(--primary);
+      color: var(--textColorWhite);
+      font-weight: 600;
+      transition: background-color 0.3s ease;
+    }
+
+   
+  }
+  
+}
+
+.top-home {
+  background-color: var(--blue);  // Sử dụng biến màu nền
+  color: var(--textColorWhite);
+  padding: 7px 0;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+
+  .contact-info {
+    display: flex;
+    align-items: center;
+    gap: 12px; // Tạo khoảng cách giữa các phần tử
+    font-size: 13px;
+
+    a {
+      color: var(--textColorWhite);
+      font-size: 13px;
+      transition: color 0.3s ease;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 10px; // Khoảng cách giữa icon và văn bản
+      transition: color 0.3s ease;
+      i {
+        font-size: 15px;
+      }
+      &:hover {
+        color: var(--primary);
+      }
+    }
+
+}
+
+  // Mạng xã hội
+  .icon-group {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+
+
+    a {
+      color: var(--textColorWhite);
+      font-size: 15px;
+      transition: color 0.3s ease;
+
+      &:hover {
+        color: var(--primary);
+      }
+    }
+
+    // Đăng nhập
+    .login-menu {
+      position: relative;
+      display: flex;
+      align-items: center;
+    
+      .login-link {
+        color: white;
+        font-size: 15px;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: color 0.3s ease;
+        span {
+        font-size: 13px;
+        }
+    
+        &:hover {
+          color: var(--primary); // Màu vàng khi hover
+        }
+      } 
+    }    
+  }  
+}
+.headerMenu {
+  background-color: #d6e2fa;
+  padding: 12px 0;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+
+  .logo {
+    flex: 1; // Logo nằm sát lề trái
+    display: flex;
+    align-items: center;
+
+    img {
+      height: 80px;
+      transition: transform 0.3s ease;
+
+      &:hover {
+        transform: scale(1.05);
+      }
+    }
+  }
+
+  .nav-menu {
+    flex: 2; // Menu ở giữa trang
+    display: flex;
+    justify-content: center;
+    ul {
+      display: flex;
+      gap: 30px;
+
+      li {
+        list-style: none;
+
+        a {
+          font-size: 18px;
+          font-weight: 600;
+          color: var(--textColorDark);
+          text-transform: uppercase;
+          transition: color 0.3s ease, border-bottom 0.3s ease;
+          padding-bottom: 5px;
+          position: relative;
+          text-decoration: none;
+
+          &:hover,
+          &.active {
+            color: var(--hoverPrimary);
+          }
+
+          &::after {
+            content: "";
+            position: absolute;
+            width: 0;
+            height: 2px;
+            background: var(--hoverPrimary);
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: width 0.3s ease;
+          }
+
+          &:hover::after {
+            width: 100%;
+          }
+        }
+      }
+    }
+  }
+
+  .header-right {
+    flex: 1; // Search nằm sát lề phải
+    display: flex;
+    justify-content: flex-end;
+  
+    .searchHome {
+      display: flex;
+      align-items: center;
+      border: 1px solid var(--blue);
+      border-radius: 30px;
+      overflow: hidden;
+      background: #d1e0ff;
+      padding-left: 10px;
+  
+      input {
+        flex: 1;
+        padding: 8px;
+        border: none;
+        outline: none;
+        font-size: 14px;
+        color: var(--textColorDark);
+        background: transparent;
+      }
+  
+      button {
+        background: var(--primary);
+        color: var(--textColorDark);
+        border: none;
+        padding: 8px 15px;
+        cursor: pointer;
+        border-radius: 0 30px 30px 0;
+        transition: background 0.3s ease;
+  
+        i {
+          font-size: 16px;
+        }
+  
+        &:hover {
+          background: var(--hoverPrimary);
+        }
+      }
+    }
+  }
+
+  
+}

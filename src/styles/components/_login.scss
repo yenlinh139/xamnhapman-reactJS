@@ -1,0 +1,189 @@
+.containerLogin{
+	position: absolute;
+	top: 0;
+	left: 0;
+	display: flex;
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	min-height: 100vh;
+	z-index: 1000;
+}
+.mainLogin{
+	width: 50vw;
+	height: 80vh;
+	overflow: hidden;
+	background-color: rgba(0, 0, 0, 0.7);
+	border-radius: 10px;
+	box-shadow: 5px 20px 50px #000;
+}
+#chk{
+	display: none;
+}
+.login{
+	position: relative;
+	width:100%;
+	height: 100%;
+}
+.labelLogin{
+	color: #fff;
+	font-size: 2.3em;
+	justify-content: center;
+	display: flex;
+	margin: 50px 0 30px;
+	font-weight: bold;
+	cursor: pointer;
+	transition: .5s ease-in-out;
+}
+.login .labelLogin{
+	margin: 2vh 0;
+}
+.inputLogin{
+	width: 70%;
+	height: 20px;
+	background: #e0dede;
+	justify-content: center;
+	display: flex;
+	margin: 20px auto;
+	padding: 20px;
+	border: none;
+	outline: none;
+	border-radius: 8px;
+}
+.btnLogin{
+	width: 70%;
+	height: 40px;
+	margin: 10px auto;
+	justify-content: center;
+	display: block;
+	font-size: 1em;
+	outline: none;
+	border: none;
+	border-radius: 8px;
+	transition: all 0.2s ease-in;
+	cursor: pointer;
+}
+
+.btnLoginSubmit{
+	color: var(--textColorWhite);
+	background: var(--blue);
+	font-weight: bold;
+	margin-top: 30px;
+
+}
+.btnLoginSubmit:hover{
+	background: var(--hoverPrimary);
+}
+.signUp{
+	height: 600px;
+	background: #eee;
+	border-radius: 50% / 10%;
+	transform: translateY(-400px);
+	transition: .8s ease-in-out;
+}
+.signUp .labelLogin{
+	color: var(--blue);
+	transform: scale(.6);
+	padding-top: 15px;
+	padding-bottom: 50px;
+}
+
+#chk:checked ~ .signUp{
+	transform: translateY(-840px);
+	border-radius: 10%;
+}
+#chk:checked ~ .signUp .labelLogin{
+    padding-top: 30px;
+	transform: scale(1);	
+	padding-bottom: 0;
+}
+#chk:checked ~ .signUp .labelLogin:hover{
+	transform: scale(.9);
+	color: var(--darkBlue);
+}
+
+#chk:checked ~ .login .labelLogin{
+	margin: 30px 0 30px;
+	transform: scale(.6);
+}
+#chk:checked ~ .login .labelLogin:hover{
+	color: var(--blue);
+	transform: scale(.8);
+}
+.auth-divider {
+    display: flex;
+    flex-basis: 100%;
+    align-items: center;
+}
+
+.auth-divider::before, .auth-divider::after {
+    position: relative;
+    display: inline-block;
+    width: 50%;
+    height: 1px;
+    vertical-align: middle;
+    content: "";
+	background-color: #ccc;
+}
+
+.auth-divider::before {
+	margin: 0 10px 0 30px;
+}
+
+.auth-divider::after {
+	margin: 0 30px 0 10px;
+}
+
+.btnLightHover:hover {
+	background: var(--lightPrimary);
+	color: #fff;
+}
+
+.logoContainer {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	margin: 20px 0 40px;
+	
+  }
+  .line {
+	width: 15vw;
+	height: 1px;
+	background-color: #8d8d8d;
+	margin: 10px auto;
+  }
+  
+  .logoImage {
+	width: 10vw; 
+	height: auto;
+	object-fit: contain;
+	transition: transform 0.3s ease-in-out;
+	margin-top: 30px;
+  }
+  
+  .logoImage:hover {
+	transform: scale(1.1); /* Tạo hiệu ứng phóng to khi hover */
+  }
+  
+.register-text {
+	color: #8d8d8d; // Màu xám nhẹ
+	font-size: 14px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin: 30px auto;
+	cursor: pointer;
+	gap: 5px; // Khoảng cách giữa các phần tử
+	
+	i {
+		font-size: 14px; // Kích thước icon
+	  }
+	&:hover {
+	color: var(--primary); // Màu xám nhẹ
+
+	}
+
+}

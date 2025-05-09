@@ -1,0 +1,96 @@
+.verify-email-container {
+    // Container chính
+    max-width: 600px;
+    width: 100%;
+    margin: 50px auto;
+    padding: 30px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  
+    // Màu sắc tổng thể
+    background-color: #f4f7fa;
+    color: #333;
+  
+    h2 {
+      font-size: 28px;
+      color: #2a9d8f; // Màu xanh dương đậm
+      font-weight: bold;
+      margin-bottom: 20px;
+      letter-spacing: 1px;
+    }
+  
+    p {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #555;
+      margin-bottom: 20px;
+    }
+  
+    // Hiệu ứng loading
+    .loading {
+      font-weight: bold;
+      color: #ff7f50; // Màu cam cho trạng thái loading
+    }
+  
+    // Nút xác thực email
+    .verify-button {
+      display: inline-block;
+      background-color: #2a9d8f;
+      color: #fff;
+      padding: 12px 30px;
+      text-decoration: none;
+      font-size: 18px;
+      font-weight: bold;
+      border-radius: 5px;
+      margin-top: 20px;
+      transition: background-color 0.3s, transform 0.3s;
+      
+      // Hiệu ứng khi hover
+      &:hover {
+        background-color: #1f7a64; // Màu đậm hơn khi hover
+        transform: scale(1.05); // Tạo hiệu ứng phóng to khi hover
+      }
+    }
+  
+    // Footer nhỏ với thông tin liên quan
+    .footer {
+      font-size: 12px;
+      color: #888;
+      margin-top: 30px;
+      text-align: center;
+  
+      a {
+        color: #2a9d8f;
+        text-decoration: none;
+        transition: text-decoration 0.3s;
+  
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+  
+// Media Query cho thiết bị di động
+@media (max-width: 768px) {
+    .verify-email-container {
+      padding: 20px;
+      margin: 20px;
+    }
+  
+    h2 {
+      font-size: 22px;
+    }
+  
+    p {
+      font-size: 14px;
+    }
+  
+    .verify-button {
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+}
+  

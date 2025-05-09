@@ -1,0 +1,77 @@
+.about-section, .objectives-section, .scope-section, .researcher-section, .advisor-section {
+    text-align: center;
+    padding: 50px 20px;
+  
+    h2 {
+      font-size: 2rem;
+      color: var(--darkBlue);
+      text-transform: uppercase;
+    }
+  
+    .underline {
+      width: 80px;
+      height: 4px;
+      background-color: var(--primary);
+      margin: 10px auto 20px;
+    }
+  
+    p {
+      font-size: 1.2rem;
+      color: var(--textColorDark);
+      max-width: 800px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+  }
+
+  .objectives-section ul {
+    list-style: none;
+    padding: 0;
+    text-align: left; /* Căn trái danh sách để dễ đọc hơn */
+    max-width: 800px;
+    margin: 0 auto;
+  
+    li {
+      font-size: 1.2rem;
+      color: var(--textColorDark);
+      padding: 10px 0;
+      border-bottom: 1px solid var(--lightGray);
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+  }
+  
+  .researcher-info, .advisor-info {
+    background: var(--lightGray);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 300px;
+    margin: 20px auto;
+  
+    h3 {
+      font-size: 1.5rem;
+      color: var(--blue);
+    }
+  
+    p {
+      font-size: 1rem;
+      color: var(--textColorLight);
+      text-align: center;
+    }
+  }
+
+  .scope-section {
+    p {
+        font-size: 1.2rem;
+        color: var(--textColorDark);
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 10px 0;
+        line-height: 1.6;
+        text-align: left; /* Căn trái để dễ đọc hơn */
+      }
+  }
+  

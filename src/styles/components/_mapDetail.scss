@@ -1,0 +1,20 @@
+
+.map-details-container {
+    position: relative;
+    width: 25vw;
+    height: 93.3vh;
+    background-color: #fff;
+    box-shadow: 1px 1px 2px #e2e2e2;
+    overflow: hidden;
+    transition: width 0.3s ease-in-out, right 0.3s ease-in-out;
+   
+    z-index: 1000;
+}
+
+
+.d-flex {
+    display: flex;
+    justify-content: space-between;
+    /* Để các phần tử như LeftMenu và map được căn đều */
+    align-items: stretch;
+}

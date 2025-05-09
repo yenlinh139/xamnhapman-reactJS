@@ -1,0 +1,265 @@
+/* Giao diện tổng thể cho bản đồ */
+.mapbox-container {
+  background-color: #E5E9ED;
+  overflow-y: auto;
+  position: relative;
+  transition: width 0.3s ease;
+  height: 93.3vh;
+  width: 100%;
+  float: left;
+
+  @media (max-width: 767px) {
+    width: 100%;
+    height: 96vh;
+  }
+
+  @media (min-width: 767px) {
+    .sidebar.closed + & { width: calc(100% - 40px); }
+  }
+}
+
+
+
+/* Điều chỉnh vị trí của bản đồ */
+#mapContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* Tối ưu hóa giao diện khi không có thanh điều khiển */
+.leaflet-control-layers {
+  background-color: rgba(255, 255, 255, 0.7); /* Màu nền mờ cho thanh điều khiển */
+  border-radius: 8px;
+  z-index: 999; /* Đảm bảo thanh điều khiển luôn ở trên cùng */
+  right: 10px; /* Đưa thanh điều khiển về góc trên bên phải */
+  top: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Thêm bóng nhẹ */
+}
+
+/* Mỗi lớp trong thanh điều khiển */
+.leaflet-control-layers-selector {
+  padding: 5px 10px;
+  cursor: pointer;
+  
+  gap: 8px;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.1); /* Hiệu ứng hover cho các lớp */
+  }
+}
+
+/* Màu sắc cho lớp bản đồ khi đang chọn */
+.leaflet-control-layers-selector.selected {
+  color: #007bff;
+  font-weight: bold;
+}
+
+/* Các biểu tượng lớp bản đồ */
+// .leaflet-control-layers-selector::before {
+//   content: "•";
+//   margin-right: 10px;
+//   color: #007bff; /* Màu biểu tượng */
+//   font-weight: bold;
+// }
+
+/* Hiệu ứng hover cho các nút điều khiển */
+button:hover, .leaflet-control-layers-selector:hover {
+  background-color: #f0f0f0;
+}
+
+/* Điều chỉnh zoom control */
+.leaflet-control-zoom {
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+  background-color: #fff;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.leaflet-control-zoom-in:hover,
+.leaflet-control-zoom-out:hover {
+  background-color: #f0f0f0;
+}
+
+.popup-content {
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  color: #333;
+
+  h3 {
+    background: #007bff;
+    color: white;
+    padding: 8px;
+    border-radius: 5px;
+    text-align: center;
+    margin: 0;
+  }
+
+  p {
+    margin: 6px 0;
+    padding: 6px;
+    background: #f8f9fa;
+    border-left: 4px solid #007bff;
+    border-radius: 3px;
+  }
+
+  b {
+    color: #0056b3;
+  }
+}
+
+.legend-container {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  font-size: 14px;
+  min-width: 200px;
+  display: none;
+
+  .legend-title {
+    font-size: 22px;
+    font-weight: 900;
+    text-align: center;
+    margin-bottom: 10px;
+    padding: 8px;
+    color: var(--hoverPrimary); 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid #ccc;
+  }
+  
+
+  .legend-main {
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    padding: 12px;
+
+    h5 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    p {
+      margin: 4px 0;
+      font-size: 13px;
+      font-weight: 300
+    }
+  }
+
+  .legend-secondary {
+    padding: 12px;
+
+    h5 {
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    p {
+      margin: 4px 0;
+      font-size: 13px;
+    }
+  }
+}
+
+
+/* Thêm vào file CSS của bạn */
+.modal-custom .modal-dialog {
+  max-width: 90%;
+  z-index: 1050;
+  /* Đặt z-index thấp hơn so với mặc định */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  /* Thêm hiệu ứng box-shadow */
+}
+
+.modal-custom .modal-content {
+  z-index: 1050;
+  /* Đảm bảo nội dung modal không che phủ quá nhiều */
+}
+
+.salinity-icon {
+  width: 30px;
+  height: 30px;
+  filter: none;
+  /* Xóa filter nếu đang áp dụng */
+}
+
+.salinity-low {
+  color: #2196F3;
+  /* Xanh dương */
+}
+
+.salinity-medium {
+  color: #FFC107;
+  /* Vàng cam */
+}
+
+.salinity-high {
+  color: #F44336;
+  /* Đỏ */
+}
+
+.popup-container {
+  padding: 10px;
+  min-width: 200px;
+}
+
+.popup-header {
+  font-size: 16px;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  border-bottom: 2px solid #3498db;
+}
+
+.popup-content {
+  font-size: 14px;
+}
+
+.popup-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 5px 0;
+  padding: 3px 0;
+}
+
+.popup-label {
+  color: #7f8c8d;
+  font-weight: 500;
+}
+
+.popup-value {
+  color: #2c3e50;
+  font-weight: bold;
+  margin-left: 10px;
+}
+
+.leaflet-popup-content {
+  margin: 5px 10px;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 767px) {
+  .mapbox-container {
+    width: 100vw;
+  }
+}

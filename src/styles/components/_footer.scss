@@ -1,0 +1,145 @@
+.footer {
+    background-color: #d6e2fa;
+    padding: 30px 0;
+    font-size: 14px;
+    color: var(--textColorDark);
+  
+    .footer-content {
+      display: grid;
+      grid-template-columns: 1.5fr 0.5fr 1fr 1fr;
+      gap: 20px;
+      margin-right: 20px;
+    }
+  
+    .footer-section {
+      h4 {
+        font-size: 16px;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+  
+      ul {
+        list-style: none;
+        padding: 0;
+  
+        li {
+          margin-bottom: 8px;
+  
+          a {
+            text-decoration: none;
+            color: var(--textColorDark);
+            transition: color 0.3s ease;
+  
+            &:hover {
+              color: var(--hoverPrimary);
+              font-weight: 600;
+            }
+          }
+        }
+      }
+  
+      p {
+        margin-bottom: 10px;
+      }
+    
+      a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        font-size: 14px;
+        color: var(--textColorDark);
+        transition: color 0.3s ease, transform 0.2s ease;
+    
+        i {
+          font-size: 16px;
+          width: 20px; 
+        }
+    
+        &:hover {
+          color: var(--hoverPrimary); // Màu cam khi hover
+          transform: translateX(3px);
+          
+          i {
+            color: var(--hoverPrimary);
+          }
+        }
+      }
+      .footer-contact {
+        i {
+            font-size: 16px;
+            width: 20px; 
+          }
+      }
+    }
+  
+    .footer-logo {
+      max-width: 150px;
+      margin-bottom: 10px;
+    }
+    .social-icons {
+        display: flex;
+        gap: 12px;
+        margin-top: 10px;
+        a {
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          border: 1px solid var(--textColorDark); 
+          background-color: #d1e0ff; // Màu nền vòng tròn
+          color: var(--textColorDark);
+          font-size: 18px;
+          transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
+          text-align: center;
+
+          i {
+            display: flex; // Đảm bảo icon không bị lệch
+            align-items: center;
+            justify-content: center;
+            width: 100%; // Đảm bảo icon giãn đều theo thẻ cha
+            height: 100%;
+          }
+          &:hover {
+            transform: scale(1.1); // Hiệu ứng phóng to nhẹ khi hover
+          }
+          &:nth-child(1):hover {
+            border-color: #1877F2;
+            i {color: #1877F2;}
+          }
+      
+          &:nth-child(2):hover {
+            i {color: #FF0000;}
+            border-color: #FF0000;
+          }
+      
+          &:nth-child(3):hover {
+            i {color: #1DA1F2;}
+            border-color: #1DA1F2;
+          }
+      
+          &:nth-child(4):hover {
+            i {color: #C13584;}
+            border-color: #C13584;
+          }
+      
+          &:nth-child(5):hover {
+            i {color: #DB4437;}
+            border-color: #DB4437;
+          }
+        }
+        
+      }
+  }
+  .bottom-home {
+    background-color: var(--blue);  // Sử dụng biến màu nền
+    color: var(--textColorWhite);
+    padding: 8px 0;
+    display: flex;
+    justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-size: 13px;
+}  
