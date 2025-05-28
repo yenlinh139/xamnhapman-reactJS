@@ -74,10 +74,24 @@ L.TileLayer.BetterWMS = L.TileLayer.WMS.extend({
 
       const layerName = this.wmsParams.layers.split(':')[1];
 
+      const legendNames = {
+        salinityPoints: 'Điểm đo mặn',
+        hydrometStations: 'Trạm khí tượng thủy văn',
+        DiaPhanHuyen: 'Địa phận huyện',
+        DiaGioiHuyen: 'Địa giới huyện',
+        DiaPhanXa: 'Địa phận xã',
+        DiemDoCao: 'Điểm độ cao',
+        ThuyHe_line: 'Thủy hệ (đường)',
+        ThuyHe_polygon: 'Thủy hệ (vùng)',
+        GiaoThong_line: 'Giao thông (đường)',
+        GiaoThong_polygon: 'Giao thông (vùng)',
+        HienTrangSDD_2020: 'Hiện trạng sử dụng đất 2020',
+        QuyHoachSDD_2030: 'Quy hoạch sử dụng đất 2030',
+      };
       let popupContent = `
       <div style="font-family: 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; padding: 6px 10px;">
         <div style="font-weight: bold; color: #2c3e50; font-size: 16px; margin-bottom: 5px; border-bottom: 1px solid #ccc;">
-          🗂️ Thông tin lớp: ${layerName}
+          🗂️ Thông tin lớp: ${legendNames[layerName]}
         </div>
     `;
 

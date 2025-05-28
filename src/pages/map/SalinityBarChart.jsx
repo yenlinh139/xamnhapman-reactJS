@@ -10,31 +10,87 @@ import {
   Cell,
 } from 'recharts';
 
+const calculateTrend = (current, previous) => {
+  if (!previous) return null;
+  const diff = current - previous;
+  return {
+    difference: diff.toFixed(2),
+    direction: diff > 0 ? 'increase' : diff < 0 ? 'decrease' : 'stable',
+    percentage: ((Math.abs(diff) / previous) * 100).toFixed(1),
+  };
+};
+
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload?.length) {
-    const formattedDate = new Date(payload[0].payload.date).toLocaleDateString(
+    const currentValue = payload[0].payload;
+    const formattedDate = new Date(currentValue.date).toLocaleDateString(
       'vi-VN'
     );
+    const trend = currentValue.trend;
+
     return (
       <div className="bg-white border p-2 rounded shadow-sm">
         <p className="mb-1">Ngày: {formattedDate}</p>
-        <p className="mb-0">
-          Độ mặn: {Number(payload[0].payload.salinity).toFixed(4)} ‰
+        <p className="mb-1">
+          Độ mặn: {Number(currentValue.salinity).toFixed(2)} ‰
         </p>
+        {trend && (
+          <p
+            className="mb-0"
+            style={{
+              color:
+                trend.direction === 'increase'
+                  ? '#dc3545'
+                  : trend.direction === 'decrease'
+                  ? '#198754'
+                  : '#6c757d',
+            }}
+          >
+            {trend.direction === 'increase'
+              ? '▲'
+              : trend.direction === 'decrease'
+              ? '▼'
+              : '■'}
+            {trend.direction === 'increase'
+              ? 'Tăng'
+              : trend.direction === 'decrease'
+              ? 'Giảm'
+              : 'Không đổi'}{' '}
+            {Math.abs(trend.difference)} ‰ ({trend.percentage}%)
+          </p>
+        )}
       </div>
     );
   }
   return null;
 };
 
-const SalinityBarChart = ({ data, height = 350 }) => {
-  // Ensure salinity values are numbers
-  const formattedData = data.map((item) => ({
-    ...item,
-    salinity: Number(item.salinity),
-  }));
+const SalinityBarChart = ({ data, height }) => {
+  // Ensure salinity values are numbers and calculate trends
+  const formattedData = data.map((item, index) => {
+    const salinity = Number(item.salinity);
+    const previousItem = index > 0 ? data[index - 1] : null;
+    const previousSalinity = previousItem
+      ? Number(previousItem.salinity)
+      : null;
+
+    return {
+      ...item,
+      salinity,
+      trend: calculateTrend(salinity, previousSalinity),
+    };
+  });
 
   const isLoading = !formattedData || formattedData.length === 0;
+
+  const uniqueYears = [
+    ...new Set(formattedData.map((d) => new Date(d.date).getFullYear())),
+  ];
+
+  const ticksByYear = uniqueYears.map(
+    (year) =>
+      formattedData.find((d) => new Date(d.date).getFullYear() === year)?.date
+  );
 
   return (
     <>
@@ -49,11 +105,12 @@ const SalinityBarChart = ({ data, height = 350 }) => {
         <ResponsiveContainer width="100%" height="100%" minHeight={height}>
           <BarChart data={formattedData} barCategoryGap={8}>
             <CartesianGrid strokeDasharray="3 3" stroke="#dee2e6" />
+
             <XAxis
               dataKey="date"
               tickFormatter={(d) => new Date(d).getFullYear()}
+              ticks={ticksByYear}
               tick={{ fontSize: 10 }}
-              interval="preserveStartEnd"
             />
 
             <YAxis

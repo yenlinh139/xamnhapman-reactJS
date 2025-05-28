@@ -2,7 +2,6 @@
 @use './base/mixins';
 @use './base/global';
 @use './components/header';
-@use './components/userTable';
 @use './components/login';
 @use './components/setting';
 @use './components/verify';
@@ -13,3 +12,4 @@
 @use './components/feedback';
 @use './components/about';
 @use './components/mapDetail';
+@use './components/userList';

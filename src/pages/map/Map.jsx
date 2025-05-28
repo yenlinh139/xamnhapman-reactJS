@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import MapboxMap from './MapboxMap';
 import LeftMenuMap from '../../components/LeftMenuMap';
 import { Helmet } from 'react-helmet-async';
 import axiosInstance from '../../config/axios-config';
 import { useDispatch, useSelector } from 'react-redux';
+import { logout } from '../../stores/actions/authActions';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../common/constants';
 
@@ -16,6 +17,7 @@ const Map = () => {
   const navigate = useNavigate();
   const [searchText, setSearchText] = useState('');
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [highlightedFeature, setHighlightedFeature] = useState(null);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -23,8 +25,8 @@ const Map = () => {
   };
 
   const handleSearch = async () => {
-    if (!searchText) return; // Nếu không có từ khoá tìm kiếm thì không gọi API
-
+    if (!searchText) return;
+    setSearchResults([]);
     try {
       const response = await axiosInstance.get(
         `${import.meta.env.VITE_BASE_URL}/api/search/${encodeURIComponent(
@@ -49,113 +51,201 @@ const Map = () => {
         : prevLayers.filter((l) => l !== layerName)
     );
   };
-
   return (
-    <>
+    <div className="map-page-container">
       <Helmet>
         <title>Bản đồ | Xâm nhập mặn Tp. Hồ Chí Minh</title>
-      </Helmet>
-      {/* Header */}
-      <nav className="navbar navbar-expand-md p-0" id="headerMap">
-        <div className="container-fluid">
-          <div className="header">
-            <button className=" icon-menu" onClick={onSidebarToggle}>
+      </Helmet>{' '}
+      {/* Modern Header */}
+      <header className="modern-header" id="headerMap">
+        <div className="header-container">
+          {/* Left Section */}
+          <div className="header-left">
+            <button className="sidebar-toggle" onClick={onSidebarToggle}>
               <i className="fa-solid fa-bars"></i>
-            </button>
-            <button
-              className="navbar-toggler "
-              type="button"
-              data-bs-toggle="collapse"
-              data-bs-target="#collapsibleNavbar"
-            >
-              <i className="fa-solid fa-ellipsis-vertical"></i>
+              <span className="toggle-text">Menu</span>
             </button>
           </div>
-          <div
-            className="collapse navbar-collapse justify-content-end"
-            id="collapsibleNavbar"
-          >
-            <ul className="navbar-nav">
-              <li className="searchMap">
-                <i className="fa-solid fa-magnifying-glass ps-3"></i>
+
+          {/* Center Section - Search */}
+          <div className="header-center">
+            <div className="search-container">
+              <div className="search-input-wrapper">
+                <i className="fa-solid fa-magnifying-glass search-icon"></i>
                 <input
                   type="text"
-                  placeholder="Nhập từ khóa..."
+                  className="search-input"
+                  placeholder="Tìm kiếm địa điểm, trạm quan trắc..."
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
-                  style={{
-                    flex: 1,
-                    padding: '8px',
-                    border: 'none',
-                    outline: 'none',
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSearch();
+                    }
                   }}
                 />
-                <button onClick={handleSearch}>TÌM KIẾM</button>
-              </li>
-              <li className="nav-item">
-                <a
-                  href={ROUTES.home}
-                  className="text-menu"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <i className="fa-solid fa-house"></i> &nbsp; TRANG CHỦ
-                </a>
-              </li>
-              <li className="nav-item">
-                <NavLink
-                  to={ROUTES.map}
-                  className={({ isActive }) =>
-                    isActive ? ' text-menu active' : ' text-menu'
-                  }
-                >
-                  <i className="fa-solid fa-map-location-dot"></i> &nbsp; BẢN ĐỒ
-                </NavLink>
-              </li>
-              <li className="nav-item dropdown">
-                <NavLink
-                  to={ROUTES.users}
-                  className="dropdown-toggle text-menu"
+                <button className="search-button" onClick={handleSearch}>
+                  <span>Tìm kiếm</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Section - Navigation */}
+          <div className="header-right">
+            <nav className="header-nav">
+              <a
+                href={ROUTES.home}
+                className="nav-link"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <i className="fa-solid fa-house"></i>
+                <span>Trang chủ</span>
+              </a>
+
+              <NavLink
+                to={ROUTES.map}
+                className={({ isActive }) =>
+                  isActive ? 'nav-link active' : 'nav-link'
+                }
+              >
+                <i className="fa-solid fa-map-location-dot"></i>
+                <span>Bản đồ</span>
+              </NavLink>
+
+              {/* User Dropdown */}
+              <div className="user-dropdown">
+                <button
+                  className="user-button"
                   data-bs-toggle="dropdown"
-                  role="button"
+                  aria-expanded="false"
                 >
-                  {userInfo?.name || 'Người dùng'}
-                </NavLink>
+                  <div className="user-avatar">
+                    <i className="fa-solid fa-user"></i>
+                  </div>
+                  <div className="user-info">
+                    <span className="user-name">
+                      {userInfo?.name || 'Người dùng'}
+                    </span>
+                    <span className="user-role">Quản trị viên</span>
+                  </div>
+                  <i className="fa-solid fa-chevron-down dropdown-arrow"></i>
+                </button>
 
                 <ul className="dropdown-menu">
                   <li>
                     <NavLink to={ROUTES.setting} className="dropdown-item">
-                      Cài đặt
+                      <i className="fa-solid fa-gear"></i>
+                      <span>Cài đặt</span>
                     </NavLink>
                   </li>
                   <li>
+                    <hr className="dropdown-divider" />
+                  </li>
+                  <li>
                     <button className="dropdown-item" onClick={handleLogout}>
-                      Đăng xuất
+                      <i className="fa-solid fa-right-from-bracket"></i>
+                      <span>Đăng xuất</span>
                     </button>
                   </li>
                 </ul>
-              </li>
-            </ul>
+              </div>
+            </nav>
+
+            {/* Mobile Menu Toggle */}
+            <button
+              className="mobile-toggle"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#mobileNav"
+              aria-controls="mobileNav"
+              aria-expanded="false"
+            >
+              <i className="fa-solid fa-ellipsis-vertical"></i>
+            </button>
           </div>
         </div>
-      </nav>
 
-      <div className="d-flex">
+        {/* Mobile Navigation */}
+        <div className="collapse" id="mobileNav">
+          <div className="mobile-nav">
+            <div className="mobile-search">
+              <div className="search-input-wrapper">
+                <i className="fa-solid fa-magnifying-glass search-icon"></i>
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Tìm kiếm..."
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSearch();
+                    }
+                  }}
+                />
+                <button className="search-button" onClick={handleSearch}>
+                  <i className="fa-solid fa-magnifying-glass"></i>
+                </button>
+              </div>
+            </div>
+
+            <div className="mobile-links">
+              <a
+                href={ROUTES.home}
+                className="mobile-link"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <i className="fa-solid fa-house"></i>
+                <span>Trang chủ</span>
+              </a>{' '}
+              <NavLink
+                to={ROUTES.map}
+                className={({ isActive }) =>
+                  isActive ? 'mobile-link active' : 'mobile-link'
+                }
+              >
+                <i className="fa-solid fa-map-location-dot"></i>
+                <span>Bản đồ</span>
+              </NavLink>
+              <NavLink to={ROUTES.setting} className="mobile-link">
+                <i className="fa-solid fa-gear"></i>
+                <span>Cài đặt</span>
+              </NavLink>
+              <button
+                className="mobile-link logout-link"
+                onClick={handleLogout}
+              >
+                <i className="fa-solid fa-right-from-bracket"></i>
+                <span>Đăng xuất</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+      {/* Main Content Area */}
+      <div className="map-content">
         <LeftMenuMap
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}
           onLayerToggle={handleLayerToggle}
           searchResults={searchResults}
           setSelectedLocation={setSelectedLocation}
+          setHighlightedFeature={setHighlightedFeature}
+          highlightedFeature={highlightedFeature}
         />
         <div className="mapbox-container">
           <MapboxMap
             selectedLayers={selectedLayers}
             selectedLocation={selectedLocation}
+            highlightedFeature={highlightedFeature}
+            setHighlightedFeature={setHighlightedFeature}
           />
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

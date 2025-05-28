@@ -1,11 +1,21 @@
-import React, { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { REQUIRE_PASSWORD } from "../../common/messageError";
-import { UPDATE } from "../../common/messageConfirm";
-import { updateUserByUser } from "../../stores/actions/userActions";
-import ModalConfirm from "../../components/ModalConfirm";
-import { Helmet } from "react-helmet-async";
-import Header from "../themes/headers/Header";
+import React, { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  FaUser,
+  FaEnvelope,
+  FaCalendar,
+  FaPhone,
+  FaLock,
+  FaKey,
+  FaSave,
+  FaTimes,
+} from 'react-icons/fa';
+import { REQUIRE_PASSWORD } from '../../common/messageError';
+import { UPDATE } from '../../common/messageConfirm';
+import { updateUserByUser } from '../../stores/actions/userActions';
+import ModalConfirm from '../../components/ModalConfirm';
+import { Helmet } from 'react-helmet-async';
+import Header from '../themes/headers/Header';
 
 function SettingUser() {
   const dispatch = useDispatch();
@@ -13,7 +23,7 @@ function SettingUser() {
 
   const formatDateForDB = (dateString) => {
     if (!dateString) return null; // Tránh gửi undefined
-    const parts = dateString.split("/");
+    const parts = dateString.split('/');
     if (parts.length === 3) {
       return `${parts[2]}-${parts[1]}-${parts[0]}`; // Chuyển từ DD/MM/YYYY → YYYY-MM-DD
     }
@@ -21,12 +31,12 @@ function SettingUser() {
   };
 
   const [formState, setFormState] = useState({
-    name: userInfo?.name || "",
-    email: userInfo?.email || "",
-    password: "",
-    confirmPassword: "",
-    birthday: userInfo?.birthday || "",
-    phone: userInfo?.phone || "",
+    name: userInfo?.name || '',
+    email: userInfo?.email || '',
+    password: '',
+    confirmPassword: '',
+    birthday: userInfo?.birthday || '',
+    phone: userInfo?.phone || '',
   });
 
   const [toggleUpdatePassword, setToggleUpdatePassword] = useState(false);
@@ -49,13 +59,13 @@ function SettingUser() {
       if (!formState.password) {
         errors.password = REQUIRE_PASSWORD;
       } else if (formState.password !== formState.confirmPassword) {
-        errors.confirmPassword = "Mật khẩu không khớp";
+        errors.confirmPassword = 'Mật khẩu không khớp';
       }
     }
 
     // Kiểm tra số điện thoại hợp lệ
     if (formState.phone && !/^\d{10,11}$/.test(formState.phone)) {
-      errors.phone = "Số điện thoại không hợp lệ";
+      errors.phone = 'Số điện thoại không hợp lệ';
     }
 
     if (Object.keys(errors).length > 0) {
@@ -84,88 +94,147 @@ function SettingUser() {
       </Helmet>
       <Header />
       <div className="infoUser">
-        <div className="containerInfo">
-          <h2>Thông Tin Cá Nhân</h2>
-
-          <div className="inputGroup">
-            <label>Họ và tên</label>
-            <input
-              type="text"
-              name="name"
-              value={formState.name}
-              onChange={handleChange}
-            />
+        <div className="settings-container">
+          <div className="settings-header">
+            <h1>Cài đặt tài khoản</h1>
+            <p>Cập nhật thông tin cá nhân của bạn</p>
           </div>
 
-          <div className="inputGroup">
-            <label>Email</label>
-            <input type="text" name="email" value={formState.email} disabled />
-          </div>
+          <div className="profile-section">
+            <form
+              className="settings-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSubmit();
+              }}
+            >
+              <div className="form-sections">
+                <div className="inputGroup">
+                  <label htmlFor="name">Họ và tên</label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={formState.name}
+                    onChange={handleChange}
+                    placeholder="Nhập họ và tên của bạn"
+                  />
+                  <FaUser className="input-icon" />
+                </div>
 
-          <div className="inputGroup">
-            <label>Ngày sinh</label>
-            <input
-              type="date"
-              name="birthday"
-              value={formState.birthday}
-              onChange={handleChange}
-            />
-          </div>
+                <div className="inputGroup">
+                  <label htmlFor="email">Email</label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formState.email}
+                    onChange={handleChange}
+                    disabled
+                    placeholder="Nhập email của bạn"
+                  />
+                  <FaEnvelope className="input-icon" />
+                </div>
 
-          <div className="inputGroup">
-            <label>Số điện thoại</label>
-            <input
-              type="text"
-              name="phone"
-              value={formState.phone}
-              onChange={handleChange}
-            />
-            {errorMessages.phone && (
-              <p className="error">{errorMessages.phone}</p>
-            )}
-          </div>
+                <div className="inputGroup">
+                  <label htmlFor="birthday">Ngày sinh</label>
+                  <input
+                    type="date"
+                    id="birthday"
+                    name="birthday"
+                    value={formState.birthday}
+                    onChange={handleChange}
+                  />
+                  <FaCalendar className="input-icon" />
+                </div>
 
-          <h2 className="mt-5">
-            <input
-              type="checkbox"
-              checked={toggleUpdatePassword}
-              onChange={(e) => setToggleUpdatePassword(e.target.checked)}
-            />
-            Cập nhật mật khẩu mới
-          </h2>
-
-          {toggleUpdatePassword && (
-            <>
-              <div className="inputGroup">
-                <label>Mật khẩu</label>
-                <input
-                  type="password"
-                  name="password"
-                  value={formState.password}
-                  onChange={handleChange}
-                />
-                {errorMessages.password && (
-                  <p className="error">{errorMessages.password}</p>
-                )}
+                <div className="inputGroup">
+                  <label htmlFor="phone">Số điện thoại</label>
+                  <input
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    value={formState.phone}
+                    onChange={handleChange}
+                    placeholder="Nhập số điện thoại của bạn"
+                  />
+                  <FaPhone className="input-icon" />
+                  {errorMessages.phone && (
+                    <span className="error">{errorMessages.phone}</span>
+                  )}
+                </div>
               </div>
-              <div className="inputGroup">
-                <label>Nhập lại mật khẩu</label>
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  value={formState.confirmPassword}
-                  onChange={handleChange}
-                />
-                {errorMessages.confirmPassword && (
-                  <p className="error">{errorMessages.confirmPassword}</p>
-                )}
-              </div>
-            </>
-          )}
 
-          <button className="submitBtn" onClick={handleSubmit}>
-            Cập nhật
-          </button>
+              <div className="password-toggle">
+                <input
+                  type="checkbox"
+                  id="togglePassword"
+                  checked={toggleUpdatePassword}
+                  onChange={(e) => setToggleUpdatePassword(e.target.checked)}
+                />
+                <label htmlFor="togglePassword">Đổi mật khẩu</label>
+              </div>
+
+              {toggleUpdatePassword && (
+                <div className="form-sections">
+                  <div className="inputGroup">
+                    <label htmlFor="password">Mật khẩu mới</label>
+                    <input
+                      type="password"
+                      id="password"
+                      name="password"
+                      value={formState.password}
+                      onChange={handleChange}
+                      placeholder="Nhập mật khẩu mới"
+                    />
+                    <FaKey className="input-icon" />
+                    {errorMessages.password && (
+                      <span className="error">{errorMessages.password}</span>
+                    )}
+                  </div>
+
+                  <div className="inputGroup">
+                    <label htmlFor="confirmPassword">Xác nhận mật khẩu</label>
+                    <input
+                      type="password"
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      value={formState.confirmPassword}
+                      onChange={handleChange}
+                      placeholder="Xác nhận mật khẩu mới"
+                    />
+                    <FaLock className="input-icon" />
+                    {errorMessages.confirmPassword && (
+                      <span className="error">
+                        {errorMessages.confirmPassword}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="form-actions">
+                <button
+                  type="button"
+                  className="cancel-button"
+                  onClick={() =>
+                    setFormState({
+                      ...userInfo,
+                      password: '',
+                      confirmPassword: '',
+                    })
+                  }
+                >
+                  <FaTimes />
+                  Hủy
+                </button>
+                <button type="submit" className="save-button">
+                  <FaSave />
+                  Lưu thay đổi
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
 
         {showConfirmModal && (

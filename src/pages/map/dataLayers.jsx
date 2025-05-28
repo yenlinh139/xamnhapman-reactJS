@@ -6,7 +6,7 @@ export const menusGIS = [
         icon: 'fa-solid fa-map',
         name: 'Địa giới hành chính',
         layers: ['DiaPhanHuyen', 'DiaPhanXa'],
-        nameItem: ['Địa Phận Huyện', 'Địa Phận Xã'],
+        nameItem: ['Địa phận huyện', 'Địa phận xã'],
       },
       {
         icon: 'fa-solid fa-mountain',

@@ -63,6 +63,24 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
     }
   };
 
+  const validData = data?.filter(
+    (item) =>
+      item.salinity !== null &&
+      item.salinity !== 'NULL' &&
+      !isNaN(item.salinity)
+  );
+
+  const startDate =
+    validData?.length > 0
+      ? new Date(validData[0].date).toLocaleDateString('vi-VN')
+      : null;
+  const endDate =
+    validData?.length > 0
+      ? new Date(validData[validData.length - 1].date).toLocaleDateString(
+          'vi-VN'
+        )
+      : null;
+
   return (
     <div
       className={`modal fade ${show ? 'show d-block' : ''}`}
@@ -71,11 +89,20 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
     >
       <div className="modal-dialog modal-lg modal-dialog-centered">
         <div className="modal-content">
-          <div className="modal-header">
-            <h5 className="modal-title">Biểu đồ độ mặn - {tenDiem}</h5>
+          <div className="modal-header border-0 pb-0">
+            <div className="w-100 text-center">
+              <h5 className="modal-title mb-1 fw-bold">
+                Biểu đồ xâm nhập mặn - {tenDiem}
+              </h5>
+              {startDate && endDate && (
+                <div className="text-muted small">
+                  Từ <strong>{startDate}</strong> đến <strong>{endDate}</strong>
+                </div>
+              )}
+            </div>
             <button
               type="button"
-              className="btn-close"
+              className="btn-close position-absolute end-0 top-0 m-3"
               onClick={onClose}
             ></button>
           </div>
@@ -109,7 +136,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
             <div className="tab-content">
               <div className="tab-pane fade show active" id="chart">
                 {data.length > 0 ? (
-                  <SalinityBarChart data={data} />
+                  <SalinityBarChart data={data} height={350} />
                 ) : (
                   <p className="text-muted">Không có dữ liệu.</p>
                 )}

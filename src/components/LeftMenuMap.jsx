@@ -3,9 +3,6 @@ import { NavLink } from 'react-router-dom';
 import { ROUTES } from '../common/constants';
 import imageLogo from '../assets/logo.png';
 import { menusGIS } from '../pages/map/dataLayers';
-// import wellknown from 'wellknown';
-// import { Buffer } from 'buffer';
-// import wkx from 'wkx';
 
 function LeftMenuMap({
   sidebarOpen,
@@ -13,6 +10,8 @@ function LeftMenuMap({
   onLayerToggle,
   searchResults,
   setSelectedLocation,
+  setHighlightedFeature,
+  highlightedFeature,
 }) {
   const [state, setState] = useState({
     openMenuIndex: null,
@@ -20,11 +19,11 @@ function LeftMenuMap({
     activeTab: 'Data', // Mặc định là tab Data
     isLoadingSearchResults: true,
   });
-
-  // const [showSalinityPoints, setShowSalinityPoints] = useState(false);
+  const [districtList, setDistrictList] = useState([]);
+  const [selectedDistrict, setSelectedDistrict] = useState(null);
+  const [selectedItemId, setSelectedItemId] = useState(null);
 
   const handleSalinityPointsToggle = (checked) => {
-    // Update the enabledLayers state
     setState((prevState) => ({
       ...prevState,
       enabledLayers: checked
@@ -32,7 +31,6 @@ function LeftMenuMap({
         : prevState.enabledLayers.filter((layer) => layer !== 'salinityPoints'),
     }));
 
-    // Make sure to notify parent component
     onLayerToggle('salinityPoints', checked);
   };
 
@@ -49,12 +47,11 @@ function LeftMenuMap({
     onLayerToggle('hydrometStations', checked);
   };
 
-  // Kiểm tra khi có dữ liệu tìm kiếm và tự động chuyển sang tab search
   useEffect(() => {
     if (searchResults && searchResults.length > 0) {
       setState((prevState) => ({
         ...prevState,
-        activeTab: 'search', // Chuyển sang tab search khi có dữ liệu
+        activeTab: 'search',
         isLoadingSearchResults: false,
       }));
     } else {
@@ -63,7 +60,7 @@ function LeftMenuMap({
         isLoadingSearchResults: false,
       }));
     }
-  }, [searchResults]); // Theo dõi sự thay đổi của searchResults
+  }, [searchResults]);
 
   const toggleDropdown = (index) => {
     setState((prevState) => ({
@@ -72,182 +69,400 @@ function LeftMenuMap({
     }));
   };
 
-  const handleLayerToggle = (layer, checked) => {
-    setState((prevState) => {
-      const updatedLayers = checked
-        ? [...prevState.enabledLayers, layer]
-        : prevState.enabledLayers.filter((l) => l !== layer);
+  const handleLayerToggle = async (layer, checked) => {
+    const updatedLayers = checked
+      ? [...state.enabledLayers, layer]
+      : state.enabledLayers.filter((l) => l !== layer);
 
-      onLayerToggle(layer, checked);
+    onLayerToggle(layer, checked);
 
-      return {
-        ...prevState,
-        enabledLayers: updatedLayers,
-      };
-    });
+    if (layer === 'DiaPhanHuyen' && checked) {
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_BASE_URL}/api/districts`
+        );
+        const data = await res.json();
+        console.log('Districts data:', data);
+
+        setDistrictList(data);
+      } catch (error) {
+        console.error('Lỗi khi lấy danh sách huyện:', error);
+      }
+    }
+
+    setState((prevState) => ({
+      ...prevState,
+      enabledLayers: updatedLayers,
+    }));
   };
 
-  // const handleClick = (result) => {
-  //   try {
-  //     const buffer = Buffer.from(result.geom, 'hex'); // 👈 chuyển chuỗi hex về buffer
-  //     const geometry = wkx.Geometry.parse(buffer); // 👈 parse buffer thành geometry
-  //     const geojson = geometry.toGeoJSON(); // 👈 convert sang GeoJSON
+  const getBoundsFromCoordinates = (coordinates) => {
+    let lats = [];
+    let lngs = [];
 
-  //     if (!geojson || !geojson.type) return;
+    const extractCoords = (coords) => {
+      coords.forEach((c) => {
+        if (typeof c[0] === 'number' && typeof c[1] === 'number') {
+          lngs.push(c[0]);
+          lats.push(c[1]);
+        } else {
+          extractCoords(c);
+        }
+      });
+    };
 
-  //     if (geojson.type === 'Point') {
-  //       const [lng, lat] = geojson.coordinates;
-  //       setSelectedLocation({ lat, lng });
-  //     } else if (geojson.type === 'Polygon') {
-  //       const center = getPolygonCenter(geojson.coordinates[0]);
-  //       setSelectedLocation({ lat: center.lat, lng: center.lng });
-  //     }
-  //   } catch (err) {
-  //     console.error('❌ Lỗi khi parse WKB:', err);
-  //   }
-  // };
+    extractCoords(coordinates);
 
-  // const getPolygonCenter = (coordinates) => {
-  //   // Tính trung tâm của Polygon
-  //   let latSum = 0;
-  //   let lngSum = 0;
-  //   coordinates.forEach(([lng, lat]) => {
-  //     latSum += lat;
-  //     lngSum += lng;
-  //   });
-  //   const centerLat = latSum / coordinates.length;
-  //   const centerLng = lngSum / coordinates.length;
+    const southWest = [Math.min(...lats), Math.min(...lngs)];
+    const northEast = [Math.max(...lats), Math.max(...lngs)];
 
-  //   return { lat: centerLat, lng: centerLng };
-  // };
+    return [southWest, northEast];
+  };
+
+  const handleClick = (result) => {
+    try {
+      if (result.type === 'diem_do_man') {
+        const lat = result.ViDo;
+        const lng = result.KinhDo;
+        if (lat && lng) {
+          setSelectedLocation({ lat, lng, zoom: 15 });
+          setHighlightedFeature({
+            type: 'Point',
+            coordinates: [lng, lat],
+            icon: 'droplet',
+            name: result.TenDiem,
+          });
+        }
+        return;
+      }
+
+      const geojson = result.geom;
+      if (!geojson || !geojson.type) return;
+
+      if (geojson.type === 'Point') {
+        const [lng, lat] = geojson.coordinates;
+        setSelectedLocation({ lat, lng, zoom: 14 });
+        setHighlightedFeature(geojson);
+      } else if (
+        geojson.type === 'Polygon' ||
+        geojson.type === 'MultiPolygon'
+      ) {
+        const bounds = getBoundsFromCoordinates(geojson.coordinates);
+        setSelectedLocation({ bounds });
+        setHighlightedFeature(geojson);
+      }
+    } catch (err) {
+      console.error('Lỗi xử lý GeoJSON hoặc tọa độ:', err);
+    }
+  };
 
   const renderTabContent = useMemo(() => {
     if (state.activeTab === 'Data') {
       return (
-        <div>
-          {/* Add custom li for salinity points */}
-          <div className="groupWrapper">
-            <p className="titleListMenu textMenuBig">Dữ liệu quan trắc</p>
-            <ul className="p-0">
-              <li className="listMenu">
-                <input
-                  type="checkbox"
-                  id="layer-salinity-points"
-                  checked={state.enabledLayers.includes('salinityPoints')}
-                  onChange={(e) => handleSalinityPointsToggle(e.target.checked)}
-                />
-                <label htmlFor="layer-salinity-points" className="ps-3">
-                  <i className="fa-solid fa-droplet pe-2"></i>
-                  Điểm đo độ mặn
-                </label>
-              </li>
-              <li className="listMenu">
-                <input
-                  type="checkbox"
-                  id="layer-hydromet-stations"
-                  checked={state.enabledLayers.includes('hydrometStations')}
-                  onChange={(e) =>
-                    handleHydrometStationsToggle(e.target.checked)
-                  }
-                />
-                <label htmlFor="layer-hydromet-stations" className="ps-3">
-                  <i className="fa-solid fa-cloud-rain pe-2"></i>
-                  Trạm khí tượng thủy văn
-                </label>
-              </li>
-            </ul>
+        <div className="tab-content-data">
+          {/* Monitoring Data Section */}
+          <div className="data-section">
+            <div className="section-header">
+              <i className="fa-solid fa-chart-line section-icon"></i>
+              <h3 className="section-title">Dữ liệu quan trắc</h3>
+            </div>
+            <div className="monitoring-layers">
+              <div className="layer-item monitoring-layer">
+                <div className="layer-toggle">
+                  <input
+                    type="checkbox"
+                    id="layer-salinity-points"
+                    className="layer-checkbox"
+                    checked={state.enabledLayers.includes('salinityPoints')}
+                    onChange={(e) =>
+                      handleSalinityPointsToggle(e.target.checked)
+                    }
+                  />
+                  <label
+                    htmlFor="layer-salinity-points"
+                    className="layer-label"
+                  >
+                    <div className="layer-info">
+                      <div className="layer-icon-wrapper salinity-icon">
+                        <i className="fa-solid fa-droplet"></i>
+                      </div>
+                      <div className="layer-details">
+                        <span className="layer-name">Điểm đo mặn</span>
+                        <span className="layer-desc">
+                          Các điểm quan trắc độ mặn
+                        </span>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div className="layer-item monitoring-layer">
+                <div className="layer-toggle">
+                  <input
+                    type="checkbox"
+                    id="layer-hydromet-stations"
+                    className="layer-checkbox"
+                    checked={state.enabledLayers.includes('hydrometStations')}
+                    onChange={(e) =>
+                      handleHydrometStationsToggle(e.target.checked)
+                    }
+                  />
+                  <label
+                    htmlFor="layer-hydromet-stations"
+                    className="layer-label"
+                  >
+                    <div className="layer-info">
+                      <div className="layer-icon-wrapper hydromet-icon">
+                        <i className="fa-solid fa-tower-observation"></i>
+                      </div>
+                      <div className="layer-details">
+                        <span className="layer-name">
+                          Trạm khí tượng thủy văn
+                        </span>
+                        <span className="layer-desc">
+                          Trạm quan trắc thời tiết
+                        </span>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
           </div>
+
+          {/* GIS Data Sections */}
           {menusGIS.map((group, groupIndex) => (
-            <div className="groupWrapper" key={groupIndex}>
-              <p className="titleListMenu textMenuBig">{group.title}</p>
-              <ul className="p-0">
+            <div className="data-section" key={groupIndex}>
+              <div className="section-header">
+                <i
+                  className={`${
+                    group.icon || 'fa-solid fa-layer-group'
+                  } section-icon`}
+                ></i>
+                <h3 className="section-title">{group.title}</h3>
+              </div>
+              <div className="gis-categories">
                 {group.items.map((menu, itemIndex) => {
                   const uniqueIndex = `${groupIndex}-${itemIndex}`;
+                  const isOpen = state.openMenuIndex === uniqueIndex;
+
                   return (
-                    <React.Fragment key={uniqueIndex}>
-                      <li
-                        className={`listMenu ${
-                          state.openMenuIndex === uniqueIndex ? 'active' : ''
-                        }`}
+                    <div className="category-item" key={uniqueIndex}>
+                      <div
+                        className={`category-header ${isOpen ? 'active' : ''}`}
                         onClick={() => toggleDropdown(uniqueIndex)}
                       >
-                        <i className={menu.icon}></i>
-                        <span className="ps-3 textMenuBig">{menu.name}</span>
-                        <i className="textMenuBig iconRight fa-solid fa-angle-right"></i>
-                      </li>
-                      {state.openMenuIndex === uniqueIndex && (
-                        <ul className="ps-4">
+                        <div className="category-info">
+                          <i className={`${menu.icon} category-icon`}></i>
+                          <span className="category-name">{menu.name}</span>
+                        </div>
+                        <i
+                          className={`fa-solid fa-chevron-right expand-icon ${
+                            isOpen ? 'rotated' : ''
+                          }`}
+                        ></i>
+                      </div>
+
+                      {isOpen && (
+                        <div className="category-layers">
                           {menu.layers.map((layer, idx) => (
-                            <li key={`${uniqueIndex}-${idx}`}>
-                              <input
-                                type="checkbox"
-                                id={`layer-${layer}`}
-                                checked={state.enabledLayers.includes(layer)}
-                                onChange={(e) =>
-                                  handleLayerToggle(layer, e.target.checked)
-                                }
-                              />
-                              <label
-                                htmlFor={`layer-${layer}`}
-                                className="ps-3"
-                              >
-                                {menu.nameItem?.[idx] || layer}
-                              </label>
-                            </li>
+                            <div
+                              className="layer-item"
+                              key={`${uniqueIndex}-${idx}`}
+                            >
+                              <div className="layer-toggle">
+                                <input
+                                  type="checkbox"
+                                  id={`layer-${layer}`}
+                                  className="layer-checkbox"
+                                  checked={state.enabledLayers.includes(layer)}
+                                  onChange={(e) =>
+                                    handleLayerToggle(layer, e.target.checked)
+                                  }
+                                />
+                                <label
+                                  htmlFor={`layer-${layer}`}
+                                  className="layer-label"
+                                >
+                                  <span className="layer-name">
+                                    {menu.nameItem?.[idx] || layer}
+                                  </span>
+                                </label>
+                              </div>
+                            </div>
                           ))}
-                        </ul>
+                        </div>
                       )}
-                    </React.Fragment>
+                    </div>
                   );
                 })}
-              </ul>
+              </div>
             </div>
           ))}
+
+          {/* District Selection */}
+          {state.enabledLayers.includes('DiaPhanHuyen') &&
+            districtList.length > 0 && (
+              <div className="data-section">
+                <div className="section-header">
+                  <i className="fa-solid fa-map-location-dot section-icon"></i>
+                  <h3 className="section-title">Lọc theo huyện</h3>
+                </div>
+                <div className="district-selector">
+                  <select
+                    className="district-select"
+                    value={selectedDistrict || ''}
+                    onChange={(e) => {
+                      const district = districtList.find(
+                        (d) => d.name === e.target.value
+                      );
+                      setSelectedDistrict(e.target.value);
+                      if (district) {
+                        setSelectedLocation({
+                          lat: district.centerLat,
+                          lng: district.centerLng,
+                          zoom: 12,
+                        });
+                      }
+                    }}
+                  >
+                    <option value="">-- Chọn huyện --</option>
+                    {districtList.map((d, idx) => (
+                      <option key={idx} value={d.name}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
         </div>
       );
     }
 
     if (state.activeTab === 'search') {
       return (
-        <div className="p-2">
-          <h6 className="fw-bold mb-3">Kết quả tìm kiếm</h6>
+        <div className="tab-content-search">
           {state.isLoadingSearchResults ? (
-            <p className="text-muted small">Đang tải dữ liệu...</p>
+            <div className="search-state">
+              <div className="loading-spinner">
+                <i className="fa-solid fa-spinner fa-spin"></i>
+              </div>
+              <p className="state-message">Đang tải dữ liệu...</p>
+            </div>
           ) : Array.isArray(searchResults) && searchResults.length === 0 ? (
-            <p className="text-muted small">Không tìm thấy kết quả.</p>
+            <div className="search-state">
+              <div className="empty-icon">
+                <i className="fa-solid fa-magnifying-glass"></i>
+              </div>
+              <p className="state-message">Không tìm thấy kết quả.</p>
+            </div>
           ) : Array.isArray(searchResults) ? (
-            <ul className="mb-0 px-2 pt-2">
+            <div className="search-results">
               {searchResults.map((result, idx) => (
-                <li
+                <div
                   key={result.id || idx}
-                  className="border rounded px-2 py-2 mb-3 bg-white shadow-sm"
-                  style={{
-                    fontSize: '0.8rem',
-                    wordWrap: 'break-word',
-                    whiteSpace: 'normal',
-                  }}
-                  // onClick={() => handleClick(result)}
+                  className={`result-card ${
+                    selectedItemId === result.id ? 'selected' : ''
+                  }`}
+                  onClick={() => handleClick(result)}
                 >
-                  <ul className="list-unstyled mb-0">
-                    <li className="fw-bold text-primary mb-2">
-                      {result.tenxa} - {result.tenhuyen}
-                    </li>
-                    <li>
-                      <strong>Mã xã: </strong> {result.maxa}
-                    </li>
-                    <li>
-                      <strong>Tên huyện: </strong> {result.tenhuyen}
-                    </li>
-                    <li>
-                      <strong>Diện tích tự nhiên: </strong>{' '}
-                      {result.dientichtunhien.toFixed(2)} ha
-                    </li>
-                  </ul>
-                </li>
+                  {result.type === 'diem_do_man' ? (
+                    <div className="result-content salinity-result">
+                      <div className="result-header">
+                        <div className="result-icon">
+                          <i className="fa-solid fa-droplet"></i>
+                        </div>
+                        <div className="result-title">
+                          <h4 className="result-name">{result.TenDiem}</h4>
+                          <span className="result-type">Điểm đo mặn</span>
+                        </div>
+                      </div>
+                      <div className="result-details">
+                        <div className="detail-item">
+                          <span className="detail-label">Phân loại:</span>
+                          <span className="detail-value">
+                            {result.PhanLoai}
+                          </span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Tọa độ:</span>
+                          <span className="detail-value">
+                            {result.ViDo}, {result.KinhDo}
+                          </span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Thời gian:</span>
+                          <span className="detail-value">
+                            {result.ThoiGian}
+                          </span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Tần suất:</span>
+                          <span className="detail-value">{result.TanSuat}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : result.tenxa ? (
+                    <div className="result-content ward-result">
+                      <div className="result-header">
+                        <div className="result-icon">
+                          <i className="fa-solid fa-building"></i>
+                        </div>
+                        <div className="result-title">
+                          <h4 className="result-name">{result.tenxa}</h4>
+                          <span className="result-type">{result.tenhuyen}</span>
+                        </div>
+                      </div>
+                      <div className="result-details">
+                        <div className="detail-item">
+                          <span className="detail-label">Mã xã:</span>
+                          <span className="detail-value">{result.maxa}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Diện tích:</span>
+                          <span className="detail-value">
+                            {result.dientichtunhien.toFixed(2)} ha
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="result-content district-result">
+                      <div className="result-header">
+                        <div className="result-icon">
+                          <i className="fa-solid fa-city"></i>
+                        </div>
+                        <div className="result-title">
+                          <h4 className="result-name">{result.tenhuyen}</h4>
+                          <span className="result-type">Huyện</span>
+                        </div>
+                      </div>
+                      <div className="result-details">
+                        <div className="detail-item">
+                          <span className="detail-label">Mã huyện:</span>
+                          <span className="detail-value">{result.mahuyen}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Diện tích:</span>
+                          <span className="detail-value">
+                            {result.dientichtunhien.toFixed(2)} ha
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ))}
-            </ul>
+            </div>
           ) : (
-            <p className="text-muted small">Dữ liệu không hợp lệ.</p>
+            <div className="search-state">
+              <div className="error-icon">
+                <i className="fa-solid fa-exclamation-triangle"></i>
+              </div>
+              <p className="state-message">Dữ liệu không hợp lệ.</p>
+            </div>
           )}
         </div>
       );
@@ -258,6 +473,9 @@ function LeftMenuMap({
     state.enabledLayers,
     searchResults,
     state.isLoadingSearchResults,
+    selectedItemId,
+    districtList,
+    selectedDistrict,
   ]);
 
   return (

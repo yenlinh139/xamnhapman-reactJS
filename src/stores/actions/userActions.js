@@ -1,16 +1,16 @@
-import { TOAST } from "../../common/constants";
-import { ToastCommon } from "../../components/ToastCommon";
-import axiosInstance from "../../config/axios-config";
-import { SET_LIST_USER, SET_USER_INFO } from "../constants";
-import { hideLoading, showLoading } from "./appAction";
-import { logout } from "./authActions";
+import { TOAST } from '../../common/constants';
+import { ToastCommon } from '../../components/ToastCommon';
+import axiosInstance from '../../config/axios-config';
+import { SET_LIST_USER, SET_USER_INFO } from '../constants';
+import { hideLoading, showLoading } from './appAction';
+import { logout } from './authActions';
 
 export const getListUser = () => {
   return async (dispatch, getState) => {
     try {
       dispatch(showLoading());
       const resp = await axiosInstance.get(
-        import.meta.env.VITE_BASE_URL + "/api/user"
+        import.meta.env.VITE_BASE_URL + '/api/user'
       );
 
       if (resp) {
@@ -41,12 +41,12 @@ export const createUser = (params) => {
   return async (dispatch, getState) => {
     try {
       const resp = await axiosInstance.post(
-        import.meta.env.VITE_BASE_URL + "/api/user",
+        import.meta.env.VITE_BASE_URL + '/api/user',
         params
       );
       if (resp) {
-        document.getElementById("close-create-user-btn").click();
-        ToastCommon(TOAST.SUCCESS, "Created user successfully");
+        document.getElementById('close-create-user-btn').click();
+        ToastCommon(TOAST.SUCCESS, 'Created user successfully');
         dispatch(getListUser());
       }
     } catch (error) {
@@ -59,12 +59,12 @@ export const deleteUser = (params) => {
   return async (dispatch, getState) => {
     try {
       const resp = await axiosInstance.delete(
-        import.meta.env.VITE_BASE_URL + "/api/user",
+        import.meta.env.VITE_BASE_URL + '/api/user',
         { data: params }
       );
       if (resp) {
         dispatch(getListUser());
-        ToastCommon(TOAST.SUCCESS, "Deleted user successfully");
+        ToastCommon(TOAST.SUCCESS, 'Deleted user successfully');
       }
     } catch (error) {
       ToastCommon(TOAST.ERROR, error.response?.data?.message || error.message);
@@ -76,13 +76,13 @@ export const updateUser = (params) => {
   return async (dispatch, getState) => {
     try {
       const res = await axiosInstance.put(
-        import.meta.env.VITE_BASE_URL + "/api/user",
+        import.meta.env.VITE_BASE_URL + '/api/user',
         params
       );
 
       if (res) {
-        document.getElementById("close-edit-user-btn").click();
-        ToastCommon(TOAST.SUCCESS, "Updated user successfully");
+        document.getElementById('close-edit-user-btn').click();
+        ToastCommon(TOAST.SUCCESS, 'Updated user successfully');
         dispatch(getListUser());
       }
     } catch (error) {
@@ -92,8 +92,6 @@ export const updateUser = (params) => {
 };
 
 export const updateUserByUser = (params) => {
-  console.log("updateUserByUser", params);
-
   return async (dispatch, getState) => {
     try {
       let request = {
@@ -113,7 +111,7 @@ export const updateUserByUser = (params) => {
       let success = false;
 
       const resUser = await axiosInstance.put(
-        import.meta.env.VITE_BASE_URL + "/api/user",
+        import.meta.env.VITE_BASE_URL + '/api/user',
         request
       );
       if (resUser.status === 200) {
@@ -121,7 +119,7 @@ export const updateUserByUser = (params) => {
       }
 
       if (success) {
-        ToastCommon(TOAST.SUCCESS, "Updated user successfully");
+        ToastCommon(TOAST.SUCCESS, 'Updated user successfully');
         dispatch(getListUser());
       }
     } catch (error) {
@@ -134,7 +132,7 @@ export const changeRole = (params, navigate) => {
   return async (dispatch, getState) => {
     try {
       const resp = await axiosInstance.put(
-        import.meta.env.VITE_BASE_URL + "/api/user/changerole",
+        import.meta.env.VITE_BASE_URL + '/api/user/changerole',
         {
           email: params.email,
           role: params.role,
@@ -142,7 +140,7 @@ export const changeRole = (params, navigate) => {
       );
 
       if (resp) {
-        ToastCommon(TOAST.SUCCESS, "Role has been changed successfully.");
+        ToastCommon(TOAST.SUCCESS, 'Role has been changed successfully.');
         dispatch(getListUser());
         if (getState().authStore.userInfo.email === params.email) {
           dispatch(logout());

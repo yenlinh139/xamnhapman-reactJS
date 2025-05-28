@@ -7,6 +7,7 @@ import ListUser from './ListUser';
 import { getListUser } from '../../stores/actions/userActions';
 import { Helmet } from 'react-helmet-async';
 import Header from '../themes/headers/Header';
+import Footer from '../themes/footer/Footer';
 
 function User() {
   const { userInfo } = useSelector((state) => state.authStore); // Lấy thông tin người dùng từ Redux
@@ -46,6 +47,7 @@ function User() {
 
         {isLoading && <Loading />}
       </div>
+      <Footer />
     </>
   );
 }
