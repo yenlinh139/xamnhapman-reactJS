@@ -1,12 +1,12 @@
-import L from 'leaflet';
-import { createBaseMaps, createWMSLayer } from './mapStyles';
+import L from "leaflet";
+import { createBaseMaps, createWMSLayer } from "@components/map/mapStyles";
 
 export const createLegendControl = () => {
-  const legendContainer = L.control({ position: 'topright' });
+    const legendContainer = L.control({ position: "topright" });
 
-  legendContainer.onAdd = () => {
-    const div = L.DomUtil.create('div');
-    div.innerHTML = `
+    legendContainer.onAdd = () => {
+        const div = L.DomUtil.create("div");
+        div.innerHTML = `
       <div class="legend-container" id="legend-container">
         <div class="legend-header">
           <h4 class="legend-title">
@@ -47,70 +47,70 @@ export const createLegendControl = () => {
       </div>
     `;
 
-    // Add toggle functionality
-    setTimeout(() => {
-      const toggleBtn = document.getElementById('legend-toggle');
-      const content = document.getElementById('legend-content');
-      const toggleIcon = toggleBtn?.querySelector('.toggle-icon');
+        // Add toggle functionality
+        setTimeout(() => {
+            const toggleBtn = document.getElementById("legend-toggle");
+            const content = document.getElementById("legend-content");
+            const toggleIcon = toggleBtn?.querySelector(".toggle-icon");
 
-      if (toggleBtn && content && toggleIcon) {
-        toggleBtn.addEventListener('click', () => {
-          const isCollapsed = content.style.display === 'none';
-          content.style.display = isCollapsed ? 'block' : 'none';
-          toggleIcon.textContent = isCollapsed ? '−' : '+';
-          toggleBtn.setAttribute('aria-expanded', isCollapsed.toString());
-        });
-      }
-    }, 100);
+            if (toggleBtn && content && toggleIcon) {
+                toggleBtn.addEventListener("click", () => {
+                    const isCollapsed = content.style.display === "none";
+                    content.style.display = isCollapsed ? "block" : "none";
+                    toggleIcon.textContent = isCollapsed ? "−" : "+";
+                    toggleBtn.setAttribute("aria-expanded", isCollapsed.toString());
+                });
+            }
+        }, 100);
 
-    return div;
-  };
+        return div;
+    };
 
-  return legendContainer;
+    return legendContainer;
 };
 
 export const initializeMap = (container) => {
-  const mapInstance = L.map(container, {
-    center: [10.747890979236143, 106.74911060545153],
-    zoom: 10,
-    zoomControl: false,
-  });
+    const mapInstance = L.map(container, {
+        center: [10.747890979236143, 106.74911060545153],
+        zoom: 10,
+        zoomControl: false,
+    });
 
-  const baseMaps = createBaseMaps();
-  const overlayMaps = {};
+    const baseMaps = createBaseMaps();
+    const overlayMaps = {};
 
-  // Add default base layer
-  baseMaps['Google Satellite'].addTo(mapInstance);
+    // Add default base layer
+    baseMaps["Google Satellite"].addTo(mapInstance);
 
-  // Add WMS layer
-  const wmsLayer = createWMSLayer();
-  wmsLayer.addTo(mapInstance);
+    // Add WMS layer
+    const wmsLayer = createWMSLayer();
+    wmsLayer.addTo(mapInstance);
 
-  // Add legend control
-  const legendControl = createLegendControl();
-  legendControl.addTo(mapInstance);
+    // Add legend control
+    const legendControl = createLegendControl();
+    legendControl.addTo(mapInstance);
 
-  // Add layer control
-  const layerControl = L.control
-    .layers(baseMaps, overlayMaps, { position: 'bottomright' })
-    .addTo(mapInstance);
+    // Add layer control
+    const layerControl = L.control
+        .layers(baseMaps, overlayMaps, { position: "bottomright" })
+        .addTo(mapInstance);
 
-  // Add locate control
-  L.control
-    .locate({
-      position: 'topleft',
-      strings: {
-        title: 'Vị trí của tôi',
-      },
-    })
-    .addTo(mapInstance);
+    // Add locate control
+    L.control
+        .locate({
+            position: "topleft",
+            strings: {
+                title: "Vị trí của tôi",
+            },
+        })
+        .addTo(mapInstance);
 
-  // Add zoom control
-  L.control
-    .zoom({
-      position: 'topleft',
-    })
-    .addTo(mapInstance);
+    // Add zoom control
+    L.control
+        .zoom({
+            position: "topleft",
+        })
+        .addTo(mapInstance);
 
-  return { mapInstance, layerControl, overlayMaps };
+    return { mapInstance, layerControl, overlayMaps };
 };

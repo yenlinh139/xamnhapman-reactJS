@@ -1,262 +1,269 @@
 .about-container {
     min-height: 100vh;
     background: linear-gradient(to bottom, var(--bgLight) 0%, #ffffff 100%);
-  }
-  
-  .about-content {
+}
+
+.about-content {
     max-width: 1200px;
     margin: 0 auto;
     padding: 4rem 2rem;
-  
-    section {
-      margin-bottom: 5rem;
-  
-      &:last-child {
-        margin-bottom: 0;
-      }
-    }
-  
-    h2 {
-      font-size: 2.5rem;
-      color: var(--textColorDark);
-      margin-bottom: 2rem;
-      text-align: center;
-      position: relative;
-  
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: -0.5rem;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 60px;
-        height: 4px;
-        background: linear-gradient(to right, var(--primary), var(--blue));
-        border-radius: 2px;
-      }
-    }
-  }
-  
-  /* Introduction Section */
-  .introduction-section {
-    .content-wrapper {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 3rem;
-    }
-  
-    .text-content {
-      .highlight-text {
-        font-size: 1.25rem;
-        color: var(--primary);
-        line-height: 1.6;
-        margin-bottom: 1.5rem;
-        padding-left: 1rem;
-        border-left: 4px solid var(--primary);
-      }
-  
-      p {
-        font-size: 1.1rem;
-        line-height: 1.7;
-        color: var(--textColorGray);
-        margin-bottom: 1rem;
-  
-        strong {
-          color: var(--textColorDark);
-        }
-      }
-    }
-  
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1.5rem;
-      margin-top: 2rem;
-  
-      .stat-card {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 20px;
-        text-align: center;
-        transition: all 0.3s ease;
-        border: 1px solid rgba(0, 0, 0, 0.1);
-  
-        &:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-  
-        .stat-icon {
-          font-size: 2rem;
-          margin-bottom: 1rem;
-          display: block;
-        }
-  
-        h3 {
-          font-size: 1.1rem;
-          color: var(--textColorDark);
-          margin-bottom: 0.5rem;
-        }
-  
-        p {
-          font-size: 1rem;
-          color: var(--textColorGray);
-        }
-      }
-    }
-  }
-  
-  /* Objectives Section */
-  .objectives-section {
-    background: white;
 
-  
-    .objectives-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 2rem;
-      margin-top: 3rem;
-  
-      .objective-card {
-        background: white;
-        padding: 2rem;
-        border-radius: 20px;
-        transition: all 0.3s ease;
-        border: 1px solid rgba(0, 0, 0, 0.1);
-        position: relative;
-        overflow: hidden;
-  
-        &::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 4px;
-          height: 100%;
-          background: var(--primary);
-          opacity: 0;
-          transition: opacity 0.3s ease;
+    section {
+        margin-bottom: 5rem;
+
+        &:last-child {
+            margin-bottom: 0;
         }
-  
-        &:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  
-          &::before {
-            opacity: 1;
-          }
-        }
-  
-        .objective-icon {
-          font-size: 2.5rem;
-          margin-bottom: 1rem;
-          display: block;
-        }
-  
-        h3 {
-          font-size: 1.25rem;
-          color: var(--textColorDark);
-          margin-bottom: 1rem;
-        }
-  
-        p {
-          font-size: 1rem;
-          color: var(--textColorGray);
-          line-height: 1.6;
-        }
-      }
     }
-  }
-  
-  /* Team Section */
-  .team-section {
-    .team-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 2rem;
-  
-      .team-card {
-        background: white;
-        border-radius: 20px;
-        overflow: hidden;
-        transition: all 0.3s ease;
-        border: 1px solid rgba(0, 0, 0, 0.1);
-  
-        &:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+
+    h2 {
+        font-size: 2.5rem;
+        color: var(--textColorDark);
+        margin-bottom: 2rem;
+        text-align: center;
+        position: relative;
+
+        &::after {
+            content: "";
+            position: absolute;
+            bottom: -0.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(to right, var(--primary), var(--blue));
+            border-radius: 2px;
         }
-  
-        .card-content {
-          padding: 2rem;
-          text-align: center;
-  
-          h3 {
+    }
+}
+
+/* Introduction Section */
+.introduction-section {
+    .content-wrapper {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 3rem;
+    }
+
+    .text-content {
+        .highlight-text {
+            font-size: 1.25rem;
+            color: var(--primary);
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+            padding-left: 1rem;
+            border-left: 4px solid var(--primary);
+        }
+
+        p {
             font-size: 1.1rem;
+            line-height: 1.7;
             color: var(--textColorGray);
             margin-bottom: 1rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-          }
-  
-          .member-name {
-            font-size: 1.5rem;
-            color: var(--textColorDark);
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-          }
-  
-          .member-role {
-            font-size: 1rem;
-            color: var(--textColorGray);
-          }
+
+            strong {
+                color: var(--textColorDark);
+            }
         }
-  
-        &.student {
-          background: linear-gradient(135deg, rgba(var(--primaryRgb), 0.1) 0%, rgba(var(--primaryRgb), 0.05) 100%);
-        }
-  
-        &.advisor {
-          background: linear-gradient(135deg, rgba(var(--blueRgb), 0.1) 0%, rgba(var(--blueRgb), 0.05) 100%);
-        }
-      }
     }
-  }
-  
-  /* Responsive Design */
-  @media (max-width: 768px) {
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+
+            &:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            }
+
+            .stat-icon {
+                font-size: 2rem;
+                margin-bottom: 1rem;
+                display: block;
+            }
+
+            h3 {
+                font-size: 1.1rem;
+                color: var(--textColorDark);
+                margin-bottom: 0.5rem;
+            }
+
+            p {
+                font-size: 1rem;
+                color: var(--textColorGray);
+            }
+        }
+    }
+}
+
+/* Objectives Section */
+.objectives-section {
+    background: white;
+
+    .objectives-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+        margin-top: 3rem;
+
+        .objective-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+
+            &::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 4px;
+                height: 100%;
+                background: var(--primary);
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+
+            &:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+
+                &::before {
+                    opacity: 1;
+                }
+            }
+
+            .objective-icon {
+                font-size: 2.5rem;
+                margin-bottom: 1rem;
+                display: block;
+            }
+
+            h3 {
+                font-size: 1.25rem;
+                color: var(--textColorDark);
+                margin-bottom: 1rem;
+            }
+
+            p {
+                font-size: 1rem;
+                color: var(--textColorGray);
+                line-height: 1.6;
+            }
+        }
+    }
+}
+
+/* Team Section */
+.team-section {
+    .team-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+
+        .team-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+
+            &:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            }
+
+            .card-content {
+                padding: 2rem;
+                text-align: center;
+
+                h3 {
+                    font-size: 1.1rem;
+                    color: var(--textColorGray);
+                    margin-bottom: 1rem;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                }
+
+                .member-name {
+                    font-size: 1.5rem;
+                    color: var(--textColorDark);
+                    font-weight: 600;
+                    margin-bottom: 0.5rem;
+                }
+
+                .member-role {
+                    font-size: 1rem;
+                    color: var(--textColorGray);
+                }
+            }
+
+            &.student {
+                background: linear-gradient(
+                    135deg,
+                    rgba(var(--primaryRgb), 0.1) 0%,
+                    rgba(var(--primaryRgb), 0.05) 100%
+                );
+            }
+
+            &.advisor {
+                background: linear-gradient(
+                    135deg,
+                    rgba(var(--blueRgb), 0.1) 0%,
+                    rgba(var(--blueRgb), 0.05) 100%
+                );
+            }
+        }
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
     .about-content {
-      padding: 2rem 1rem;
-  
-      h2 {
-        font-size: 2rem;
-      }
+        padding: 2rem 1rem;
+
+        h2 {
+            font-size: 2rem;
+        }
     }
-  
+
     .introduction-section {
-      .text-content {
-        .highlight-text {
-          font-size: 1.1rem;
+        .text-content {
+            .highlight-text {
+                font-size: 1.1rem;
+            }
         }
-      }
     }
-  
+
     .team-section {
-      .team-grid {
-        grid-template-columns: 1fr;
-      }
+        .team-grid {
+            grid-template-columns: 1fr;
+        }
     }
-  }
-  
-  @media (max-width: 480px) {
+}
+
+@media (max-width: 480px) {
     .about-content {
-      h2 {
-        font-size: 1.75rem;
-      }
+        h2 {
+            font-size: 1.75rem;
+        }
     }
-  
+
     .stats-grid,
     .objectives-grid {
-      grid-template-columns: 1fr;
+        grid-template-columns: 1fr;
     }
-  }
+}

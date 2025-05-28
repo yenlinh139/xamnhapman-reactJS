@@ -1,13 +1,13 @@
 // mapReducer.js
 const initialState = {
-  farmBoundaries: [],
+    farmBoundaries: [],
 };
 
 const farmReducer = (state = initialState, action) => {
-  switch (action.type) {
-    default:
-      return state;
-  }
+    switch (action.type) {
+        default:
+            return state;
+    }
 };
 
 export default farmReducer;
