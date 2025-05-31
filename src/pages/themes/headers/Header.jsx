@@ -1,15 +1,32 @@
 import React, { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import imageLogo from "@assets/logo.png";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { ROUTES } from "@common/constants";
+import { logout } from "@stores/actions/authActions";
 
 function Header() {
     const [query, setQuery] = useState("");
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const { userInfo } = useSelector((state) => state.authStore);
 
     const onSearch = (searchQuery) => {
         if (searchQuery.trim()) {
             console.log("Tìm kiếm:", searchQuery);
         }
+    };
+
+    // Kiểm tra xem user có quyền truy cập các tab không (role !== 0)
+    const hasAccess = userInfo && userInfo.role !== 0;
+
+    // Kiểm tra xem user đã đăng nhập chưa
+    const isLoggedIn = localStorage.getItem("access_token");
+
+    // Xử lý đăng xuất
+    const handleLogout = () => {
+        dispatch(logout());
+        navigate(ROUTES.home);
     };
 
     return (
@@ -79,40 +96,36 @@ function Header() {
                     {/* Menu */}
                     <nav className="nav-menu">
                         <ul className="d-flex list-unstyled m-0">
-                            <li>
+                            <li className="text-center">
                                 <NavLink to="/" activeClassName="active">
                                     TRANG CHỦ
                                 </NavLink>
                             </li>
-                            <li>
-                                <NavLink to={ROUTES.about}>GIỚI THIỆU</NavLink>
-                            </li>
-                            <li>
-                                <NavLink to={ROUTES.map}>BẢN ĐỒ</NavLink>
-                            </li>
-                            <li>
-                                <NavLink to={ROUTES.feedback}>GÓP Ý</NavLink>
-                            </li>
-                            <li>
-                                <NavLink to={ROUTES.users}>NGƯỜI DÙNG</NavLink>
-                            </li>
+                            {hasAccess && (
+                                <>
+                                    <li className="text-center">
+                                        <NavLink to={ROUTES.map}>BẢN ĐỒ</NavLink>
+                                    </li>
+                                    <li className="text-center">
+                                        <NavLink to={ROUTES.salinity}>ĐỘ MẶN</NavLink>
+                                    </li>
+                                    <li className="text-center">
+                                        <NavLink to={ROUTES.feedback}>GÓP Ý</NavLink>
+                                    </li>
+                                    <li className="text-center">
+                                        <NavLink to={ROUTES.users}>NGƯỜI DÙNG</NavLink>
+                                    </li>
+                                </>
+                            )}
+                            {isLoggedIn && (
+                                <li className="text-center">
+                                    <button onClick={handleLogout} className="nav-logout-btn">
+                                        ĐĂNG XUẤT
+                                    </button>
+                                </li>
+                            )}
                         </ul>
                     </nav>
-
-                    {/* Tìm kiếm + Button Ứng Dụng Mobile */}
-                    <div className="header-right d-flex align-items-center">
-                        <div className="searchHome">
-                            <input
-                                type="text"
-                                placeholder="Tìm kiếm..."
-                                value={query}
-                                onChange={(e) => setQuery(e.target.value)}
-                            />
-                            <button onClick={() => onSearch(query)}>
-                                <i className="fa-solid fa-magnifying-glass"></i>
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </header>
         </>

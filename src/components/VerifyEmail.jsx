@@ -11,7 +11,7 @@ const VerifyEmail = () => {
         // Gửi yêu cầu xác thực email đến backend
         const verifyEmail = async () => {
             try {
-                const response = await fetch(`http://localhost:4000/api/verify-email/${userId}`);
+                const response = await fetch(`http://localhost:4000/verify-email/${userId}`);
                 const data = await response.json();
 
                 if (response.ok) {

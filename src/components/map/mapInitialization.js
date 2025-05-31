@@ -11,7 +11,7 @@ export const createLegendControl = () => {
         <div class="legend-header">
           <h4 class="legend-title">
             <i class="legend-icon">📊</i>
-            Bảng chú thích
+            THỐNG KÊ DỮ LIỆU
           </h4>
           <button class="legend-toggle" id="legend-toggle">
             <span class="toggle-icon">−</span>
@@ -22,7 +22,7 @@ export const createLegendControl = () => {
           <div class="legend-search">
             <label for="legend-date" class="legend-search__label">
               <i class="search-icon">🗓️</i>
-              Thời gian thống kê:
+              Chọn thời gian:
             </label>
             <input type="date" id="legend-date" class="legend-date-input" 
                    placeholder="Chọn ngày thống kê" />
@@ -31,7 +31,7 @@ export const createLegendControl = () => {
           <div class="legend-divider"></div>
           
           <div class="legend-layers">
-            <h5 class="legend-section-title">Tổng quan dữ liệu</h5>
+            <h5 class="legend-section-title">Tổng hợp dữ liệu</h5>
             <div class="legend-primary" id="legend-primary">
               <!-- Dynamic layer content will be inserted here -->
             </div>

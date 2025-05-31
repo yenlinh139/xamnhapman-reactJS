@@ -29,7 +29,7 @@ const Map = () => {
         setSearchResults([]);
         try {
             const response = await axiosInstance.get(
-                `${import.meta.env.VITE_BASE_URL}/api/search/${encodeURIComponent(searchText)}`,
+                `${import.meta.env.VITE_BASE_URL}/search/${encodeURIComponent(searchText)}`,
             );
 
             setSearchResults(response.data);

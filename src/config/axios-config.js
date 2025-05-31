@@ -39,7 +39,7 @@ axiosInstance.interceptors.response.use(
                 }
 
                 // Call the refresh token API
-                const { data } = await axios.get(`${BASE_URL}/api/refresh-token`, {
+                const { data } = await axios.get(`${BASE_URL}/refresh-token`, {
                     headers: {
                         Authorization: `Bearer ${refresh_token}`,
                     },

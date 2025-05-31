@@ -9,7 +9,7 @@ const parseDDMMYYYY = (str) => {
 
 export const fetchSalinityPoints = async () => {
     try {
-        const response = await axiosInstance.get("/api/salinity-points");
+        const response = await axiosInstance.get("/salinity-points");
         return response.data;
     } catch (error) {
         console.error("Error fetching salinity points:", error);
@@ -19,7 +19,7 @@ export const fetchSalinityPoints = async () => {
 
 export const fetchSalinityData = async (kiHieu) => {
     try {
-        const response = await axiosInstance.get(`/api/salinity-data/${kiHieu}`);
+        const response = await axiosInstance.get(`/salinity-data/${kiHieu}`);
         const formatted = response.data.map((item) => ({
             date: new Date(item.Ngày).toISOString(),
             salinity: item.DoMan,
@@ -34,7 +34,7 @@ export const fetchSalinityData = async (kiHieu) => {
 
 export const fetchHydrometStations = async () => {
     try {
-        const response = await axiosInstance.get("/api/hydrometeorology-station");
+        const response = await axiosInstance.get("/hydrometeorology-station");
         return response.data;
     } catch (error) {
         console.error("Error fetching hydrometeorology stations:", error);
@@ -44,7 +44,7 @@ export const fetchHydrometStations = async () => {
 
 export const fetchHydrometData = async (maTram) => {
     try {
-        const response = await axiosInstance.get(`/api/hydrometeorology-data/${maTram}`);
+        const response = await axiosInstance.get(`/hydrometeorology-data/${maTram}`);
 
         return response.data;
     } catch (error) {
@@ -70,7 +70,7 @@ export const fetchSalinityStationPositions = async (salinityData) => {
     for (const kiHieu of kiHieuList) {
         const value = dataItem[kiHieu];
         promises.push(
-            axiosInstance.get(`/api/station-position-salinity/${kiHieu}`).then((res) => ({
+            axiosInstance.get(`/station-position-salinity/${kiHieu}`).then((res) => ({
                 kiHieu,
                 value,
                 position: res.data,
@@ -94,7 +94,7 @@ export const fetchHydrometeorologyStationPositions = async (hydrometeorology) =>
     for (const kiHieu of kiHieuList) {
         const value = dataItem[kiHieu];
         promises.push(
-            axiosInstance.get(`/api/station-position-hydrometeorology/${kiHieu}`).then((res) => ({
+            axiosInstance.get(`/station-position-hydrometeorology/${kiHieu}`).then((res) => ({
                 kiHieu,
                 value,
                 position: res.data,

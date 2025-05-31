@@ -42,7 +42,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
 
     const handleExportExcel = async () => {
         try {
-            const res = await axiosInstance.get(`/api/salinity-export/${kiHieu}`, {
+            const res = await axiosInstance.get(`/salinity-export/${kiHieu}`, {
                 responseType: "blob",
             });
 
@@ -147,12 +147,6 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                 )}
                             </div>
                         </div>
-                    </div>
-
-                    <div className="modal-footer">
-                        <button className="btn btn-secondary" onClick={onClose}>
-                            Đóng
-                        </button>
                     </div>
                 </div>
             </div>

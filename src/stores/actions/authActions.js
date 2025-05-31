@@ -12,7 +12,7 @@ export const signUp = (params) => {
             // validation
             validateFormSignUp(params);
 
-            const resp = await axios.post(import.meta.env.VITE_BASE_URL + "/api/signup", {
+            const resp = await axios.post(import.meta.env.VITE_BASE_URL + "/signup", {
                 name: params.name,
                 email: params.email,
                 password: params.password,
@@ -39,7 +39,7 @@ export const login = (params, onRequestNavigate) => {
         try {
             validateFormLogin(params);
 
-            const resp = await axios.post(import.meta.env.VITE_BASE_URL + "/api/login", params);
+            const resp = await axios.post(import.meta.env.VITE_BASE_URL + "/login", params);
 
             if (resp) {
                 // Lưu token vào localStorage

@@ -9,7 +9,7 @@ export const getListUser = () => {
     return async (dispatch, getState) => {
         try {
             dispatch(showLoading());
-            const resp = await axiosInstance.get(import.meta.env.VITE_BASE_URL + "/api/user");
+            const resp = await axiosInstance.get(import.meta.env.VITE_BASE_URL + "/user");
 
             if (resp) {
                 dispatch({
@@ -38,7 +38,7 @@ export const getListUser = () => {
 export const createUser = (params) => {
     return async (dispatch, getState) => {
         try {
-            const resp = await axiosInstance.post(import.meta.env.VITE_BASE_URL + "/api/user", params);
+            const resp = await axiosInstance.post(import.meta.env.VITE_BASE_URL + "/user", params);
             if (resp) {
                 document.getElementById("close-create-user-btn").click();
                 ToastCommon(TOAST.SUCCESS, "Created user successfully");
@@ -53,7 +53,7 @@ export const createUser = (params) => {
 export const deleteUser = (params) => {
     return async (dispatch, getState) => {
         try {
-            const resp = await axiosInstance.delete(import.meta.env.VITE_BASE_URL + "/api/user", {
+            const resp = await axiosInstance.delete(import.meta.env.VITE_BASE_URL + "/user", {
                 data: params,
             });
             if (resp) {
@@ -69,7 +69,7 @@ export const deleteUser = (params) => {
 export const updateUser = (params) => {
     return async (dispatch, getState) => {
         try {
-            const res = await axiosInstance.put(import.meta.env.VITE_BASE_URL + "/api/user", params);
+            const res = await axiosInstance.put(import.meta.env.VITE_BASE_URL + "/user", params);
 
             if (res) {
                 document.getElementById("close-edit-user-btn").click();
@@ -101,7 +101,7 @@ export const updateUserByUser = (params) => {
 
             let success = false;
 
-            const resUser = await axiosInstance.put(import.meta.env.VITE_BASE_URL + "/api/user", request);
+            const resUser = await axiosInstance.put(import.meta.env.VITE_BASE_URL + "/user", request);
             if (resUser.status === 200) {
                 success = true;
             }
@@ -119,7 +119,7 @@ export const updateUserByUser = (params) => {
 export const changeRole = (params, navigate) => {
     return async (dispatch, getState) => {
         try {
-            const resp = await axiosInstance.put(import.meta.env.VITE_BASE_URL + "/api/user/changerole", {
+            const resp = await axiosInstance.put(import.meta.env.VITE_BASE_URL + "/user/changerole", {
                 email: params.email,
                 role: params.role,
             });

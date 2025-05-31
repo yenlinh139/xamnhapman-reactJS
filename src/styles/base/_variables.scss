@@ -1,4 +1,5 @@
 :root {
+    // Original colors
     --lightBlue: #4d88ff;
     --blue: #1754ab;
     --darkBlue: #103a75;
@@ -8,6 +9,58 @@
     --textColorDark: #333;
     --textColorLight: #a3a3a3;
     --lightGray: #f4f4f4;
+
+    // Primary color system
+    --primary-color: #1754ab;
+    --primary-color-rgb: 23, 84, 171;
+    --primary-hover: #103a75;
+    --primary-light: #4d88ff;
+    --primary-dark: #103a75;
+
+    // Secondary colors
+    --secondary-color: #6c757d;
+    --secondary-hover: #5a6268;
+    --success-color: #28a745;
+    --warning-color: #ffc107;
+    --error-color: #dc3545;
+    --info-color: #17a2b8;
+
+    // Background colors
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --bg-tertiary: #e9ecef;
+    --bg-dark: #343a40;
+    --bg-light: #f8f9fa;
+
+    // Text colors
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --text-muted: #868e96;
+    --text-light: #adb5bd;
+    --text-white: #ffffff;
+
+    // Border colors
+    --border-color: #dee2e6;
+    --border-light: #e9ecef;
+    --border-dark: #adb5bd;
+
+    // Shadow colors
+    --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    --shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+
+    // Border radius
+    --border-radius: 0.375rem;
+    --border-radius-sm: 0.25rem;
+    --border-radius-lg: 0.5rem;
+    --border-radius-xl: 0.75rem;
+
+    // Spacing
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
 
     // RGB Values for gradients
     --primaryRgb: 0, 123, 255;

@@ -30,7 +30,7 @@
 }
 .labelLogin {
     color: #fff;
-    font-size: 2.3em;
+    font-size: 2em;
     justify-content: center;
     display: flex;
     margin: 50px 0 30px;
@@ -80,7 +80,7 @@
     height: 600px;
     background: #eee;
     border-radius: 50% / 10%;
-    transform: translateY(-400px);
+    transform: translateY(-280px);
     transition: 0.8s ease-in-out;
 }
 .signUp .labelLogin {
@@ -91,7 +91,7 @@
 }
 
 #chk:checked ~ .signUp {
-    transform: translateY(-840px);
+    transform: translateY(-660px);
     border-radius: 10%;
 }
 #chk:checked ~ .signUp .labelLogin {
@@ -112,6 +112,11 @@
     color: var(--blue);
     transform: scale(0.8);
 }
+
+#chk:checked ~ .line {
+    display: none;
+}
+
 .auth-divider {
     display: flex;
     flex-basis: 100%;
@@ -146,7 +151,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    margin: 20px 0 40px;
+    margin: 0 0 20px;
 }
 .line {
     width: 15vw;
@@ -156,7 +161,7 @@
 }
 
 .logoImage {
-    width: 10vw;
+    width: 8vw;
     height: auto;
     object-fit: contain;
     transition: transform 0.3s ease-in-out;

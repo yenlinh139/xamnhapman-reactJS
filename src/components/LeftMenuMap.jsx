@@ -76,7 +76,7 @@ function LeftMenuMap({
 
         if (layer === "DiaPhanHuyen" && checked) {
             try {
-                const res = await fetch(`${import.meta.env.VITE_BASE_URL}/api/districts`);
+                const res = await fetch(`${import.meta.env.VITE_BASE_URL}/districts`);
                 const data = await res.json();
 
                 setDistrictList(data);
@@ -175,7 +175,6 @@ function LeftMenuMap({
                                             </div>
                                             <div className="layer-details">
                                                 <span className="layer-name">Điểm đo mặn</span>
-                                                <span className="layer-desc">Các điểm quan trắc độ mặn</span>
                                             </div>
                                         </div>
                                     </label>
@@ -198,7 +197,6 @@ function LeftMenuMap({
                                             </div>
                                             <div className="layer-details">
                                                 <span className="layer-name">Trạm khí tượng thủy văn</span>
-                                                <span className="layer-desc">Trạm quan trắc thời tiết</span>
                                             </div>
                                         </div>
                                     </label>

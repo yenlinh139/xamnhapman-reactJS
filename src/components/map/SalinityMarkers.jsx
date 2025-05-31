@@ -6,10 +6,9 @@ import { fetchSalinityPoints, fetchSalinityData } from "@components/map/mapDataS
 const getSalinityIcon = (salinity) => {
     let color = "#6c757d";
 
-    if (salinity < 1) color = "blue";
-    else if (salinity < 4) color = "green";
-    else if (salinity < 10) color = "yellow";
-    else color = "red";
+    if (salinity < 1) color = "#1754ab";
+    else if (salinity >= 1 && salinity < 4) color = "#ff6600";
+    else if (salinity > 4) color = "red";
 
     return L.divIcon({
         className: "custom-salinity-icon",
@@ -31,18 +30,18 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
     let statusText = "Bình thường";
     let statusColor = "#198754";
 
-    if (salinityValue >= 10) {
+    if (salinityValue > 4) {
         statusClass = "status-critical";
-        statusText = "Rủi ro cao";
+        statusText = "Rủi ro cấp 3";
         statusColor = "#dc3545";
-    } else if (salinityValue >= 4) {
+    } else if (salinityValue >= 1 && salinityValue <= 4) {
         statusClass = "status-warning";
-        statusText = "Cảnh báo";
-        statusColor = "#fd7e14";
-    } else if (salinityValue >= 1) {
+        statusText = "Rủi ro cấp 2";
+        statusColor = "#ff6600";
+    } else if (salinityValue < 1) {
         statusClass = "status-caution";
-        statusText = "Theo dõi";
-        statusColor = "#ffc107";
+        statusText = "Bình thường";
+        statusColor = "blue";
     }
 
     return `
@@ -108,13 +107,6 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
               </div>
             </div>
           </div>
-        </div>
-        
-        <div class="popup-actions">
-          <button class="action-btn primary" onclick="window.openChartDetails('${point.KiHieu}')">
-            <i class="btn-icon">📈</i>
-            Xem biểu đồ chi tiết
-          </button>
         </div>
       </div>
     </div>

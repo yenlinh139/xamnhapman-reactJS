@@ -56,9 +56,7 @@ const Feedback = () => {
 
     const checkEmailExists = async (email) => {
         try {
-            const response = await axiosInstance.get(
-                import.meta.env.VITE_BASE_URL + `/api/feedback/${email}`,
-            );
+            const response = await axiosInstance.get(import.meta.env.VITE_BASE_URL + `/feedback/${email}`);
             if (response.data) {
                 setFormData(response.data);
                 setIsUpdate(true);
@@ -85,12 +83,12 @@ const Feedback = () => {
             showLoading();
             if (isUpdate) {
                 await axiosInstance.put(
-                    import.meta.env.VITE_BASE_URL + `/api/feedback/${formData.email}`,
+                    import.meta.env.VITE_BASE_URL + `/feedback/${formData.email}`,
                     formData,
                 );
                 ToastCommon(TOAST.SUCCESS, "Cập nhật thành công!");
             } else {
-                await axiosInstance.post(import.meta.env.VITE_BASE_URL + "/api/feedback", formData);
+                await axiosInstance.post(import.meta.env.VITE_BASE_URL + "/feedback", formData);
                 ToastCommon(TOAST.SUCCESS, "Tin nhắn đã được gửi thành công!");
             }
 

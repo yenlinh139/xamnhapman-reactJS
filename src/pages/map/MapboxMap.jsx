@@ -260,7 +260,7 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, setHi
                 if (parseInt(year, 10) < 1000) return;
 
                 try {
-                    const response = await axiosInstance.get(`/api/search-date/${rawDate}`);
+                    const response = await axiosInstance.get(`search-date/${rawDate}`);
                     const data = response.data;
 
                     if (data.meteorologyData?.length || data.hydrologyData?.length) {
