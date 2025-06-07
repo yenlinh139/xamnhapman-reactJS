@@ -131,7 +131,7 @@ const SalinityManagement = () => {
     // Handle delete multiple records
     const handleDeleteRange = useCallback(() => {
         if (selectedRecords.length === 0) {
-            ToastCommon(TOAST.ERROR, "Vui lòng chọn ít nhất một bản ghi để xóa");
+            ToastCommon(TOAST.ERROR, "Vui lòng chọn ít nhất một ngày để xóa");
             return;
         }
         setShowDeleteRangeModal(true);

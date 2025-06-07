@@ -7,13 +7,13 @@ import "leaflet.locatecontrol";
 import "leaflet-draw";
 import "@components/BetterWMS.js";
 import axiosInstance from "@config/axios-config";
-import { convertDMSToDecimal, convertDMSToDecimalNo } from "@components/convertDMSToDecimal";
+import { convertDMSToDecimal, dmsToDecimal } from "@components/convertDMSToDecimal";
 import { ToastCommon } from "@components/ToastCommon.jsx";
 import { TOAST } from "@common/constants.js";
 import SaltChartFull from "@pages/map/SaltChartFull";
 import MapDetails from "@pages/map/MapDetails";
 import { initializeMap } from "@components/map/mapInitialization";
-import { renderSalinityPoints } from "@components/map/SalinityMarkers";
+import { getSalinityTooltipClass, renderSalinityPoints } from "@components/map/SalinityMarkers";
 import { renderHydrometStations } from "@components/map/HydrometMarkers";
 import { updateLegendVisibility } from "@components/map/mapStyles";
 import { handleLocationChange, handleFeatureHighlight } from "@components/map/mapUtils";
@@ -25,7 +25,7 @@ import {
 import { getSalinityIcon, getHydrometIcon } from "@components/map/mapMarkers";
 import { prefixUnitMap } from "@components/map/mapStyles.js";
 
-const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, setHighlightedFeature }) => {
+const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => {
     const mapContainer = useRef(null);
     const [map, setMap] = useState(null);
     const overlayLayers = useRef({});
@@ -104,6 +104,20 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, setHi
         const { mapInstance } = initializeMap(mapContainer.current);
         setMap(mapInstance);
 
+        // Add a test function to window for debugging
+        window.testHighlightFeature = () => {
+            const testFeature = {
+                geometry: {
+                    type: "Point",
+                    coordinates: [106.7, 10.8], // Test coordinates in HCMC
+                },
+                icon: "droplet",
+                name: "Test Point",
+            };
+
+            handleFeatureHighlight(mapInstance, testFeature, highlightedLayerRef, highlightedMarkerRef);
+        };
+
         // Add a resize handler to recalculate map size when container changes
         const handleResize = () => {
             if (mapInstance) {
@@ -120,6 +134,7 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, setHi
         return () => {
             // Clean up event listeners
             window.removeEventListener("resize", handleResize);
+            delete window.testHighlightFeature;
             if (mapInstance) {
                 mapInstance.remove();
             }
@@ -156,34 +171,22 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, setHi
         const hasSalinityPoints = selectedLayers.includes("salinityPoints");
         const hasHydrometStations = selectedLayers.includes("hydrometStations");
 
-        // Add selected layers with mutual exclusivity logic
+        // Add selected layers without mutual exclusivity
         selectedLayers.forEach((layerName) => {
             if (layerName === "salinityPoints") {
-                // Only render if hydromet stations are not selected
-                if (
-                    !hasHydrometStations ||
-                    selectedLayers.indexOf("salinityPoints") > selectedLayers.indexOf("hydrometStations")
-                ) {
-                    renderSalinityPoints(map, setSalinityData, setSelectedPoint);
-                    // Add to overlay layers for legend visibility
-                    overlayLayers.current[layerName] = {
-                        name: "Điểm đo mặn",
-                        type: "marker",
-                    };
-                }
+                renderSalinityPoints(map, setSalinityData, setSelectedPoint);
+                // Add to overlay layers for legend visibility
+                overlayLayers.current[layerName] = {
+                    name: "Điểm đo mặn",
+                    type: "marker",
+                };
             } else if (layerName === "hydrometStations") {
-                // Only render if salinity points are not selected
-                if (
-                    !hasSalinityPoints ||
-                    selectedLayers.indexOf("hydrometStations") > selectedLayers.indexOf("salinityPoints")
-                ) {
-                    renderHydrometStations(map, setHydrometData, setSelectedStation);
-                    // Add to overlay layers for legend visibility
-                    overlayLayers.current[layerName] = {
-                        name: "Trạm khí tượng thủy văn",
-                        type: "marker",
-                    };
-                }
+                renderHydrometStations(map, setHydrometData, setSelectedStation);
+                // Add to overlay layers for legend visibility
+                overlayLayers.current[layerName] = {
+                    name: "Trạm khí tượng thủy văn",
+                    type: "marker",
+                };
             } else {
                 // Handle WMS layers from GeoServer
                 const wmsLayer = L.tileLayer.betterWms(
@@ -221,48 +224,109 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, setHi
         handleFeatureHighlight(map, highlightedFeature, highlightedLayerRef, highlightedMarkerRef);
     }, [highlightedFeature, map]);
 
-    // Force re-render when key dependencies change
-    useEffect(() => {
-        if (!map) return;
-
-        // Close any open popups
-        map.closePopup();
-
-        // Clear any highlighted features
-        if (highlightedLayerRef.current) {
-            map.removeLayer(highlightedLayerRef.current);
-            highlightedLayerRef.current = null;
-        }
-
-        if (highlightedMarkerRef.current) {
-            map.removeLayer(highlightedMarkerRef.current);
-            highlightedMarkerRef.current = null;
-        }
-
-        // Force map refresh
-        map.invalidateSize();
-    }, [selectedLayers, selectedLocation, map]);
-
     // Date search functionality for legend
     useEffect(() => {
         if (!map) return;
+
+        // Define the function to clear date search data and markers
+        window.clearDateSearchData = () => {
+            // Clear all summary points and markers from the map
+            map.eachLayer((layer) => {
+                if (
+                    layer.options?.isSummaryPoint ||
+                    layer.options?.isHydrometSummary ||
+                    (layer.options?.isSalinityPoint && layer.options?.kiHieu)
+                ) {
+                    map.removeLayer(layer);
+                }
+            });
+
+            // Reset the legend UI
+            const legendPrimary = document.getElementById("legend-primary");
+            const legendSummary = document.getElementById("legend-summary");
+
+            if (legendPrimary) {
+                legendPrimary.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-day"></i>
+                        <p>Chọn ngày để xem dữ liệu</p>
+                    </div>
+                `;
+            }
+
+            if (legendSummary) {
+                legendSummary.style.display = "none";
+            }
+
+            // Reset date input if exists
+            const dateInput = document.getElementById("legend-date");
+            if (dateInput) {
+                dateInput.value = "";
+            }
+
+            // Show success toast
+            ToastCommon(TOAST.SUCCESS, "Đã xóa dữ liệu tìm kiếm thành công");
+        };
 
         setTimeout(() => {
             const dateInput = document.getElementById("legend-date");
             if (!dateInput) return;
 
+            // Date input processing
+
+            // Configure date input events
+
             dateInput.addEventListener("change", async () => {
                 const rawDate = dateInput.value; // yyyy-mm-dd
-
+                const legendPrimary = document.getElementById("legend-primary");
                 if (!/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) return;
 
                 const [year, month, day] = rawDate.split("-");
                 if (parseInt(year, 10) < 1000) return;
 
                 try {
+                    // Show loading indicator in the legend
+                    if (legendPrimary) {
+                        legendPrimary.innerHTML = `
+                            <div class="loading-indicator">
+                                <div class="spinner-border text-primary" role="status" style="width: 2rem; height: 2rem;">
+                                    <span class="visually-hidden">Đang tải...</span>
+                                </div>
+                                <p>Đang tìm kiếm dữ liệu cho ngày ${day}-${month}-${year}...</p>
+                            </div>
+                        `;
+                    }
+
+                    // Clear previous summary points
+                    map.eachLayer((layer) => {
+                        if (layer.options?.isSummaryPoint || layer.options?.isHydrometSummary) {
+                            map.removeLayer(layer);
+                        }
+                    });
+
                     const response = await axiosInstance.get(`search-date/${rawDate}`);
                     const data = response.data;
 
+                    // Check if we have any data at all
+                    const hasData =
+                        data.meteorologyData?.length > 0 ||
+                        data.hydrologyData?.length > 0 ||
+                        data.salinityData?.length > 0;
+
+                    if (!hasData) {
+                        // No data found for this date
+                        if (legendPrimary) {
+                            legendPrimary.innerHTML = `
+                                <div class="empty-state">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                    <p>Không tìm thấy dữ liệu cho ngày ${day}-${month}-${year}</p>
+                                </div>
+                            `;
+                        }
+                        return;
+                    }
+
+                    // Process hydrometeorology data if available
                     if (data.meteorologyData?.length || data.hydrologyData?.length) {
                         const hydrometeorologyPositions = await fetchHydrometeorologyStationPositions(
                             data.meteorologyData || data.hydrologyData,
@@ -271,6 +335,7 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, setHi
                         renderHydrometeorologySummaryPoints(map, hydrometeorologyPositions);
                     }
 
+                    // Process salinity data if available
                     if (data.salinityData?.length) {
                         const salinityPositions = await fetchSalinityStationPositions(data.salinityData);
                         renderSalinitySummaryPoints(map, salinityPositions);
@@ -278,7 +343,6 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, setHi
 
                     // Update legend UI with new structure
                     const legendSummary = document.getElementById("legend-summary");
-                    const legendPrimary = document.getElementById("legend-primary");
 
                     if (legendSummary && legendPrimary) {
                         legendSummary.style.display = "block";
@@ -290,27 +354,279 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, setHi
                             hydrologyData: "Thủy văn",
                         };
 
-                        legendPrimary.innerHTML = `
-              <div class="data-summary-card">
-                <div class="summary-header">
-                  <h6 class="summary-date">📅 ${formattedDate}</h6>
-                </div>
-                <div class="summary-stats">
-                  ${Object.keys(data)
-                      .map((key) => {
-                          const label = labelMapping[key] || key;
-                          const count = data[key].length;
-                          return `
-                        <div class="stat-item">
-                          <span class="stat-label">${label}</span>
-                          <span class="stat-value">${count} bản ghi</span>
-                        </div>
-                      `;
-                      })
-                      .join("")}
-                </div>
-              </div>
-            `;
+                        const handleClickSearchDate = (station) => {
+                            console.log(`handleClickSearchDate station:`, station);
+
+                            // Kiểm tra xem station có tọa độ hợp lệ không
+                            if (station && station.position) {
+                                const { vido, kinhdo } = station.position;
+                                console.log(`Tọa độ trạm:`, { vido, kinhdo });
+
+                                // Có thể zoom đến vị trí trạm trên bản đồ
+                                if (map && vido && kinhdo) {
+                                    map.setView([vido, kinhdo], 14);
+
+                                    // Tạo popup hiển thị thông tin trạm
+                                    const popupContent = `
+                                        <div class="station-popup">
+                                            <h6>${station.name || "Trạm quan trắc"}</h6>
+                                            ${station.value ? `<p>Giá trị: ${station.value} ${station.unit || ""}</p>` : ""}
+                                            <p>Vĩ độ: ${vido}</p>
+                                            <p>Kinh độ: ${kinhdo}</p>
+                                        </div>
+                                    `;
+
+                                    L.popup().setLatLng([vido, kinhdo]).setContent(popupContent).openOn(map);
+                                }
+                            } else {
+                                console.warn("Không có thông tin tọa độ hợp lệ cho trạm:", station);
+                            }
+                        };
+
+                        // Process stations data for better display in the legend
+                        const processStationsData = async () => {
+                            const stationsInfo = {};
+
+                            // Process salinity data
+                            if (data.salinityData?.length > 0) {
+                                const salinityPositions = await fetchSalinityStationPositions(
+                                    data.salinityData,
+                                );
+                                stationsInfo.salinityData = salinityPositions.map((station) => ({
+                                    position: {
+                                        vido: convertDMSToDecimal(station.position[0].ViDo),
+                                        kinhdo: convertDMSToDecimal(station.position[0].KinhDo),
+                                    },
+                                    name: station.position[0].TenDiem,
+                                    value: parseFloat(station.value).toFixed(2),
+                                    unit: "‰",
+                                    kiHieu: station.kiHieu,
+                                    color: getSalinityColor(parseFloat(station.value)),
+                                }));
+                            }
+
+                            const groupHydrometStations = (positions) => {
+                                const grouped = {};
+                                positions.forEach((pos) => {
+                                    if (!pos.position || !pos.position[0]) return;
+
+                                    const key = pos.position[0].KiHieu;
+                                    if (!grouped[key]) {
+                                        grouped[key] = {
+                                            position: {
+                                                vido: dmsToDecimal(pos.position[0].ViDo),
+                                                kinhdo: dmsToDecimal(pos.position[0].KinhDo),
+                                            },
+                                            name: pos.position[0].TenTam,
+                                            values: [],
+                                        };
+                                    }
+
+                                    const prefix = pos.kiHieu.split("_")[0];
+                                    const unitData = prefixUnitMap()[prefix] || {};
+                                    const unit = unitData.donvi || "";
+
+                                    grouped[key].values.push({
+                                        paramName: unitData.label || pos.kiHieu,
+                                        value: parseFloat(pos.value).toFixed(2),
+                                        unit,
+                                    });
+                                });
+
+                                return Object.values(grouped);
+                            };
+
+                            // Process meteorology data
+                            if (data.meteorologyData?.length > 0) {
+                                const meteoPositions = await fetchHydrometeorologyStationPositions(
+                                    data.meteorologyData,
+                                );
+                                stationsInfo.meteorologyData = groupHydrometStations(meteoPositions);
+                            }
+
+                            // Process hydrology data
+                            if (data.hydrologyData?.length > 0) {
+                                const hydroPositions = await fetchHydrometeorologyStationPositions(
+                                    data.hydrologyData,
+                                );
+                                stationsInfo.hydrologyData = groupHydrometStations(hydroPositions);
+                            }
+
+                            return stationsInfo;
+                        };
+
+                        // Generate the legend HTML with station data
+                        const updateLegendWithStations = async () => {
+                            const stationsInfo = await processStationsData();
+
+                            // Create array with all three data types to ensure they are all displayed
+                            const allDataTypes = ["salinityData", "meteorologyData", "hydrologyData"];
+
+                            legendPrimary.innerHTML = `
+                              <div class="data-summary-card">
+                                <div class="summary-header">
+                                  <div class="d-flex justify-content-between align-items-center w-100">
+                                    <h6 class="summary-date mb-0">📅 ${formattedDate}</h6>
+                                    <button class="btn btn-sm btn-outline-danger clear-data-btn" onclick="clearDateSearchData()" title="Xóa dữ liệu tìm kiếm và các điểm trên bản đồ">
+                                      <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                  </div>
+                                </div>
+                               <div class="summary-stats">
+                                ${allDataTypes
+                                    .map((key) => {
+                                        const label = labelMapping[key] || key;
+                                        const count = data[key]?.length || 0;
+
+                                        // Salinity data
+                                        if (key === "salinityData" && stationsInfo.salinityData?.length > 0) {
+                                            return `
+                                                <div class="stat-item" >
+                                                    <span class="stat-label">${label}</span>
+                                                    <div class="station-list">
+                                                        ${stationsInfo.salinityData
+                                                            .map(
+                                                                (station) => `
+                                                        <div class="station-item" data-station="${station.kiHieu}" data-position='${JSON.stringify(station)}' role="button" tabindex="0">
+                                                            <span class="station-name">${station.name}</span>
+                                                            <span class="station-value" style="color: ${station.color}; font-weight: 600; background-color: rgba(${station.color === "blue" ? "0,0,255,0.1" : station.color === "#fd7e14" ? "253,126,20,0.1" : "220,53,69,0.1"}); padding: 3px 8px; border-radius: 12px;">
+                                                            ${station.value} ${station.unit}
+                                                            </span>
+                                                        </div>
+                                                        `,
+                                                            )
+                                                            .join("")}
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }
+
+                                        // Meteorology data
+                                        else if (
+                                            key === "meteorologyData" &&
+                                            stationsInfo.meteorologyData?.length > 0
+                                        ) {
+                                            return `
+                                                <div class="stat-item">
+                                                <span class="stat-label">${label}</span>
+                                                <div class="station-list">
+                                                    ${stationsInfo.meteorologyData
+                                                        .map(
+                                                            (station) => `
+                                                    <div class="station-item" data-station="${station.name}" data-position='${JSON.stringify(station)}' role="button" tabindex="0">
+                                                        <span class="station-name">${station.name}</span>
+                                                        <div class="station-params">
+                                                        ${station.values
+                                                            .map(
+                                                                (param) => `
+                                                            <div class="param-item">
+                                                            <span class="param-value" style="background-color: rgba(13, 110, 253, 0.1); padding: 2px 6px; border-radius: 10px; font-weight: 500;">
+                                                                ${param.value} ${param.unit}
+                                                            </span>
+                                                            </div>
+                                                        `,
+                                                            )
+                                                            .join("")}
+                                                        </div>
+                                                    </div>
+                                                    `,
+                                                        )
+                                                        .join("")}
+                                                </div>
+                                                </div>
+                                            `;
+                                        }
+
+                                        // Hydrology data
+                                        else if (
+                                            key === "hydrologyData" &&
+                                            stationsInfo.hydrologyData?.length > 0
+                                        ) {
+                                            return `
+                                                <div class="stat-item">
+                                                <span class="stat-label">${label}</span>
+                                                <div class="station-list">
+                                                    ${stationsInfo.hydrologyData
+                                                        .map(
+                                                            (station) => `
+                                                    <div class="station-item" data-station="${station.name}" data-position='${JSON.stringify(station)}' role="button" tabindex="0">
+                                                        <span class="station-name">${station.name}</span>
+                                                        <div class="station-params">
+                                                        ${station.values
+                                                            .map(
+                                                                (param) => `
+                                                            <div class="param-item">
+                                                            <span class="param-value" style="background-color: rgba(25, 135, 84, 0.1); padding: 2px 6px; border-radius: 10px; font-weight: 500;">
+                                                                ${param.value} ${param.unit}
+                                                            </span>
+                                                            </div>
+                                                        `,
+                                                            )
+                                                            .join("")}
+                                                        </div>
+                                                    </div>
+                                                    `,
+                                                        )
+                                                        .join("")}
+                                                </div>
+                                                </div>
+                                            `;
+                                        }
+
+                                        // Default fallback
+                                        else {
+                                            return `
+                                                <div class="stat-item">
+                                                <span class="stat-label">${label}</span>
+                                                <span class="stat-value">(0 trạm)</span>
+                                                </div>
+                                            `;
+                                        }
+                                    })
+                                    .join("")}
+                                </div>
+                              </div>
+                            `;
+                        };
+
+                        setTimeout(() => {
+                            const items = legendPrimary.querySelectorAll(".station-item[data-position]");
+                            console.log(`Tìm thấy ${items.length} station items để gắn sự kiện click`);
+
+                            items.forEach((el) => {
+                                el.addEventListener("click", (event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+
+                                    try {
+                                        const raw = el.getAttribute("data-position");
+                                        console.log("Raw data-position:", raw);
+
+                                        if (raw) {
+                                            const station = JSON.parse(raw);
+                                            console.log("Parsed station data:", station);
+                                            handleClickSearchDate(station);
+                                        } else {
+                                            console.warn("Không tìm thấy data-position attribute");
+                                        }
+                                    } catch (e) {
+                                        console.error("❌ Lỗi khi parse data-position:", e);
+                                        console.error("Raw data:", el.getAttribute("data-position"));
+                                    }
+                                });
+
+                                // Thêm visual feedback khi hover
+                                el.style.cursor = "pointer";
+                                el.addEventListener("mouseenter", function () {
+                                    this.style.backgroundColor = "rgba(0, 123, 255, 0.1)";
+                                });
+                                el.addEventListener("mouseleave", function () {
+                                    this.style.backgroundColor = "transparent";
+                                });
+                            });
+                        }, 100);
+
+                        updateLegendWithStations();
                     }
                 } catch (error) {
                     console.log(`error.message:`, error.message);
@@ -318,11 +634,33 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, setHi
                 }
             });
         }, 0);
+
+        // Cleanup function
+        return () => {
+            // Remove global function when component unmounts
+            if (window.clearDateSearchData) {
+                delete window.clearDateSearchData;
+            }
+        };
     }, [map]);
+
+    // Helper function to get salinity color based on value
+    const getSalinityColor = (value) => {
+        if (value < 1) return "blue";
+        else if (value < 4) return "#fd7e14";
+        else return "#dc3545";
+    };
 
     // Summary points rendering functions for date search
     const renderSalinitySummaryPoints = (mapInstance, salinityPositions) => {
         const latLngs = [];
+
+        // First remove any existing salinity points to avoid duplicates
+        mapInstance.eachLayer((layer) => {
+            if (layer.options?.isSalinityPoint) {
+                mapInstance.removeLayer(layer);
+            }
+        });
 
         salinityPositions.forEach((station) => {
             const point = station.position[0];
@@ -345,15 +683,18 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, setHi
             const marker = L.marker([lat, lng], {
                 icon,
                 isSalinityPoint: true,
+                isSummaryPoint: true,
+                kiHieu: station.kiHieu,
             }).addTo(mapInstance);
 
             latLngs.push([lat, lng]);
 
+            const tooltipClass = getSalinityTooltipClass(value || 0);
             marker.bindTooltip(point.TenDiem, {
                 permanent: true,
                 direction: "top",
                 offset: [0, -10],
-                className: `custom-tooltip tooltip-${color.replace("#", "")}`,
+                className: tooltipClass,
             });
 
             marker.on("click", () => {
@@ -439,6 +780,14 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, setHi
 
     const renderHydrometeorologySummaryPoints = (mapInstance, hydrometeorologyPositions) => {
         const latLngs = [];
+
+        // First remove any existing hydromet points to avoid duplicates
+        mapInstance.eachLayer((layer) => {
+            if (layer.options?.isHydrometPoint || layer.options?.isHydrometSummary) {
+                mapInstance.removeLayer(layer);
+            }
+        });
+
         const grouped = {};
         hydrometeorologyPositions.forEach((item) => {
             const key = item.position[0].KiHieu;
@@ -455,12 +804,11 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, setHi
             });
         });
         const result = Object.values(grouped);
-        console.log(result);
 
         result.forEach((station) => {
             const point = station.position[0];
-            const lat = convertDMSToDecimalNo(point.ViDo);
-            const lng = convertDMSToDecimalNo(point.KinhDo);
+            const lat = dmsToDecimal(point.ViDo);
+            const lng = dmsToDecimal(point.KinhDo);
             const date = station.date;
 
             if (lat == null || lng == null || isNaN(lat) || isNaN(lng)) {
@@ -474,6 +822,9 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, setHi
             const marker = L.marker([lat, lng], {
                 icon,
                 isHydrometPoint: true,
+                isHydrometSummary: true,
+                kiHieu: point.KiHieu,
+                maTram: point.TenTam, // Add station name as identifier
             }).addTo(mapInstance);
 
             latLngs.push([lat, lng]);

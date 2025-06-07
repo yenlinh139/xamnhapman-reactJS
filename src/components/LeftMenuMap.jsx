@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import { ROUTES } from "@common/constants";
 import imageLogo from "@assets/logo.png";
-import { menusGIS } from "@pages/map/dataLayers";
+import { mapLayers } from "@pages/map/dataLayers";
 
 function LeftMenuMap({
     sidebarOpen,
@@ -16,12 +16,11 @@ function LeftMenuMap({
     const [state, setState] = useState({
         openMenuIndex: null,
         enabledLayers: [],
-        activeTab: "Data", // Mặc định là tab Data
+        activeTab: "Data",
         isLoadingSearchResults: true,
     });
     const [districtList, setDistrictList] = useState([]);
     const [selectedDistrict, setSelectedDistrict] = useState(null);
-    const [selectedItemId, setSelectedItemId] = useState(null);
 
     const handleSalinityPointsToggle = (checked) => {
         setState((prevState) => ({
@@ -121,30 +120,59 @@ function LeftMenuMap({
                 const lng = result.KinhDo;
                 if (lat && lng) {
                     setSelectedLocation({ lat, lng, zoom: 15 });
-                    setHighlightedFeature({
-                        type: "Point",
-                        coordinates: [lng, lat],
+
+                    const feature = {
+                        id: result.id,
+                        geometry: {
+                            type: "Point",
+                            coordinates: [lng, lat],
+                        },
                         icon: "droplet",
                         name: result.TenDiem,
-                    });
+                    };
+
+                    setHighlightedFeature(feature);
                 }
                 return;
             }
 
             const geojson = result.geom;
-            if (!geojson || !geojson.type) return;
+            if (!geojson || !geojson.type) {
+                console.warn("⚠️ No valid geojson found in result");
+                return;
+            }
 
             if (geojson.type === "Point") {
                 const [lng, lat] = geojson.coordinates;
+                console.log("📍 Setting location for GeoJSON point:", { lat, lng });
                 setSelectedLocation({ lat, lng, zoom: 14 });
-                setHighlightedFeature(geojson);
+
+                const feature = {
+                    geometry: geojson,
+                    id: result.id,
+                    icon: "marker",
+                    name: result.name || "Điểm",
+                };
+
+                console.log("🎯 Setting highlighted feature (GeoJSON):", feature);
+                setHighlightedFeature(feature);
             } else if (geojson.type === "Polygon" || geojson.type === "MultiPolygon") {
                 const bounds = getBoundsFromCoordinates(geojson.coordinates);
+                console.log("📍 Setting bounds for polygon:", bounds);
                 setSelectedLocation({ bounds });
-                setHighlightedFeature(geojson);
+
+                const feature = {
+                    type: "Feature",
+                    geometry: geojson,
+                    id: result.id,
+                    name: result.name || "Vùng",
+                };
+
+                console.log("🎯 Setting highlighted feature (Polygon):", feature);
+                setHighlightedFeature(feature);
             }
         } catch (err) {
-            console.error("Lỗi xử lý GeoJSON hoặc tọa độ:", err);
+            console.error("❌ Lỗi xử lý GeoJSON hoặc tọa độ:", err);
         }
     };
 
@@ -205,76 +233,66 @@ function LeftMenuMap({
                         </div>
                     </div>
 
-                    {/* GIS Data Sections */}
-                    {menusGIS.map((group, groupIndex) => (
-                        <div className="data-section" key={groupIndex}>
-                            <div className="section-header">
-                                <i className={`${group.icon || "fa-solid fa-layer-group"} section-icon`}></i>
-                                <h3 className="section-title">{group.title}</h3>
-                            </div>
-                            <div className="gis-categories">
-                                {group.items.map((menu, itemIndex) => {
-                                    const uniqueIndex = `${groupIndex}-${itemIndex}`;
-                                    const isOpen = state.openMenuIndex === uniqueIndex;
-
-                                    return (
-                                        <div className="category-item" key={uniqueIndex}>
-                                            <div
-                                                className={`category-header ${isOpen ? "active" : ""}`}
-                                                onClick={() => toggleDropdown(uniqueIndex)}
-                                            >
-                                                <div className="category-info">
-                                                    <i className={`${menu.icon} category-icon`}></i>
-                                                    <span className="category-name">{menu.name}</span>
-                                                </div>
-                                                <i
-                                                    className={`fa-solid fa-chevron-right expand-icon ${
-                                                        isOpen ? "rotated" : ""
-                                                    }`}
-                                                ></i>
-                                            </div>
-
-                                            {isOpen && (
-                                                <div className="category-layers">
-                                                    {menu.layers.map((layer, idx) => (
-                                                        <div
-                                                            className="layer-item"
-                                                            key={`${uniqueIndex}-${idx}`}
-                                                        >
-                                                            <div className="layer-toggle">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    id={`layer-${layer}`}
-                                                                    className="layer-checkbox"
-                                                                    checked={state.enabledLayers.includes(
-                                                                        layer,
-                                                                    )}
-                                                                    onChange={(e) =>
-                                                                        handleLayerToggle(
-                                                                            layer,
-                                                                            e.target.checked,
-                                                                        )
-                                                                    }
-                                                                />
-                                                                <label
-                                                                    htmlFor={`layer-${layer}`}
-                                                                    className="layer-label"
-                                                                >
-                                                                    <span className="layer-name">
-                                                                        {menu.nameItem?.[idx] || layer}
-                                                                    </span>
-                                                                </label>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                    {/* GIS Data Section */}
+                    <div className="data-section">
+                        <div className="section-header">
+                            <i className="fa-solid fa-layer-group section-icon"></i>
+                            <h3 className="section-title">{mapLayers.title}</h3>
                         </div>
-                    ))}
+                        <div className="gis-categories">
+                            {mapLayers.items.map((menu, index) => {
+                                const uniqueIndex = index;
+                                const isOpen = state.openMenuIndex === uniqueIndex;
+
+                                return (
+                                    <div className="category-item" key={uniqueIndex}>
+                                        <div
+                                            className={`category-header ${isOpen ? "active" : ""}`}
+                                            onClick={() => toggleDropdown(uniqueIndex)}
+                                        >
+                                            <div className="category-info">
+                                                <i className={`${menu.icon} category-icon`}></i>
+                                                <span className="category-name">{menu.name}</span>
+                                            </div>
+                                            <i
+                                                className={`fa-solid fa-chevron-right expand-icon ${
+                                                    isOpen ? "rotated" : ""
+                                                }`}
+                                            ></i>
+                                        </div>
+
+                                        {isOpen && (
+                                            <div className="category-layers">
+                                                {menu.layers.map((layer, idx) => (
+                                                    <div className="layer-item" key={`${uniqueIndex}-${idx}`}>
+                                                        <div className="layer-toggle">
+                                                            <input
+                                                                type="checkbox"
+                                                                id={`layer-${layer}`}
+                                                                className="layer-checkbox"
+                                                                checked={state.enabledLayers.includes(layer)}
+                                                                onChange={(e) =>
+                                                                    handleLayerToggle(layer, e.target.checked)
+                                                                }
+                                                            />
+                                                            <label
+                                                                htmlFor={`layer-${layer}`}
+                                                                className="layer-label"
+                                                            >
+                                                                <span className="layer-name">
+                                                                    {menu.nameItem?.[idx] || layer}
+                                                                </span>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
 
                     {/* District Selection */}
                     {state.enabledLayers.includes("DiaPhanHuyen") && districtList.length > 0 && (
@@ -336,7 +354,7 @@ function LeftMenuMap({
                                 <div
                                     key={result.id || idx}
                                     className={`result-card ${
-                                        selectedItemId === result.id ? "selected" : ""
+                                        highlightedFeature?.id === result.id ? "selected" : ""
                                     }`}
                                     onClick={() => handleClick(result)}
                                 >
@@ -441,9 +459,9 @@ function LeftMenuMap({
         state.enabledLayers,
         searchResults,
         state.isLoadingSearchResults,
-        selectedItemId,
         districtList,
         selectedDistrict,
+        highlightedFeature,
     ]);
 
     return (

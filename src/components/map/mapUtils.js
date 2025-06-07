@@ -26,9 +26,12 @@ export const handleFeatureHighlight = (
     highlightedLayerRef,
     highlightedMarkerRef,
 ) => {
-    if (!map) return;
+    if (!map) {
+        console.warn("⛔ Map chưa khởi tạo");
+        return;
+    }
 
-    // Xóa lớp cũ nếu có
+    // Clear previous highlights
     if (highlightedLayerRef.current) {
         map.removeLayer(highlightedLayerRef.current);
         highlightedLayerRef.current = null;
@@ -38,94 +41,95 @@ export const handleFeatureHighlight = (
         highlightedMarkerRef.current = null;
     }
 
-    if (highlightedFeature) {
-        if (highlightedFeature?.type === "Point") {
-            // Tạo icon dựa trên loại icon được chỉ định
-            let iconHtml = '<i class="fa-solid fa-droplet" style="color:#007bff; font-size:24px;"></i>';
+    if (!highlightedFeature) {
+        return;
+    }
+    highlightedFeature ? console.log(`highlightedFeature:`, highlightedFeature) : null;
 
-            if (highlightedFeature.icon === "droplet") {
-                iconHtml = '<i class="fa-solid fa-droplet" style="color:#007bff; font-size:24px;"></i>';
-            } else if (highlightedFeature.icon === "marker") {
-                iconHtml = '<i class="fa-solid fa-location-dot" style="color:#dc3545; font-size:24px;"></i>';
+    const isPoint = highlightedFeature?.geometry?.type === "Point";
+    const coordinates = isPoint ? highlightedFeature?.geometry?.coordinates : null;
+
+    const name = highlightedFeature?.name || highlightedFeature?.properties?.name || "Địa điểm";
+
+    const iconType = highlightedFeature?.icon || "droplet";
+
+    if (isPoint && Array.isArray(coordinates)) {
+        let [lng, lat] = coordinates;
+
+        if (typeof lng === "string" || typeof lat === "string") {
+            lng = convertDMSToDecimal(lng);
+            lat = convertDMSToDecimal(lat);
+        } else {
+            lng = parseFloat(lng);
+            lat = parseFloat(lat);
+        }
+
+        if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+            console.error("❌ Tọa độ không hợp lệ:", { lat, lng, coordinates });
+            return;
+        }
+
+        const iconHtml =
+            iconType === "marker"
+                ? '<i class="fa-solid fa-location-dot" style="color:#dc3545; font-size:24px;"></i>'
+                : '<i class="fa-solid fa-droplet" style="color:#007bff; font-size:24px;"></i>';
+
+        const customIcon = L.divIcon({
+            html: iconHtml,
+            className: "custom-highlight-marker",
+            iconSize: [40, 40],
+            iconAnchor: [20, 40],
+            popupAnchor: [0, -40],
+        });
+
+        highlightedMarkerRef.current = L.marker([lat, lng], {
+            icon: customIcon,
+            zIndexOffset: 1000,
+        }).addTo(map);
+        console.log("✅ Marker đã add vào map", highlightedMarkerRef.current);
+        highlightedMarkerRef.current.bindPopup(`
+            <div class="highlight-popup">
+                <h4 style="margin:0 0 8px;color:#007bff;">
+                    <i class="fa-solid fa-${iconType}"></i> ${name}
+                </h4>
+                <p style="font-size:12px;color:#666;margin:0">
+                    <strong>Tọa độ:</strong><br>
+                    Kinh độ: ${lng.toFixed(6)}<br>
+                    Vĩ độ: ${lat.toFixed(6)}
+                </p>
+            </div>
+        `);
+
+        map.flyTo([lat, lng], 15, { animate: true });
+        setTimeout(() => {
+            if (highlightedMarkerRef.current) {
+                highlightedMarkerRef.current.openPopup();
             }
-
-            const customIcon = L.divIcon({
-                html: iconHtml,
-                className: "custom-highlight-marker",
-                iconSize: [30, 30],
-                iconAnchor: [15, 30],
-                popupAnchor: [0, -30],
-            });
-
-            // Chuyển đổi tọa độ DMS thành decimal
-            const coordinates = highlightedFeature.coordinates;
-
-            // Làm sạch và chuyển đổi tọa độ
-            const lngStr = coordinates[0].trim();
-            const latStr = coordinates[1].trim();
-
-            const lng = convertDMSToDecimal(lngStr);
-            const lat = convertDMSToDecimal(latStr);
-
-            if (!isNaN(lat) && !isNaN(lng) && lat !== null && lng !== null) {
-                // Tạo marker với popup
-                highlightedMarkerRef.current = L.marker([lat, lng], {
-                    icon: customIcon,
-                    zIndexOffset: 1000, // Đảm bảo marker hiển thị trên cùng
-                }).addTo(map);
-
-                // Thêm popup với thông tin
-                const popupContent = `
-          <div class="highlight-popup">
-            <h4 style="margin: 0 0 8px 0; color: #007bff;">
-              <i class="fa-solid fa-${highlightedFeature.icon || "droplet"}"></i>
-              ${highlightedFeature.name || "Địa điểm"}
-            </h4>
-            <p style="margin: 0; font-size: 12px; color: #666;">
-              <strong>Tọa độ:</strong><br>
-              Kinh độ: ${lngStr}<br>
-              Vĩ độ: ${latStr}
-            </p>
-          </div>
-        `;
-
-                highlightedMarkerRef.current.bindPopup(popupContent, {
-                    offset: [0, -30],
-                    className: "custom-highlight-popup",
-                });
-
-                // Bay đến vị trí với hiệu ứng mượt
-                map.flyTo([lat, lng], 16, {
-                    animate: true,
-                    duration: 1.5,
-                });
-
-                // Tự động mở popup sau khi bay đến
-                setTimeout(() => {
-                    if (highlightedMarkerRef.current) {
-                        highlightedMarkerRef.current.openPopup();
-                    }
-                }, 1000);
-            } else {
-                console.error("Không thể chuyển đổi tọa độ:", {
-                    lngStr,
-                    latStr,
-                    lng,
-                    lat,
-                });
-            }
-        } else if (highlightedFeature?.geometry) {
-            const geoJsonLayer = L.geoJSON(highlightedFeature.geometry, {
+        }, 1000);
+    }
+    // Nếu là Polygon hoặc MultiPolygon
+    else if (highlightedFeature?.geometry?.type?.includes("MultiPolygon")) {
+        try {
+            const geoJsonLayer = L.geoJSON(highlightedFeature, {
                 style: {
-                    color: "#ff0000",
-                    weight: 10,
-                    opacity: 1,
-                    fillOpacity: 0.3,
+                    color: "red",
+                    weight: 3,
+                    fillOpacity: 0.2,
                 },
             }).addTo(map);
 
             highlightedLayerRef.current = geoJsonLayer;
-            map.fitBounds(geoJsonLayer.getBounds());
+
+            const bounds = geoJsonLayer.getBounds();
+
+            if (bounds.isValid()) {
+                console.log("✅ Bounds hợp lệ, zoom tới vùng này.");
+                map.fitBounds(bounds);
+            } else {
+                console.warn("Bounds invalid, possibly because geometry is a Point.");
+            }
+        } catch (err) {
+            console.error("❌ Lỗi render polygon:", err);
         }
     }
 };

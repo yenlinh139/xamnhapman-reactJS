@@ -66,7 +66,6 @@ const Map = () => {
                     <div className="header-left">
                         <button className="sidebar-toggle" onClick={onSidebarToggle}>
                             <i className="fa-solid fa-bars"></i>
-                            <span className="toggle-text">Menu</span>
                         </button>
                     </div>
 

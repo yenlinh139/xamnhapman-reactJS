@@ -1,13 +1,13 @@
 import React from "react";
 import L from "leaflet";
-import { convertDMSToDecimalNo } from "@components/convertDMSToDecimal";
+import { dmsToDecimal } from "@components/convertDMSToDecimal";
 import { fetchHydrometStations, fetchHydrometData } from "@components/map/mapDataServices";
 import { prefixUnitMap } from "@components/map/mapStyles";
 
 const getHydrometIcon = () => {
     return L.divIcon({
         className: "custom-hydromet-icon",
-        html: `<i class="fa-solid fa-tower-observation" style="color: red; font-size: 1.5rem;"></i>`,
+        html: `<i class="fa-solid fa-tower-observation" style="color: #990000; font-size: 1.5rem;"></i>`,
         iconSize: [20, 20],
         iconAnchor: [10, 10],
         popupAnchor: [0, -10],
@@ -376,16 +376,19 @@ const createBasicPopup = (station, message) => {
 export const renderHydrometStations = async (mapInstance, setHydrometData, setSelectedStation) => {
     try {
         const stations = await fetchHydrometStations();
+        console.log(`stations`, stations);
+
         const latLngs = [];
 
         for (const station of stations) {
-            const lat = convertDMSToDecimalNo(station.ViDo);
-            const lng = convertDMSToDecimalNo(station.KinhDo);
+            const lat = dmsToDecimal(station.ViDo);
+            const lng = dmsToDecimal(station.KinhDo);
 
-            if (lat == null || lng == null || isNaN(lat) || isNaN(lng)) {
+            if (lat == "NULL" || lng == null || isNaN(lat) || isNaN(lng)) {
                 console.warn(`⚠️ Không thể chuyển tọa độ tại trạm ${station.TenTram}`);
                 continue;
             }
+
             const hydrometeorologyData = await fetchHydrometData(station.KiHieu);
 
             let stationData = {
@@ -465,8 +468,8 @@ export const renderHydrometStations = async (mapInstance, setHydrometData, setSe
             marker.on("click", () => {
                 try {
                     const zoomLevel = 13;
-                    const clickLat = convertDMSToDecimalNo(station.ViDo);
-                    const clickLng = convertDMSToDecimalNo(station.KinhDo);
+                    const clickLat = dmsToDecimal(station.ViDo);
+                    const clickLng = dmsToDecimal(station.KinhDo);
 
                     if (clickLat !== null && clickLng !== null) {
                         const clickLatLng = L.latLng(clickLat, clickLng);

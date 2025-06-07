@@ -1,8 +1,8 @@
 import L from "leaflet";
 
 export const layerStyles = {
-    salinityPoints: { type: "point", color: "blue" },
-    hydrometStations: { type: "point", color: "red" },
+    salinityPoints: { type: "point", color: "#003366" },
+    hydrometStations: { type: "point", color: "#990000" },
     DiaPhanHuyen: { type: "polygon", color: "#b185a0" },
     DiaPhanXa: { type: "polygon", color: "#c0b390" },
     DiemDoCao: { type: "point", color: "#32972b" },

@@ -2,23 +2,13 @@ import React from "react";
 import L from "leaflet";
 import { convertDMSToDecimal } from "@components/convertDMSToDecimal";
 import { fetchSalinityPoints, fetchSalinityData } from "@components/map/mapDataServices";
+import { getSalinityIcon } from "@components/map/mapMarkers";
 
-const getSalinityIcon = (salinity) => {
-    let color = "#6c757d";
-
-    if (salinity < 1) color = "#1754ab";
-    else if (salinity >= 1 && salinity < 4) color = "#ff6600";
-    else if (salinity > 4) color = "red";
-
-    return L.divIcon({
-        className: "custom-salinity-icon",
-        html: `
-      <i class="fa-solid fa-droplet glow-icon" style="color: ${color}; font-size: 1.5rem;"></i>
-    `,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10],
-        popupAnchor: [0, -10],
-    });
+export const getSalinityTooltipClass = (salinity) => {
+    if (salinity < 1) return "custom-tooltip tooltip-normal";
+    else if (salinity >= 1 && salinity < 4) return "custom-tooltip tooltip-warning";
+    else if (salinity > 4) return "custom-tooltip tooltip-critical";
+    return "custom-tooltip";
 };
 
 export const createSalinityPopup = (point, latestSalinity, latestDate, trend, previousDate) => {
@@ -166,7 +156,8 @@ export const renderSalinityPoints = async (mapInstance, setSalinityData, setSele
                 };
             }
 
-            const icon = getSalinityIcon(latestSalinity);
+            const icon = getSalinityIcon(latestSalinity || 0);
+            const tooltipClass = getSalinityTooltipClass(latestSalinity || 0);
 
             const marker = L.marker([lat, lng], {
                 icon,
@@ -179,7 +170,7 @@ export const renderSalinityPoints = async (mapInstance, setSalinityData, setSele
                 permanent: true,
                 direction: "top",
                 offset: [0, -10],
-                className: "custom-tooltip",
+                className: tooltipClass,
             });
 
             marker.on("click", () => {

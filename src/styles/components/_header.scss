@@ -192,7 +192,7 @@
         border: 2px solid transparent;
         position: relative;
         overflow: hidden;
-        padding: 3px 16px 3px 0;
+        padding: 3px 5px 3px 0;
 
         &:focus-within {
             background: white;
@@ -224,7 +224,7 @@
             background: transparent;
             color: #1f2937;
             font-size: 15px;
-            padding: 14px 8px;
+            padding: 6px 8px 6px 0;
             font-weight: 500;
             pointer-events: auto;
             z-index: 10;
@@ -246,7 +246,7 @@
             background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #8b5cf6 100%);
             color: white;
             border: none;
-            padding: 10px 24px;
+            padding: 6px 16px;
             border-radius: 14px;
             font-weight: 700;
             font-size: 14px;

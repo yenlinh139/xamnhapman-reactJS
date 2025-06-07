@@ -1,16 +1,10 @@
 import L from "leaflet";
 
-export const getSalinityIcon = (salinity) => {
-    let color = "#6c757d";
-
-    if (salinity < 1) color = "blue";
-    else if (salinity < 4) color = "#fd7e14";
-    else color = "#dc3545";
-
+export const getSalinityIcon = () => {
     return L.divIcon({
         className: "custom-salinity-icon",
         html: `
-      <i class="fa-solid fa-droplet glow-icon" style="color: ${color}; font-size: 1.5rem;"></i>
+      <i class="fa-solid fa-droplet glow-icon" style="color: #003366; font-size: 1.5rem;"></i>
     `,
         iconSize: [20, 20],
         iconAnchor: [10, 10],
