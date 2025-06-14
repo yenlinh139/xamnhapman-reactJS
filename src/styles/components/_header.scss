@@ -961,7 +961,7 @@
     .nav-menu {
         flex: 2; // Menu ở giữa trang
         display: flex;
-        justify-content: center;
+        justify-content: end;
         ul {
             display: flex;
             gap: 30px;

@@ -13,7 +13,7 @@ function PaginationUser({ totalPage, currentPage, handleChangePage }) {
                                     className="page-link"
                                     onClick={() => handleChangePage(currentPage - 1)}
                                 >
-                                    Previous
+                                    Trước
                                 </a>
                             </li>
                             {Array.from({ length: totalPage }).map((p, i) =>
@@ -45,7 +45,7 @@ function PaginationUser({ totalPage, currentPage, handleChangePage }) {
                                     className="page-link"
                                     onClick={() => handleChangePage(currentPage + 1)}
                                 >
-                                    Next
+                                    Tiếp
                                 </a>
                             </li>
                         </ul>

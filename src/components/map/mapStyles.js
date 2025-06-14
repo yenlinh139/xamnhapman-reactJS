@@ -5,13 +5,8 @@ export const layerStyles = {
     hydrometStations: { type: "point", color: "#990000" },
     DiaPhanHuyen: { type: "polygon", color: "#b185a0" },
     DiaPhanXa: { type: "polygon", color: "#c0b390" },
-    DiemDoCao: { type: "point", color: "#32972b" },
     ThuyHe_line: { type: "line", color: "#495cc8" },
     ThuyHe_polygon: { type: "polygon", color: "#3191f8" },
-    GiaoThong_line: { type: "line", color: "#b4963d" },
-    GiaoThong_polygon: { type: "polygon", color: "#d7ae3c" },
-    HienTrangSDD_2020: { type: "polygon", color: "#8c5a99" },
-    QuyHoachSDD_2030: { type: "polygon", color: "#d4573b" },
 };
 
 export const legendNames = {
@@ -19,13 +14,8 @@ export const legendNames = {
     hydrometStations: "Trạm khí tượng thủy văn",
     DiaPhanHuyen: "Địa phận huyện",
     DiaPhanXa: "Địa phận xã",
-    DiemDoCao: "Điểm độ cao",
-    ThuyHe_line: "Thủy hệ (đường)",
-    ThuyHe_polygon: "Thủy hệ (vùng)",
-    GiaoThong_line: "Giao thông (đường)",
-    GiaoThong_polygon: "Giao thông (vùng)",
-    HienTrangSDD_2020: "Hiện trạng sử dụng đất 2020",
-    QuyHoachSDD_2030: "Quy hoạch sử dụng đất 2030",
+    ThuyHe_line: "Thủy hệ 1 nét",
+    ThuyHe_polygon: "Thủy hệ 2 nét",
 };
 
 export const createBaseMaps = () => {

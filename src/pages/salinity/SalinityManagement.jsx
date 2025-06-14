@@ -83,16 +83,6 @@ const SalinityManagement = () => {
         );
     }, [dispatch, currentPage, limit, filterDate]);
 
-    // Debug effect to track data changes
-    useEffect(() => {
-        console.log("🔄 SalinityData updated:", {
-            length: salinityData?.length || 0,
-            data: salinityData,
-            loading,
-            timestamp: new Date().toISOString(),
-        });
-    }, [salinityData, loading]);
-
     // Handle page change
     const handlePageChange = useCallback((page) => {
         setCurrentPage(page);
@@ -140,8 +130,6 @@ const SalinityManagement = () => {
     // Confirm delete single record
     const confirmDelete = async () => {
         try {
-            console.log("Deleting record:", deleteTarget);
-
             await dispatch(deleteSalinityData(deleteTarget.Ngày));
             ToastCommon(TOAST.SUCCESS, `Xóa dữ liệu mặn thành công`);
             setShowDeleteModal(false);
@@ -242,61 +230,53 @@ const SalinityManagement = () => {
             <Header />
             <main className="main-content">
                 <div className="salinity-container">
-                    {/* Header Section */}
-                    <div className="salinity-header">
-                        <div className="header-left">
-                            <h1 className="page-title">Quản Lý Dữ Liệu Độ Mặn</h1>
-                            <p className="page-subtitle">
-                                Quản lý dữ liệu độ mặn tại các trạm quan trắc ở TP.HCM
-                            </p>
-                        </div>
-                        <div className="header-actions">
-                            {userInfo && (
-                                <button className="btn btn-primary" onClick={handleCreateSalinity}>
-                                    <i className="fas fa-plus"></i>
-                                    Thêm dữ liệu mới
-                                </button>
-                            )}
-                        </div>
-                    </div>
-
                     {/* Filter Section */}
                     <div className="filter-section">
                         <div className="filter-row">
-                            <div className="filter-group">
-                                <label htmlFor="startDate">Từ ngày:</label>
-                                <input
-                                    type="date"
-                                    id="startDate"
-                                    value={inputDateFilter.startDate}
-                                    onChange={(e) =>
-                                        setInputDateFilter((prev) => ({
-                                            ...prev,
-                                            startDate: e.target.value,
-                                        }))
-                                    }
-                                    className="filter-input"
-                                />
+                            <div className="filter-left">
+                                <div className="filter-group">
+                                    <label htmlFor="startDate">Từ ngày:</label>
+                                    <input
+                                        type="date"
+                                        id="startDate"
+                                        value={inputDateFilter.startDate}
+                                        onChange={(e) =>
+                                            setInputDateFilter((prev) => ({
+                                                ...prev,
+                                                startDate: e.target.value,
+                                            }))
+                                        }
+                                        className="filter-input"
+                                    />
+                                </div>
+                                <div className="filter-group">
+                                    <label htmlFor="endDate">Đến ngày:</label>
+                                    <input
+                                        type="date"
+                                        id="endDate"
+                                        value={inputDateFilter.endDate}
+                                        onChange={(e) =>
+                                            setInputDateFilter((prev) => ({
+                                                ...prev,
+                                                endDate: e.target.value,
+                                            }))
+                                        }
+                                        className="filter-input"
+                                    />
+                                </div>
+                                <div className="filter-actions">
+                                    <button className="btn btn-secondary" onClick={clearFilters}>
+                                        Xóa bộ lọc
+                                    </button>
+                                </div>
                             </div>
-                            <div className="filter-group">
-                                <label htmlFor="endDate">Đến ngày:</label>
-                                <input
-                                    type="date"
-                                    id="endDate"
-                                    value={inputDateFilter.endDate}
-                                    onChange={(e) =>
-                                        setInputDateFilter((prev) => ({
-                                            ...prev,
-                                            endDate: e.target.value,
-                                        }))
-                                    }
-                                    className="filter-input"
-                                />
-                            </div>
-                            <div className="filter-actions">
-                                <button className="btn btn-secondary" onClick={clearFilters}>
-                                    Xóa bộ lọc
-                                </button>
+                            <div className="filter-right">
+                                {userInfo && (
+                                    <button className="btn btn-primary" onClick={handleCreateSalinity}>
+                                        <i className="fas fa-plus"></i>
+                                        Thêm dữ liệu mới
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>

@@ -43,9 +43,6 @@ function Footer(props) {
                                     <a href={ROUTES.home}>Trang chủ</a>
                                 </li>
                                 <li>
-                                    <a href={ROUTES.news}>Tin tức</a>
-                                </li>
-                                <li>
                                     <a href={ROUTES.map}>Bản đồ</a>
                                 </li>
                                 <li>

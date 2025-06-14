@@ -28,23 +28,23 @@ function ModalConfirm({ message, onConfirm, onCancel }) {
                 <div className="modal-content">
                     <div className="modal-header">
                         <h5 className="modal-title" id="exampleModalLabel">
-                            Confirmation
+                            Xác nhận
                         </h5>
                         <button
                             type="button"
                             className="btn-close"
                             data-bs-dismiss="modal"
-                            aria-label="Close"
+                            aria-label="Đóng"
                             onClick={onCancel}
                         ></button>
                     </div>
                     <div className="modal-body">{message}</div>
                     <div className="modal-footer">
                         <button type="button" className="btn btn-secondary" onClick={onCancel}>
-                            Cancel
+                            Hủy
                         </button>
                         <button type="button" className="btn btn-primary" onClick={onConfirm}>
-                            OK
+                            Xác nhận
                         </button>
                     </div>
                 </div>

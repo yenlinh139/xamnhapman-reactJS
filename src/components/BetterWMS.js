@@ -80,13 +80,8 @@ L.TileLayer.BetterWMS = L.TileLayer.WMS.extend({
                 DiaPhanHuyen: "Địa phận huyện",
                 DiaGioiHuyen: "Địa giới huyện",
                 DiaPhanXa: "Địa phận xã",
-                DiemDoCao: "Điểm độ cao",
-                ThuyHe_line: "Thủy hệ (đường)",
-                ThuyHe_polygon: "Thủy hệ (vùng)",
-                GiaoThong_line: "Giao thông (đường)",
-                GiaoThong_polygon: "Giao thông (vùng)",
-                HienTrangSDD_2020: "Hiện trạng sử dụng đất 2020",
-                QuyHoachSDD_2030: "Quy hoạch sử dụng đất 2030",
+                ThuyHe_line: "Thủy hệ 1 nét",
+                ThuyHe_polygon: "Thủy hệ 2 nét",
             };
             let popupContent = `
       <div style="font-family: 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; padding: 6px 10px;">

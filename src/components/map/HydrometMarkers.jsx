@@ -320,20 +320,20 @@ const getParameterLabel = (paramKey) => {
         R_LMX: "Lê Minh Xuân",
         R_LS: "Long Sơn",
         R_MDC: "Mạc Đĩnh Chi",
-        R_NB: "Nhà Bè",
+        R_NB: "Nhà Bè", // Rainfall from NB_KT station
         R_PVC: "Phạm Văn Cội",
         R_TTH: "Tam Thôn Hiệp",
         R_TD: "Thủ Đức",
         R_TSH: "Tân Sơn Hòa",
-        Ttb_TSH: "Nhiệt độ không khí trung bình",
+        Ttb_TSH: "Nhiệt độ không khí trung bình", // Temperature from TSH station
         Tx_TSH: "Nhiệt độ không khí cao nhất",
         Tm_TSH: "Nhiệt độ không khí thấp nhất",
 
-        // Humidity (tb=trung bình, x=max, m=min)
-        Htb_NB: "Mực nước trung bình",
+        // Water level (tb=trung bình, x=max, m=min) from NB_TV station
+        Htb_NB: "Mực nước trung bình", // Nhà Bè NB_TV (Thủy văn)
         Hx_NB: "Mực nước cao nhất",
         Hm_NB: "Mực nước thấp nhất",
-        Htb_PA: "Mực nước trung bình",
+        Htb_PA: "Mực nước trung bình", // Phú An station
         Hx_PA: "Mực nước cao nhất",
         Hm_PA: "Mực nước thấp nhất",
     };
@@ -466,6 +466,8 @@ export const renderHydrometStations = async (mapInstance, setHydrometData, setSe
             });
 
             marker.on("click", () => {
+                console.log(`hydrometeorologyData`, hydrometeorologyData);
+
                 try {
                     const zoomLevel = 13;
                     const clickLat = dmsToDecimal(station.ViDo);

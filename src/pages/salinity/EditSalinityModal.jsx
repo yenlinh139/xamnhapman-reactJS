@@ -24,7 +24,7 @@ const EditSalinityModal = ({ record, onClose, onSuccess }) => {
 
     // Station names for display
     const stations = {
-        CRT: "Cầu Rạch Trà",
+        CRT: "Cầu Rạch Tra",
         CTT: "Cầu Thủ Thiêm",
         COT: "Cầu Ông Thìn",
         CKC: "Cống Kênh C",
@@ -150,26 +150,28 @@ const EditSalinityModal = ({ record, onClose, onSuccess }) => {
         <div className="modal-overlay" onClick={handleOverlayClick}>
             <div className="modal-content salinity-modal">
                 <div className="modal-header">
-                    <h2>Chỉnh Sửa Dữ Liệu Độ Mặn</h2>
+                    <h2>Chỉnh sửa dữ liệu độ mặn</h2>
                     <button className="modal-close" onClick={onClose} type="button">
                         <i className="fas fa-times"></i>
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="modal-body">
+                <form onSubmit={handleSubmit} className="modal-body pt-4">
                     {/* Date Display */}
-                    <div className="form-group">
-                        <label>Ngày</label>
-                        <div className="date-display">
-                            <i className="fas fa-calendar-alt"></i>
-                            <span>{formatDate(formData.Ngày)}</span>
+                    <div className="form-group date-group">
+                        <div className="date-row">
+                            <label>Ngày:</label>
+                            <div className="date-display">
+                                <i className="fas fa-calendar-alt"></i>
+                                <span>{formatDate(formData.Ngày)}</span>
+                            </div>
+                            <span className="form-note">(Ngày không thể thay đổi)</span>
                         </div>
-                        <small className="form-note">Ngày không thể thay đổi</small>
                     </div>
 
                     {/* Salinity Measurements */}
                     <div className="salinity-measurements">
-                        <h3>Giá Trị Độ Mặn (‰)</h3>
+                        <h3>Giá trị độ mặn (‰)</h3>
                         <div className="measurements-grid">
                             {Object.entries(stations).map(([key, name]) => (
                                 <div key={key} className="form-group">

@@ -41,7 +41,7 @@ export const createUser = (params) => {
             const resp = await axiosInstance.post(import.meta.env.VITE_BASE_URL + "/user", params);
             if (resp) {
                 document.getElementById("close-create-user-btn").click();
-                ToastCommon(TOAST.SUCCESS, "Created user successfully");
+                ToastCommon(TOAST.SUCCESS, "Tạo người dùng thành công");
                 dispatch(getListUser());
             }
         } catch (error) {
@@ -58,7 +58,7 @@ export const deleteUser = (params) => {
             });
             if (resp) {
                 dispatch(getListUser());
-                ToastCommon(TOAST.SUCCESS, "Deleted user successfully");
+                ToastCommon(TOAST.SUCCESS, "Xóa người dùng thành công");
             }
         } catch (error) {
             ToastCommon(TOAST.ERROR, error.response?.data?.message || error.message);
@@ -73,7 +73,7 @@ export const updateUser = (params) => {
 
             if (res) {
                 document.getElementById("close-edit-user-btn").click();
-                ToastCommon(TOAST.SUCCESS, "Updated user successfully");
+                ToastCommon(TOAST.SUCCESS, "Cập nhật người dùng thành công");
                 dispatch(getListUser());
             }
         } catch (error) {
@@ -107,7 +107,7 @@ export const updateUserByUser = (params) => {
             }
 
             if (success) {
-                ToastCommon(TOAST.SUCCESS, "Updated user successfully");
+                ToastCommon(TOAST.SUCCESS, "Cập nhật thông tin thành công");
                 dispatch(getListUser());
             }
         } catch (error) {
@@ -125,7 +125,7 @@ export const changeRole = (params, navigate) => {
             });
 
             if (resp) {
-                ToastCommon(TOAST.SUCCESS, "Role has been changed successfully.");
+                ToastCommon(TOAST.SUCCESS, "Đã thay đổi quyền thành công.");
                 dispatch(getListUser());
                 if (getState().authStore.userInfo.email === params.email) {
                     dispatch(logout());

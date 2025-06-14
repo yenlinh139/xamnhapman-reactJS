@@ -7,6 +7,7 @@ import authReducer from "@stores/reducers/authReducer";
 import userReducer from "@stores/reducers/userReducer";
 import mapReducer from "@stores/reducers/mapReducer";
 import salinityReducer from "@stores/reducers/salinityReducer";
+import feedbackReducer from "@stores/reducers/feedbackReducer";
 import customStorage from "@stores/customStorage";
 
 const customizedMiddleware = {
@@ -19,6 +20,7 @@ const allReducer = combineReducers({
     userStore: userReducer,
     mapStore: mapReducer,
     salinity: salinityReducer,
+    feedback: feedbackReducer,
 });
 
 const persistConfig = {

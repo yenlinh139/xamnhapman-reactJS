@@ -6,10 +6,13 @@ import { TOAST } from "@common/constants";
 import axiosInstance from "@config/axios-config";
 import { hideLoading, showLoading } from "@stores/actions/appAction";
 import Footer from "@pages/themes/footer/Footer";
+import "@/styles/components/_feedback.scss";
 
 const Feedback = () => {
     const [errors, setErrors] = useState({});
     const [isUpdate, setIsUpdate] = useState(false);
+    const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+    const [emailChecked, setEmailChecked] = useState(false);
     const [formData, setFormData] = useState({
         name: "",
         email: "",
@@ -17,10 +20,18 @@ const Feedback = () => {
         message: "",
     });
 
+    // Debounce email check
     useEffect(() => {
-        if (formData.email) {
-            checkEmailExists(formData.email);
-        }
+        const timeoutId = setTimeout(() => {
+            if (formData.email && formData.email.includes("@")) {
+                checkEmailExists(formData.email);
+            } else {
+                setIsUpdate(false);
+                setEmailChecked(false);
+            }
+        }, 500); // 500ms debounce
+
+        return () => clearTimeout(timeoutId);
     }, [formData.email]);
 
     const handleChange = (e) => {
@@ -55,16 +66,55 @@ const Feedback = () => {
     };
 
     const checkEmailExists = async (email) => {
+        if (!email || !email.includes("@")) {
+            setIsUpdate(false);
+            setEmailChecked(false);
+            return;
+        }
+
+        setIsCheckingEmail(true);
         try {
-            const response = await axiosInstance.get(import.meta.env.VITE_BASE_URL + `/feedback/${email}`);
-            if (response.data) {
-                setFormData(response.data);
+            // Sử dụng URL params thay vì query params vì backend dùng req.params
+            const response = await axiosInstance.get(`/feedback/${encodeURIComponent(email.trim())}`);
+
+            // Backend trả về single object, không phải array
+            if (response.data && response.data.id) {
+                // Email đã tồn tại, load dữ liệu cũ
+                setFormData((prev) => ({
+                    ...prev,
+                    name: response.data.name || prev.name,
+                    rating: response.data.rating || prev.rating,
+                    message: response.data.message || prev.message,
+                }));
                 setIsUpdate(true);
+                setEmailChecked(true);
+                ToastCommon(TOAST.SUCCESS, "Đã tìm thấy góp ý trước đó! Bạn có thể cập nhật thông tin.");
             } else {
+                // Không có data hoặc data không hợp lệ
                 setIsUpdate(false);
+                setEmailChecked(true);
             }
         } catch (error) {
-            setIsUpdate(false);
+            console.error("Error checking email:", error);
+
+            // Xử lý các loại lỗi khác nhau
+            if (error.response?.status === 404) {
+                // Email không tồn tại - đây là case bình thường cho email mới
+                setIsUpdate(false);
+                setEmailChecked(true);
+            } else if (error.response?.status === 400) {
+                // Bad request - email format sai hoặc thiếu
+                console.log("Email validation error:", error.response.data);
+                setIsUpdate(false);
+                setEmailChecked(true);
+            } else {
+                // Lỗi server khác (500, etc.)
+                ToastCommon(TOAST.ERROR, "Lỗi khi kiểm tra email. Vui lòng thử lại.");
+                setIsUpdate(false);
+                setEmailChecked(false);
+            }
+        } finally {
+            setIsCheckingEmail(false);
         }
     };
 
@@ -72,30 +122,42 @@ const Feedback = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setErrors({});
-        const newErrors = validate();
 
+        const newErrors = validate();
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             return;
         }
 
+        // Kiểm tra xem có đang check email không
+        if (isCheckingEmail) {
+            ToastCommon(TOAST.WARNING, "Đang kiểm tra email, vui lòng chờ một chút...");
+            return;
+        }
+
         try {
             showLoading();
+
             if (isUpdate) {
-                await axiosInstance.put(
-                    import.meta.env.VITE_BASE_URL + `/feedback/${formData.email}`,
-                    formData,
-                );
-                ToastCommon(TOAST.SUCCESS, "Cập nhật thành công!");
+                // Cập nhật feedback đã tồn tại - sử dụng query params
+                await axiosInstance.put(`/feedback/${formData.email}`, formData);
+                ToastCommon(TOAST.SUCCESS, "Cập nhật góp ý thành công!");
             } else {
-                await axiosInstance.post(import.meta.env.VITE_BASE_URL + "/feedback", formData);
-                ToastCommon(TOAST.SUCCESS, "Tin nhắn đã được gửi thành công!");
+                // Tạo feedback mới
+                await axiosInstance.post("/feedback", formData);
+                ToastCommon(TOAST.SUCCESS, "Gửi góp ý thành công!");
             }
 
+            // Reset form sau khi thành công
             setFormData({ name: "", email: "", rating: 0, message: "" });
             setIsUpdate(false);
+            setEmailChecked(false);
         } catch (error) {
-            ToastCommon(TOAST.ERROR, error.response?.data?.message || "Lỗi hệ thống!");
+            console.error("Submit error:", error);
+            const errorMessage =
+                error.response?.data?.message ||
+                (isUpdate ? "Lỗi khi cập nhật góp ý!" : "Lỗi khi gửi góp ý!");
+            ToastCommon(TOAST.ERROR, errorMessage);
         } finally {
             hideLoading();
         }
@@ -109,11 +171,21 @@ const Feedback = () => {
             <Header />
 
             <main className="feedback-main">
-                <div className="feedback-container">
+                <div className="container">
                     <div className="feedback-content">
                         <div className="feedback-header">
-                            <h1>Góp ý & Đánh giá</h1>
-                            <p>Chia sẻ ý kiến của bạn để giúp chúng tôi cải thiện hệ thống tốt hơn</p>
+                            <h1>{isUpdate ? "Cập nhật góp ý" : "Góp ý & Đánh giá"}</h1>
+                            <p>
+                                {isUpdate
+                                    ? "Cập nhật thông tin góp ý của bạn"
+                                    : "Chia sẻ ý kiến của bạn để giúp chúng tôi cải thiện hệ thống tốt hơn"}
+                            </p>
+                            {isUpdate && (
+                                <div className="update-badge">
+                                    <i className="fas fa-edit"></i>
+                                    <span>Chế độ cập nhật</span>
+                                </div>
+                            )}
                         </div>
 
                         <form onSubmit={handleSubmit} className="feedback-form">
@@ -139,16 +211,32 @@ const Feedback = () => {
                                     <label htmlFor="email">
                                         <i className="fas fa-envelope"></i>
                                         <span>Email</span>
+                                        {isCheckingEmail && (
+                                            <span className="checking-indicator">
+                                                <i className="fas fa-spinner fa-spin"></i>
+                                                Đang kiểm tra...
+                                            </span>
+                                        )}
                                     </label>
-                                    <input
-                                        id="email"
-                                        type="email"
-                                        name="email"
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                        className={errors.email ? "error" : ""}
-                                        placeholder="Nhập địa chỉ email của bạn"
-                                    />
+                                    <div className="input-with-status">
+                                        <input
+                                            id="email"
+                                            type="email"
+                                            name="email"
+                                            value={formData.email}
+                                            onChange={handleChange}
+                                            className={`${errors.email ? "error" : ""} ${isUpdate ? "update-mode" : ""}`}
+                                            placeholder="Nhập địa chỉ email của bạn"
+                                        />
+                                        {emailChecked && !isCheckingEmail && (
+                                            <div className={`email-status ${isUpdate ? "exists" : "new"}`}>
+                                                <i
+                                                    className={`fas ${isUpdate ? "fa-check-circle" : "fa-plus-circle"}`}
+                                                ></i>
+                                                <span>{isUpdate ? "Email đã tồn tại" : "Email mới"}</span>
+                                            </div>
+                                        )}
+                                    </div>
                                     {errors.email && <div className="error-message">{errors.email}</div>}
                                 </div>
                             </div>
@@ -192,18 +280,23 @@ const Feedback = () => {
                                 {errors.message && <div className="error-message">{errors.message}</div>}
                             </div>
 
-                            <button type="submit" className="submit-button">
-                                <i className="fas fa-paper-plane"></i>
-                                <span>{isUpdate ? "Cập nhật góp ý" : "Gửi góp ý"}</span>
+                            <button
+                                type="submit"
+                                className={`submit-button ${isUpdate ? "update-mode" : ""}`}
+                                disabled={isCheckingEmail}
+                            >
+                                <i className={`fas ${isUpdate ? "fa-sync-alt" : "fa-paper-plane"}`}></i>
+                                <span>
+                                    {isCheckingEmail
+                                        ? "Đang kiểm tra email..."
+                                        : isUpdate
+                                          ? "Cập nhật góp ý"
+                                          : "Gửi góp ý"}
+                                </span>
                             </button>
                         </form>
 
                         <div className="feedback-info">
-                            <div className="info-card">
-                                <i className="fas fa-clock"></i>
-                                <h3>Phản hồi nhanh</h3>
-                                <p>Chúng tôi sẽ xem xét và phản hồi góp ý của bạn trong thời gian sớm nhất</p>
-                            </div>
                             <div className="info-card">
                                 <i className="fas fa-shield-alt"></i>
                                 <h3>Bảo mật thông tin</h3>
@@ -211,7 +304,7 @@ const Feedback = () => {
                                     Thông tin của bạn được bảo mật và chỉ được sử dụng để cải thiện hệ thống
                                 </p>
                             </div>
-                            <div className="info-card">
+                            <div className="info-card ">
                                 <i className="fas fa-heart"></i>
                                 <h3>Cảm ơn bạn</h3>
                                 <p>Mọi đóng góp của bạn đều rất quan trọng với sự phát triển của hệ thống</p>

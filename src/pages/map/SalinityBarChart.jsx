@@ -1,5 +1,6 @@
 import React from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { getSingleStationClassification } from "../../common/salinityClassification";
 
 const calculateTrend = (current, previous) => {
     if (!previous) return null;
@@ -75,7 +76,7 @@ const SalinityBarChart = ({ data, height }) => {
             {isLoading ? (
                 <div className="text-center py-5">
                     <div className="spinner-border text-primary" role="status">
-                        <span className="visually-hidden">Loading...</span>
+                        <span className="visually-hidden">Đang tải...</span>
                     </div>
                     <p className="mt-2">Đang tải dữ liệu...</p>
                 </div>
@@ -102,9 +103,27 @@ const SalinityBarChart = ({ data, height }) => {
                         <Tooltip content={<CustomTooltip />} />
                         <Bar dataKey="salinity" barSize={10}>
                             {formattedData.map((entry, index) => {
-                                let fillColor = "#0d6efd";
-                                if (entry.salinity >= 4) fillColor = "#dc3545";
-                                else if (entry.salinity >= 1) fillColor = "#fd7e14";
+                                // Get color based on new classification system
+                                const classification = getSingleStationClassification(entry.salinity);
+                                let fillColor = "#6c757d"; // Default gray for no data
+
+                                switch (classification.level) {
+                                    case "normal":
+                                        fillColor = "#28a745"; // Green - Bình thường
+                                        break;
+                                    case "warning":
+                                        fillColor = "#ffc107"; // Yellow - Rủi ro cấp 1
+                                        break;
+                                    case "high-warning":
+                                        fillColor = "#fd7e14"; // Orange - Rủi ro cấp 2
+                                        break;
+                                    case "critical":
+                                        fillColor = "#dc3545"; // Red - Rủi ro cấp 3
+                                        break;
+                                    default:
+                                        fillColor = "#6c757d"; // Gray - Khuyết số liệu
+                                }
+
                                 return <Cell key={`cell-${index}`} fill={fillColor} />;
                             })}
                         </Bar>
@@ -117,7 +136,7 @@ const SalinityBarChart = ({ data, height }) => {
                         style={{
                             width: 12,
                             height: 12,
-                            backgroundColor: "#0d6efd",
+                            backgroundColor: "#28a745",
                             borderRadius: 2,
                         }}
                     ></div>
@@ -128,11 +147,22 @@ const SalinityBarChart = ({ data, height }) => {
                         style={{
                             width: 12,
                             height: 12,
+                            backgroundColor: "#ffc107",
+                            borderRadius: 2,
+                        }}
+                    ></div>
+                    <span>Rủi ro cấp 1 (Nhà Bè 1-4‰)</span>
+                </div>
+                <div className="d-flex align-items-center gap-1">
+                    <div
+                        style={{
+                            width: 12,
+                            height: 12,
                             backgroundColor: "#fd7e14",
                             borderRadius: 2,
                         }}
                     ></div>
-                    <span>Rủi ro cấp 2 (độ mặn 1‰ - 4‰)</span>
+                    <span>Rủi ro cấp 2 (các điểm khác 1-4‰)</span>
                 </div>
                 <div className="d-flex align-items-center gap-1">
                     <div

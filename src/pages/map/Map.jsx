@@ -190,15 +190,10 @@ const Map = () => {
                         </div>
 
                         <div className="mobile-links">
-                            <a
-                                href={ROUTES.home}
-                                className="mobile-link"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
+                            <NavLink to={ROUTES.home} className="mobile-link">
                                 <i className="fa-solid fa-house"></i>
                                 <span>Trang chủ</span>
-                            </a>{" "}
+                            </NavLink>
                             <NavLink
                                 to={ROUTES.map}
                                 className={({ isActive }) =>

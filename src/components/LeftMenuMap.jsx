@@ -144,7 +144,6 @@ function LeftMenuMap({
 
             if (geojson.type === "Point") {
                 const [lng, lat] = geojson.coordinates;
-                console.log("📍 Setting location for GeoJSON point:", { lat, lng });
                 setSelectedLocation({ lat, lng, zoom: 14 });
 
                 const feature = {
@@ -154,11 +153,9 @@ function LeftMenuMap({
                     name: result.name || "Điểm",
                 };
 
-                console.log("🎯 Setting highlighted feature (GeoJSON):", feature);
                 setHighlightedFeature(feature);
             } else if (geojson.type === "Polygon" || geojson.type === "MultiPolygon") {
                 const bounds = getBoundsFromCoordinates(geojson.coordinates);
-                console.log("📍 Setting bounds for polygon:", bounds);
                 setSelectedLocation({ bounds });
 
                 const feature = {
@@ -168,7 +165,6 @@ function LeftMenuMap({
                     name: result.name || "Vùng",
                 };
 
-                console.log("🎯 Setting highlighted feature (Polygon):", feature);
                 setHighlightedFeature(feature);
             }
         } catch (err) {
@@ -198,9 +194,6 @@ function LeftMenuMap({
                                     />
                                     <label htmlFor="layer-salinity-points" className="layer-label">
                                         <div className="layer-info">
-                                            <div className="layer-icon-wrapper salinity-icon">
-                                                <i className="fa-solid fa-droplet"></i>
-                                            </div>
                                             <div className="layer-details">
                                                 <span className="layer-name">Điểm đo mặn</span>
                                             </div>
@@ -220,9 +213,6 @@ function LeftMenuMap({
                                     />
                                     <label htmlFor="layer-hydromet-stations" className="layer-label">
                                         <div className="layer-info">
-                                            <div className="layer-icon-wrapper hydromet-icon">
-                                                <i className="fa-solid fa-tower-observation"></i>
-                                            </div>
                                             <div className="layer-details">
                                                 <span className="layer-name">Trạm khí tượng thủy văn</span>
                                             </div>

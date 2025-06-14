@@ -3,35 +3,49 @@ import L from "leaflet";
 import { convertDMSToDecimal } from "@components/convertDMSToDecimal";
 import { fetchSalinityPoints, fetchSalinityData } from "@components/map/mapDataServices";
 import { getSalinityIcon } from "@components/map/mapMarkers";
+import { getSingleStationClassification } from "../../common/salinityClassification";
 
-export const getSalinityTooltipClass = (salinity) => {
-    if (salinity < 1) return "custom-tooltip tooltip-normal";
-    else if (salinity >= 1 && salinity < 4) return "custom-tooltip tooltip-warning";
-    else if (salinity > 4) return "custom-tooltip tooltip-critical";
-    return "custom-tooltip";
+export const getSalinityTooltipClass = (salinity, stationCode = null) => {
+    const classification = getSingleStationClassification(salinity, stationCode);
+    switch (classification.level) {
+        case "normal":
+            return "custom-tooltip tooltip-normal";
+        case "warning":
+            return "custom-tooltip tooltip-warning";
+        case "high-warning":
+            return "custom-tooltip tooltip-high-warning";
+        case "critical":
+            return "custom-tooltip tooltip-critical";
+        default:
+            return "custom-tooltip";
+    }
 };
 
 export const createSalinityPopup = (point, latestSalinity, latestDate, trend, previousDate) => {
     const formattedSalinity = `${(+latestSalinity).toFixed(2)}`;
     const salinityValue = +latestSalinity;
 
-    // Determine status and color based on salinity level
-    let statusClass = "status-normal";
-    let statusText = "Bình thường";
+    // Get station code from point data
+    const stationCode = point.KiHieu;
+
+    // Determine status and color based on new classification
+    const classification = getSingleStationClassification(salinityValue, stationCode);
+    let statusClass = `status-${classification.level}`;
+    let statusText = classification.shortText;
     let statusColor = "#198754";
 
-    if (salinityValue > 4) {
-        statusClass = "status-critical";
-        statusText = "Rủi ro cấp 3";
-        statusColor = "#dc3545";
-    } else if (salinityValue >= 1 && salinityValue <= 4) {
-        statusClass = "status-warning";
-        statusText = "Rủi ro cấp 2";
-        statusColor = "#ff6600";
-    } else if (salinityValue < 1) {
-        statusClass = "status-caution";
-        statusText = "Bình thường";
-        statusColor = "blue";
+    switch (classification.level) {
+        case "critical":
+            statusColor = "#dc3545";
+            break;
+        case "high-warning":
+            statusColor = "#fd7e14";
+            break;
+        case "warning":
+            statusColor = "#ffc107";
+            break;
+        default:
+            statusColor = "#198754";
     }
 
     return `
@@ -156,8 +170,8 @@ export const renderSalinityPoints = async (mapInstance, setSalinityData, setSele
                 };
             }
 
-            const icon = getSalinityIcon(latestSalinity || 0);
-            const tooltipClass = getSalinityTooltipClass(latestSalinity || 0);
+            const icon = getSalinityIcon(latestSalinity || 0, point.KiHieu);
+            const tooltipClass = getSalinityTooltipClass(latestSalinity || 0, point.KiHieu);
 
             const marker = L.marker([lat, lng], {
                 icon,

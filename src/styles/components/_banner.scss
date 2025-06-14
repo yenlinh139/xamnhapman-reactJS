@@ -1,0 +1,588 @@
+// Variables
+:root {
+    --banner-primary-blue: rgba(77, 136, 255, 0.9);
+    --banner-secondary-blue: rgba(100, 200, 255, 0.8);
+    --banner-accent-blue: rgba(0, 150, 255, 0.7);
+    --banner-dark-blue: rgba(23, 84, 171, 0.75);
+    --banner-glass-bg: rgba(255, 255, 255, 0.08);
+    --banner-glass-border: rgba(255, 255, 255, 0.15);
+    --banner-text-primary: #ffffff;
+    --banner-text-secondary: rgba(255, 255, 255, 0.95);
+}
+
+// Mixins
+@mixin fullCover {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+@mixin glassEffect($opacity: 0.08, $blur: 20px) {
+    background: rgba(255, 255, 255, $opacity);
+    backdrop-filter: blur($blur) saturate(1.8);
+    border: 1px solid var(--banner-glass-border);
+}
+
+@mixin blueGradient($direction: 135deg) {
+    background: linear-gradient(
+        $direction,
+        var(--banner-primary-blue) 0%,
+        var(--banner-secondary-blue) 50%,
+        var(--banner-primary-blue) 100%
+    );
+}
+
+@mixin shimmerEffect {
+    &::before {
+        content: '';
+        @include fullCover;
+        background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.1) 50%,
+            transparent 100%
+        );
+        animation: shimmer 3s ease-in-out infinite;
+    }
+}
+
+.banner-modern {
+    @include fullCover;
+    position: relative;
+    height: 90vh;
+    min-height: 500px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    
+    &::before {
+        content: '';
+        @include fullCover;
+        background: linear-gradient(
+            45deg,
+            rgba(0, 150, 255, 0.1) 0%,
+            rgba(100, 200, 255, 0.15) 50%,
+            rgba(0, 150, 255, 0.1) 100%
+        );
+        background-size: 400% 400%;
+        animation: gradientMove 15s ease infinite;
+        z-index: 0;
+    }
+}
+
+// Keyframes
+@keyframes gradientMove {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    50%, 100% { left: 100%; }
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(2deg); }
+}
+
+@keyframes waveMove {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+// Banner overlay
+.banner-overlay {
+    @include fullCover;
+    @include blueGradient(135deg);
+    backdrop-filter: blur(12px) saturate(1.8);
+    z-index: 1;
+    animation: gradientMove 12s ease-in-out infinite;
+    
+    .overlay-pattern {
+        @include fullCover;
+        background: 
+            radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
+            radial-gradient(circle at 40% 40%, var(--banner-primary-blue) 0%, transparent 50%);
+        animation: float 20s ease-in-out infinite;
+    }
+    
+    .overlay-waves {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100px;
+        background: linear-gradient(to top, var(--banner-dark-blue) 0%, transparent 100%);
+        
+        &::before,
+        &::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 200%;
+            height: 80px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,0V60c120,30,240,30,360,0s240-30,360,0s240,30,360,0s240-30,360,0v60H0V0z' fill='%23ffffff' fill-opacity='0.1'/%3E%3C/svg%3E") repeat-x;
+            animation: waveMove 8s ease-in-out infinite;
+        }
+        
+        &::after {
+            animation-delay: -2s;
+            opacity: 0.5;
+        }
+    }
+}
+
+// Particles & Decorations
+.banner-particles,
+.banner-decoration,
+.banner-info-bubbles {
+    @include fullCover;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.particle {
+    position: absolute;
+    border-radius: 50%;
+    backdrop-filter: blur(2px);
+    
+    @for $i from 0 through 11 {
+        &.particle-#{$i} {
+            $size: 6px + ($i % 6) * 2px;
+            $alpha: 0.4 + ($i % 4) * 0.1;
+            width: $size;
+            height: $size;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.8), rgba(77, 136, 255, $alpha));
+            box-shadow: 0 0 #{$size * 2} rgba(77, 136, 255, $alpha + 0.2);
+        }
+    }
+}
+
+.deco-circle {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid var(--banner-glass-border);
+    
+    &.deco-circle-1 {
+        width: 300px;
+        height: 300px;
+        top: 20%;
+        left: 10%;
+        background: radial-gradient(circle, var(--banner-primary-blue) 0%, transparent 70%);
+        box-shadow: inset 0 0 50px var(--banner-primary-blue), 0 0 100px var(--banner-primary-blue);
+    }
+    
+    &.deco-circle-2 {
+        width: 200px;
+        height: 200px;
+        top: 60%;
+        right: 15%;
+        background: radial-gradient(circle, var(--banner-secondary-blue) 0%, transparent 70%);
+        box-shadow: inset 0 0 30px var(--banner-secondary-blue), 0 0 60px var(--banner-secondary-blue);
+    }
+}
+
+.info-bubble {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    @include glassEffect(0.05, 10px);
+    
+    .bubble-content {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: radial-gradient(circle, var(--banner-primary-blue) 0%, transparent 70%);
+        box-shadow: inset 0 0 20px var(--banner-primary-blue);
+    }
+    
+    // Bubble positions
+    &.bubble-0 { top: 15%; left: 8%; }
+    &.bubble-1 { top: 25%; right: 12%; }
+    &.bubble-2 { top: 70%; left: 15%; }
+    &.bubble-3 { bottom: 20%; right: 8%; }
+    &.bubble-4 { top: 45%; left: 5%; }
+    &.bubble-5 { top: 55%; right: 5%; }
+}
+
+// Content sections
+.banner-content {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    max-width: 1000px;
+    padding: 0 20px;
+    
+    .content-glass-card {
+        @include glassEffect;
+        border-radius: 30px;
+        padding: 40px 50px 20px;
+        box-shadow: 
+            0 25px 50px rgba(0, 0, 0, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        position: relative;
+        overflow: hidden;
+        @include shimmerEffect;
+    }
+    
+    .title-container {
+        position: relative;
+        
+        .title-accent {
+            height: 4px;
+            @include blueGradient(90deg);
+            border-radius: 2px;
+            margin: 20px auto 0;
+            max-width: 200px;
+            box-shadow: 0 0 20px var(--banner-primary-blue);
+        }
+    }
+    
+    .description-container {
+        margin-bottom: 40px;
+    }
+    
+    .button-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+}
+
+// Typography
+.banner-title {
+    font-size: 3.2rem;
+    font-weight: 800;
+    color: #ffffff;
+    text-shadow: 
+        3px 3px 6px rgba(0, 0, 0, 0.6),
+        0 0 30px rgba(77, 136, 255, 0.8),
+        0 0 60px rgba(77, 136, 255, 0.4);
+    line-height: 1.4;
+    margin: 0;
+    position: relative;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    
+    // Add a glowing effect
+    &::before {
+        content: attr(data-text);
+        position: absolute;
+        top: 0;
+        left: 0;
+        background: linear-gradient(
+            135deg,
+            rgba(77, 136, 255, 0.9) 0%,
+            rgba(100, 200, 255, 0.8) 25%,
+            rgba(150, 220, 255, 0.9) 50%,
+            rgba(77, 136, 255, 0.8) 75%,
+            rgba(100, 200, 255, 0.9) 100%
+        );
+        background-size: 200% 200%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: gradientMove 3s ease-in-out infinite;
+        z-index: -1;
+        filter: blur(2px);
+    }
+    
+    &::after {
+        content: '';
+        position: absolute;
+        bottom: -15px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80%;
+        height: 3px;
+        background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(77, 136, 255, 0.8) 25%,
+            rgba(100, 200, 255, 1) 50%,
+            rgba(77, 136, 255, 0.8) 75%,
+            transparent 100%
+        );
+        box-shadow: 
+            0 0 10px rgba(77, 136, 255, 0.6),
+            0 0 20px rgba(77, 136, 255, 0.4);
+        border-radius: 2px;
+        animation: shimmer 2s ease-in-out infinite alternate;
+    }
+    
+    // Enhanced glow on hover
+    &:hover {
+        transform: scale(1.02);
+        text-shadow: 
+            4px 4px 8px rgba(0, 0, 0, 0.8),
+            0 0 40px rgba(77, 136, 255, 1),
+            0 0 80px rgba(77, 136, 255, 0.6);
+        
+        &::after {
+            box-shadow: 
+                0 0 15px rgba(77, 136, 255, 0.8),
+                0 0 30px rgba(77, 136, 255, 0.6);
+        }
+    }
+}
+
+.banner-description {
+    font-size: 1.4rem;
+    font-weight: 300;
+    color: var(--banner-text-secondary);
+    line-height: 1.8;
+    max-width: 700px;
+    margin: 0 auto;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    letter-spacing: 0.5px;
+    position: relative;
+    
+    &::before,
+    &::after {
+        font-size: 3rem;
+        color: var(--banner-primary-blue);
+        position: absolute;
+        font-family: serif;
+    }
+    
+    &::before {
+        content: '"';
+        top: -15px;
+        left: -30px;
+    }
+    
+    &::after {
+        content: '"';
+        bottom: -25px;
+        right: -30px;
+    }
+}
+
+// Modern button
+.banner-cta {
+    text-decoration: none;
+    display: inline-block;
+    
+    .btn-primary-modern {
+        position: relative;
+        @include blueGradient;
+        border: 2px solid var(--banner-glass-border);
+        border-radius: 50px;
+        padding: 18px 40px;
+        color: var(--banner-text-primary);
+        font-size: 1.1rem;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        cursor: pointer;
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+        box-shadow: 
+            0 15px 35px rgba(77, 136, 255, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        min-width: 200px;
+        justify-content: center;
+        
+        .btn-text,
+        .btn-icon {
+            position: relative;
+            z-index: 2;
+        }
+        
+        .btn-icon {
+            display: flex;
+            align-items: center;
+            
+            .btn-arrow {
+                width: 20px;
+                height: 20px;
+                stroke-width: 2.5px;
+            }
+        }
+        
+        .btn-ripple {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+        }
+        
+        @include shimmerEffect;
+        
+        &:hover {
+            transform: translateY(-3px);
+            box-shadow: 
+                0 25px 50px rgba(77, 136, 255, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.4);
+            
+            .btn-ripple {
+                width: 300px;
+                height: 300px;
+            }
+        }
+        
+        &:active {
+            transform: translateY(-1px);
+        }
+    }
+}
+
+// Scroll indicator
+.scroll-indicator {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.8);
+    
+    .scroll-text {
+        font-size: 0.9rem;
+        font-weight: 300;
+        margin-bottom: 10px;
+        letter-spacing: 0.5px;
+    }
+    
+    .scroll-arrow svg {
+        width: 24px;
+        height: 24px;
+        stroke: rgba(255, 255, 255, 0.6);
+        stroke-width: 2px;
+    }
+}
+
+// Responsive Design
+@media (max-width: 1200px) {
+    .banner-title { 
+        font-size: 2.8rem;
+        letter-spacing: 0.5px;
+    }
+    .content-glass-card { padding: 50px 40px; }
+}
+
+@media (max-width: 768px) {
+    .banner-modern {
+        height: 90vh;
+        min-height: 600px;
+        background-attachment: scroll;
+    }
+    
+    .banner-title { 
+        font-size: 2.4rem;
+        font-weight: 700;
+        letter-spacing: 0px;
+        text-shadow: 
+            2px 2px 4px rgba(0, 0, 0, 0.8),
+            0 0 25px rgba(77, 136, 255, 0.9),
+            0 0 50px rgba(77, 136, 255, 0.5);
+    }
+    
+    .banner-description {
+        font-size: 1.2rem;
+        
+        &::before,
+        &::after { display: none; }
+    }
+    
+    .content-glass-card {
+        padding: 40px 30px;
+        border-radius: 20px;
+    }
+    
+    .btn-primary-modern {
+        padding: 16px 35px;
+        font-size: 1rem;
+        min-width: 180px;
+    }
+    
+    .deco-circle {
+        &.deco-circle-1 { width: 200px; height: 200px; }
+        &.deco-circle-2 { width: 150px; height: 150px; }
+    }
+    
+    .scroll-indicator {
+        bottom: 20px;
+        .scroll-text { font-size: 0.8rem; }
+    }
+}
+
+@media (max-width: 480px) {
+    .banner-title { 
+        font-size: 2.0rem;
+        font-weight: 700;
+        text-shadow: 
+            2px 2px 4px rgba(0, 0, 0, 0.9),
+            0 0 20px rgba(77, 136, 255, 1),
+            0 0 40px rgba(77, 136, 255, 0.6);
+        
+        &::after {
+            width: 90%;
+            height: 2px;
+        }
+    }
+    .banner-description { font-size: 1.1rem; }
+    
+    .content-glass-card {
+        padding: 30px 20px;
+        margin: 0 10px;
+    }
+    
+    .btn-primary-modern {
+        padding: 14px 30px;
+        font-size: 0.9rem;
+        min-width: 160px;
+        gap: 10px;
+        
+        .btn-arrow {
+            width: 18px;
+            height: 18px;
+        }
+    }
+}
+
+// Accessibility
+@media (prefers-contrast: high) {
+    .banner-overlay {
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: none;
+    }
+    
+    .content-glass-card {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.3);
+    }
+    
+    .banner-title {
+        -webkit-text-fill-color: white;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation: none !important;
+        transition: none !important;
+    }
+}

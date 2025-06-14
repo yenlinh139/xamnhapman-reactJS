@@ -11,12 +11,14 @@ import { convertDMSToDecimal, dmsToDecimal } from "@components/convertDMSToDecim
 import { ToastCommon } from "@components/ToastCommon.jsx";
 import { TOAST } from "@common/constants.js";
 import SaltChartFull from "@pages/map/SaltChartFull";
+import HydrometChartFull from "@pages/map/HydrometChartFull";
 import MapDetails from "@pages/map/MapDetails";
 import { initializeMap } from "@components/map/mapInitialization";
 import { getSalinityTooltipClass, renderSalinityPoints } from "@components/map/SalinityMarkers";
 import { renderHydrometStations } from "@components/map/HydrometMarkers";
 import { updateLegendVisibility } from "@components/map/mapStyles";
 import { handleLocationChange, handleFeatureHighlight } from "@components/map/mapUtils";
+import { handleLayerLabelToggle, handleZoomChange, clearAllLabels } from "@components/map/mapLabels";
 
 import {
     fetchSalinityStationPositions,
@@ -31,11 +33,13 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
     const overlayLayers = useRef({});
     const [selectedPoint, setSelectedPoint] = useState(null);
     const [showFullChart, setShowFullChart] = useState(false);
+    const [showHydrometChart, setShowHydrometChart] = useState(false);
     const [salinityData, setSalinityData] = useState([]);
     const [selectedStation, setSelectedStation] = useState(null);
     const [hydrometData, setHydrometData] = useState([]);
     const highlightedLayerRef = useRef(null);
     const highlightedMarkerRef = useRef(null);
+    console.log(`selectedStation`, selectedStation);
 
     const handleCloseDetails = () => {
         setSelectedPoint(null);
@@ -65,24 +69,41 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
             }
         };
 
-        window.openHydrometDetails = (maTram) => {
-            // Find the selected station data
-            const selectedStationData = selectedStation?.maTram === maTram ? selectedStation : null;
+        window.openHydrometDetails = async (stationName) => {
+            console.log(`stationName`, stationName);
 
-            if (selectedStationData && hydrometData.length > 0) {
-                setShowFullChart(true);
-            } else {
-                // If station data is not available, fetch it
-                const fetchStationData = async () => {
-                    try {
-                        // You might need to fetch the station data here if not already available
-                        // For now, just open the chart with available data
-                        setShowFullChart(true);
-                    } catch (error) {
-                        console.error("Error opening hydromet details:", error);
+            try {
+                // Set the selected station info for the chart
+                if (stationName) {
+                    // Try to find the station in the existing data
+                    const existingStation = hydrometData.find(
+                        (data) => data.TenTam === stationName || data.maTram === stationName,
+                    );
+                    console.log(`existingStation`, existingStation);
+
+                    if (existingStation) {
+                        setSelectedStation({
+                            maTram: existingStation.maTram || stationName,
+                            tenTram: existingStation.tenTram || stationName,
+                            thongTin: existingStation.thongTin || {},
+                            data: hydrometData,
+                        });
+                    } else {
+                        // Create a basic station object for the chart
+                        setSelectedStation({
+                            maTram: stationName,
+                            tenTram: stationName,
+                            thongTin: {},
+                            data: hydrometData,
+                        });
                     }
-                };
-                fetchStationData();
+                }
+
+                // Open the hydromet chart
+                setShowHydrometChart(true);
+            } catch (error) {
+                console.error("Error opening hydromet details:", error);
+                ToastCommon({ message: "Không thể mở biểu đồ chi tiết", type: TOAST.ERROR });
             }
         };
 
@@ -162,7 +183,12 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
 
         // Clear all markers and layers from map
         map.eachLayer((layer) => {
-            if (layer.options?.isSalinityPoint || layer.options?.isHydrometStation) {
+            if (
+                layer.options?.isSalinityPoint ||
+                layer.options?.isHydrometStation ||
+                layer.options?.isDistrictLabel ||
+                layer.options?.isCommuneLabel
+            ) {
                 map.removeLayer(layer);
             }
         });
@@ -208,6 +234,22 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
 
         updateLegendVisibility(overlayLayers.current);
 
+        // Handle label display for administrative layers
+        const handleLabels = async () => {
+            // Clear all existing labels first
+            clearAllLabels(map);
+
+            // Process each selected layer for label display
+            for (const layerName of selectedLayers) {
+                if (layerName === "DiaPhanHuyen" || layerName === "DiaPhanXa") {
+                    await handleLayerLabelToggle(map, layerName, true);
+                }
+            }
+        };
+
+        // Execute label handling
+        handleLabels();
+
         // Force map refresh/re-render
         setTimeout(() => {
             map.invalidateSize();
@@ -223,6 +265,21 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
     useEffect(() => {
         handleFeatureHighlight(map, highlightedFeature, highlightedLayerRef, highlightedMarkerRef);
     }, [highlightedFeature, map]);
+
+    // Handle zoom changes for label visibility
+    useEffect(() => {
+        if (!map) return;
+
+        const onZoomEnd = () => {
+            handleZoomChange(map, selectedLayers);
+        };
+
+        map.on("zoomend", onZoomEnd);
+
+        return () => {
+            map.off("zoomend", onZoomEnd);
+        };
+    }, [map, selectedLayers]);
 
     // Date search functionality for legend
     useEffect(() => {
@@ -355,26 +412,179 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
                         };
 
                         const handleClickSearchDate = (station) => {
-                            console.log(`handleClickSearchDate station:`, station);
-
                             // Kiểm tra xem station có tọa độ hợp lệ không
                             if (station && station.position) {
                                 const { vido, kinhdo } = station.position;
-                                console.log(`Tọa độ trạm:`, { vido, kinhdo });
 
                                 // Có thể zoom đến vị trí trạm trên bản đồ
                                 if (map && vido && kinhdo) {
                                     map.setView([vido, kinhdo], 14);
 
-                                    // Tạo popup hiển thị thông tin trạm
-                                    const popupContent = `
-                                        <div class="station-popup">
-                                            <h6>${station.name || "Trạm quan trắc"}</h6>
-                                            ${station.value ? `<p>Giá trị: ${station.value} ${station.unit || ""}</p>` : ""}
-                                            <p>Vĩ độ: ${vido}</p>
-                                            <p>Kinh độ: ${kinhdo}</p>
-                                        </div>
-                                    `;
+                                    // Determine station type and create appropriate popup
+                                    let popupContent;
+                                    if (station.kiHieu) {
+                                        // This is a salinity station
+                                        const classification = getSalinityRiskLevel(
+                                            station.value,
+                                            station.kiHieu,
+                                        );
+                                        const statusColor = getSalinityColor(
+                                            parseFloat(station.value || 0),
+                                            station.kiHieu,
+                                        );
+                                        const statusClass = classification.level
+                                            ? `status-${classification.level}`
+                                            : "status-no-data";
+
+                                        popupContent = `
+                                            <div class="modern-popup salinity-popup enhanced">
+                                                <div class="popup-header">
+                                                    <div class="popup-icon">🌊</div>
+                                                    <div class="popup-title">
+                                                        <h4 class="popup-name">${station.name || "Trạm quan trắc"}</h4>
+                                                        <span class="popup-type">Điểm đo độ mặn</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="popup-content">
+                                                    <div class="popup-main-value">
+                                                        <span class="value-label">Độ mặn hiện tại</span>
+                                                        <span class="value-number" style="color: ${statusColor}">
+                                                            ${station.value || "--"} ${station.unit || "‰"}
+                                                        </span>
+                                                        <span class="value-date">Ngày tìm kiếm</span>
+                                                    </div>
+                                                    
+                                                    <div class="popup-details">
+                                                        <div class="detail-grid">
+                                                            <div class="detail-item">
+                                                                <div class="detail-content">
+                                                                    <strong class="detail-label"><i class="detail-icon">🏷️</i> Mã trạm:</strong>
+                                                                    <span class="detail-value">${station.kiHieu || "N/A"}</span>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div class="detail-item">
+                                                                <div class="detail-content">
+                                                                    <strong class="detail-label"><i class="detail-icon">📍</i> Vĩ độ:</strong>
+                                                                    <span class="detail-value">${vido.toFixed(6)}</span>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div class="detail-item">
+                                                                <div class="detail-content">
+                                                                    <strong class="detail-label"><i class="detail-icon">📍</i> Kinh độ:</strong>
+                                                                    <span class="detail-value">${kinhdo.toFixed(6)}</span>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div class="detail-item">
+                                                                <div class="detail-content">
+                                                                    <strong class="detail-label"><i class="detail-icon">⚠️</i> Mức rủi ro:</strong>
+                                                                    <span class="detail-value" style="color: ${statusColor}; font-weight: 600;">
+                                                                        ${classification || "Không xác định"}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="popup-actions">
+                                                        <button class="action-btn primary" onclick="window.openChartDetails('${station.kiHieu || station.name}')">
+                                                            <i class="btn-icon">📈</i>
+                                                            Xem biểu đồ chi tiết
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    } else {
+                                        // This is a hydrometeorology station
+                                        const hasData = station.values && station.values.length > 0;
+                                        const primaryParam = hasData ? station.values[0] : null;
+
+                                        popupContent = `
+                                            <div class="modern-popup hydromet-popup enhanced">
+                                                <div class="popup-header">
+                                                    <div class="popup-icon">🌤️</div>
+                                                    <div class="popup-title">
+                                                        <h4 class="popup-name">${station.name || "Trạm quan trắc"}</h4>
+                                                        <span class="popup-type">Trạm khí tượng thủy văn</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="popup-content">
+                                                    ${
+                                                        hasData && primaryParam
+                                                            ? `
+                                                        <div class="popup-main-value">
+                                                            <span class="value-label">${primaryParam.paramName || "Thông số chính"}</span>
+                                                            <span class="value-number" style="color: #0066cc">
+                                                                ${primaryParam.value} ${primaryParam.unit}
+                                                            </span>
+                                                            <span class="value-date">Ngày tìm kiếm</span>
+                                                        </div>
+                                                        
+                                                        ${
+                                                            station.values.length > 1
+                                                                ? `
+                                                            <div class="multi-param-grid">
+                                                                ${station.values
+                                                                    .slice(1)
+                                                                    .map(
+                                                                        (param) => `
+                                                                    <div class="param-item">
+                                                                        <div class="param-content">
+                                                                            <span class="param-label">${param.paramName}</span>
+                                                                            <span class="param-value" style="background-color: rgba(13, 110, 253, 0.1); padding: 2px 6px; border-radius: 10px; font-weight: 500;">
+                                                                                ${param.value} ${param.unit}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                `,
+                                                                    )
+                                                                    .join("")}
+                                                            </div>
+                                                        `
+                                                                : ""
+                                                        }
+                                                    `
+                                                            : `
+                                                        <div class="no-data-message">
+                                                            <i class="no-data-icon">📊</i>
+                                                            <span>Chưa có dữ liệu quan trắc</span>
+                                                        </div>
+                                                    `
+                                                    }
+                                                    
+                                                    <div class="popup-details">
+                                                        <div class="detail-grid">
+                                                            <div class="detail-item">
+                                                                <div class="detail-content">
+                                                                    <strong class="detail-label"><i class="detail-icon">📍</i> Vĩ độ:</strong>
+                                                                    <span class="detail-value">${vido.toFixed(6)}</span>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div class="detail-item">
+                                                                <div class="detail-content">
+                                                                    <strong class="detail-label"><i class="detail-icon">📍</i> Kinh độ:</strong>
+                                                                    <span class="detail-value">${kinhdo.toFixed(6)}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="popup-actions">
+                                                        <button class="action-btn primary" onclick="window.openHydrometDetails('${station.name}')">
+                                                            <i class="btn-icon">📈</i>
+                                                            Xem biểu đồ chi tiết
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }
 
                                     L.popup().setLatLng([vido, kinhdo]).setContent(popupContent).openOn(map);
                                 }
@@ -401,7 +611,7 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
                                     value: parseFloat(station.value).toFixed(2),
                                     unit: "‰",
                                     kiHieu: station.kiHieu,
-                                    color: getSalinityColor(parseFloat(station.value)),
+                                    color: getSalinityColor(parseFloat(station.value), station.kiHieu),
                                 }));
                             }
 
@@ -489,7 +699,17 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
                                                                 (station) => `
                                                         <div class="station-item" data-station="${station.kiHieu}" data-position='${JSON.stringify(station)}' role="button" tabindex="0">
                                                             <span class="station-name">${station.name}</span>
-                                                            <span class="station-value" style="color: ${station.color}; font-weight: 600; background-color: rgba(${station.color === "blue" ? "0,0,255,0.1" : station.color === "#fd7e14" ? "253,126,20,0.1" : "220,53,69,0.1"}); padding: 3px 8px; border-radius: 12px;">
+                                                            <span class="station-value" style="color: ${station.color}; font-weight: 600; background-color: rgba(${
+                                                                station.color === "#28a745"
+                                                                    ? "40,167,69,0.1" // Green
+                                                                    : station.color === "#ffc107"
+                                                                      ? "255,193,7,0.1" // Yellow
+                                                                      : station.color === "#fd7e14"
+                                                                        ? "253,126,20,0.1" // Orange
+                                                                        : station.color === "#dc3545"
+                                                                          ? "220,53,69,0.1" // Red
+                                                                          : "108,117,125,0.1" // Gray for no-data
+                                                            }); padding: 3px 8px; border-radius: 12px;">
                                                             ${station.value} ${station.unit}
                                                             </span>
                                                         </div>
@@ -589,44 +809,64 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
                             `;
                         };
 
-                        setTimeout(() => {
+                        // Gắn event listeners sau khi update legend
+                        const attachEventListeners = () => {
                             const items = legendPrimary.querySelectorAll(".station-item[data-position]");
-                            console.log(`Tìm thấy ${items.length} station items để gắn sự kiện click`);
 
                             items.forEach((el) => {
-                                el.addEventListener("click", (event) => {
-                                    event.preventDefault();
-                                    event.stopPropagation();
+                                // Remove existing listeners to prevent duplicates
+                                el.removeEventListener("click", handleStationClick);
+                                el.removeEventListener("mouseenter", handleStationMouseEnter);
+                                el.removeEventListener("mouseleave", handleStationMouseLeave);
 
-                                    try {
-                                        const raw = el.getAttribute("data-position");
-                                        console.log("Raw data-position:", raw);
+                                // Add new listeners
+                                el.addEventListener("click", handleStationClick);
+                                el.addEventListener("mouseenter", handleStationMouseEnter);
+                                el.addEventListener("mouseleave", handleStationMouseLeave);
 
-                                        if (raw) {
-                                            const station = JSON.parse(raw);
-                                            console.log("Parsed station data:", station);
-                                            handleClickSearchDate(station);
-                                        } else {
-                                            console.warn("Không tìm thấy data-position attribute");
-                                        }
-                                    } catch (e) {
-                                        console.error("❌ Lỗi khi parse data-position:", e);
-                                        console.error("Raw data:", el.getAttribute("data-position"));
-                                    }
-                                });
-
-                                // Thêm visual feedback khi hover
+                                // Set cursor style
                                 el.style.cursor = "pointer";
-                                el.addEventListener("mouseenter", function () {
-                                    this.style.backgroundColor = "rgba(0, 123, 255, 0.1)";
-                                });
-                                el.addEventListener("mouseleave", function () {
-                                    this.style.backgroundColor = "transparent";
-                                });
                             });
-                        }, 100);
+                        };
 
-                        updateLegendWithStations();
+                        const handleStationClick = (event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+
+                            try {
+                                const raw = event.currentTarget.getAttribute("data-position");
+
+                                if (raw) {
+                                    const station = JSON.parse(raw);
+                                    handleClickSearchDate(station);
+                                } else {
+                                    console.warn("Không tìm thấy data-position attribute");
+                                }
+                            } catch (e) {
+                                console.error("❌ Lỗi khi parse data-position:", e);
+                                console.error("Raw data:", event.currentTarget.getAttribute("data-position"));
+                            }
+                        };
+
+                        const handleStationMouseEnter = function () {
+                            this.style.backgroundColor = "rgba(0, 123, 255, 0.1)";
+                        };
+
+                        const handleStationMouseLeave = function () {
+                            this.style.backgroundColor = "transparent";
+                        };
+
+                        // Update legend and then attach event listeners
+                        updateLegendWithStations()
+                            .then(() => {
+                                // Wait a bit for DOM to be fully updated
+                                setTimeout(attachEventListeners, 50);
+                            })
+                            .catch((error) => {
+                                console.error("Error updating legend:", error);
+                                // Try to attach listeners anyway
+                                setTimeout(attachEventListeners, 50);
+                            });
                     }
                 } catch (error) {
                     console.log(`error.message:`, error.message);
@@ -644,11 +884,58 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
         };
     }, [map]);
 
-    // Helper function to get salinity color based on value
-    const getSalinityColor = (value) => {
-        if (value < 1) return "blue";
-        else if (value < 4) return "#fd7e14";
-        else return "#dc3545";
+    // Helper function to get salinity color based on new 5-level classification
+    const getSalinityColor = (value, stationCode = null) => {
+        if (
+            value === "NULL" ||
+            value === null ||
+            value === undefined ||
+            value === "" ||
+            isNaN(parseFloat(value))
+        ) {
+            return "#6c757d"; // Gray for no data
+        }
+
+        const numericValue = parseFloat(value);
+
+        if (numericValue < 1) {
+            return "#28a745"; // Green - Bình thường
+        } else if (numericValue <= 4) {
+            if (stationCode === "MNB") {
+                return "#ffc107"; // Yellow - Rủi ro cấp 1 (Nhà Bè 1-4‰)
+            } else {
+                return "#fd7e14"; // Orange - Rủi ro cấp 2 (các điểm khác 1-4‰)
+            }
+        } else {
+            return "#dc3545"; // Red - Rủi ro cấp 3 (> 4‰)
+        }
+    };
+
+    // Helper function to get risk level description
+    const getSalinityRiskLevel = (value, stationCode = null) => {
+        if (
+            value === "NULL" ||
+            value === null ||
+            value === undefined ||
+            value === "" ||
+            isNaN(parseFloat(value))
+        ) {
+            return "Khuyết số liệu";
+        }
+
+        const numericValue = parseFloat(value);
+
+        if (numericValue < 1) {
+            return "Bình thường";
+        } else if (numericValue <= 4) {
+            if (stationCode === "MNB") {
+                return "Rủi ro cấp 1";
+            } else {
+                return "Rủi ro cấp 2";
+            }
+        } else {
+            return "Rủi ro cấp 3";
+        }
     };
 
     // Summary points rendering functions for date search
@@ -668,17 +955,17 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
             const lng = convertDMSToDecimal(point.KinhDo);
             const value = parseFloat(station.value);
             const date = new Date(station.date).toLocaleDateString("vi-VN");
-            let color = "#6c757d";
-            if (value < 1) color = "blue";
-            else if (value < 4) color = "#fd7e14";
-            else color = "#dc3545";
+
+            // Use new classification system
+            const color = getSalinityColor(value, station.kiHieu);
+            const riskLevel = getSalinityRiskLevel(value, station.kiHieu);
 
             if (lat == null || lng == null || isNaN(lat) || isNaN(lng)) {
                 console.warn(`⚠️ Không thể chuyển tọa độ tại điểm ${point.TenDiem}`);
                 return;
             }
 
-            const icon = getSalinityIcon(value);
+            const icon = getSalinityIcon(value, station.kiHieu);
 
             const marker = L.marker([lat, lng], {
                 icon,
@@ -716,9 +1003,17 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
                 <span class="popup-type">Điểm đo độ mặn</span>
               </div>
               <div class="popup-status ${
-                  value < 1 ? "status-low" : value < 4 ? "status-medium" : "status-high"
+                  color === "#28a745"
+                      ? "status-normal"
+                      : color === "#ffc107"
+                        ? "status-warning"
+                        : color === "#fd7e14"
+                          ? "status-high-warning"
+                          : color === "#dc3545"
+                            ? "status-critical"
+                            : "status-no-data"
               }">
-                ${value < 1 ? "Bình thường" : value < 4 ? "Rủi ro cấp 2" : "Rủi ro cấp 3"}
+                ${riskLevel}
               </div>
             </div>
             
@@ -732,6 +1027,12 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
               
               <div class="popup-details">
                 <div class="detail-grid">
+                  <div class="detail-item">
+                    <div class="detail-content py-2">
+                      <strong class="detail-label"><i class="detail-icon">📅</i> Ngày quan trắc: </strong>
+                      <span class="detail-value">${date}</span>
+                    </div>
+                  </div>
                   <div class="detail-item">
                     <div class="detail-content py-2">
                       <strong class="detail-label"><i class="detail-icon">🏷️</i> Phân loại: </strong>
@@ -750,13 +1051,6 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
                     <div class="detail-content py-2">
                       <strong class="detail-label"><i class="detail-icon">📊</i> Tần suất đo: </strong>
                       <span class="detail-value">${point.TanSuat}</span>
-                    </div>
-                  </div>
-                  
-                  <div class="detail-item">
-                    <div class="detail-content py-2">
-                      <strong class="detail-label"><i class="detail-icon">📅</i> Ngày thống kê: </strong>
-                      <span class="detail-value">${date}</span>
                     </div>
                   </div>
                 </div>
@@ -896,18 +1190,16 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
               <div class="detail-grid">
                 <div class="detail-item py-2">
                   <div class="detail-content">
-                    <strong class="detail-label"><i class="detail-icon">🏭</i> Mã trạm:</strong>
-                    <span class="detail-value">${point.KiHieu}</span>
-                  </div>
-                </div>
-    
-                <div class="detail-item py-2">
-                  <div class="detail-content">
-                    <strong class="detail-label"><i class="detail-icon">📅</i> Ngày đo:</strong>
+                    <strong class="detail-label"><i class="detail-icon">📅</i> Ngày quan trắc:</strong>
                     <span class="detail-value">${date}</span>
                   </div>
                 </div>
-    
+                <div class="detail-item py-2">
+                  <div class="detail-content">
+                    <strong class="detail-label"><i class="detail-icon">🏭</i> Mã trạm:</strong>
+                    <span class="detail-value">${point.KiHieu}</span>
+                  </div>
+                </div>    
                 <div class="detail-item py-2">
                   <div class="detail-content">
                     <strong class="detail-label"> <i class="detail-icon">📊</i> Yếu tố:</strong>
@@ -958,6 +1250,7 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
                 selectedPoint={selectedPoint}
                 hydrometData={hydrometData}
                 onOpenFullChart={() => setShowFullChart(true)}
+                onOpenHydrometChart={() => setShowHydrometChart(true)}
                 onClose={handleCloseDetails}
             />
 
@@ -966,8 +1259,15 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
                 kiHieu={selectedPoint?.kiHieu}
                 tenDiem={selectedPoint?.tenDiem}
                 salinityData={salinityData}
-                hydrometData={hydrometData}
                 onClose={() => setShowFullChart(false)}
+            />
+
+            <HydrometChartFull
+                show={showHydrometChart}
+                kiHieu={selectedStation?.maTram || selectedPoint?.kiHieu}
+                TenTam={selectedStation?.tenTram || selectedPoint?.tenDiem}
+                hydrometData={hydrometData}
+                onClose={() => setShowHydrometChart(false)}
             />
         </>
     );

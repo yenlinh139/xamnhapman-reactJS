@@ -11,13 +11,13 @@ const VerifyEmail = () => {
         // Gửi yêu cầu xác thực email đến backend
         const verifyEmail = async () => {
             try {
-                const response = await fetch(`http://localhost:4000/verify-email/${userId}`);
+                const response = await fetch(`http://localhost:4000/api/verify-email/${userId}`);
                 const data = await response.json();
 
                 if (response.ok) {
                     setMessage("Email đã được xác thực thành công!");
                     setTimeout(() => {
-                        navigate("/login"); // Chuyển hướng tới trang đăng nhập sau 3 giây
+                        navigate("/dang-nhap"); // Chuyển hướng tới trang đăng nhập sau 3 giây
                     }, 3000);
                 } else {
                     setMessage("Xác thực email thất bại. Vui lòng thử lại.");

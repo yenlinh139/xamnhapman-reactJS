@@ -4,10 +4,13 @@ import { REQUIRE_NAME } from "@common/messageError";
 import ModalConfirm from "@components/ModalConfirm";
 import { UPDATE } from "@common/messageConfirm";
 import { updateUser } from "@stores/actions/userActions";
+import { formatDateToInput } from "@common/validate";
 
 const initErrorMessages = {
     name: "",
     email: "",
+    phone: "",
+    role: "",
     password: "",
 };
 
@@ -44,6 +47,20 @@ function EditUserModal({ userEdit }) {
         });
     };
 
+    const handleSetPhone = (value) => {
+        setUserDetail({
+            ...userDetail,
+            phone: value,
+        });
+    };
+
+    const handleSetRole = (value) => {
+        setUserDetail({
+            ...userDetail,
+            role: parseInt(value),
+        });
+    };
+
     useEffect(() => {
         setUserDetail(userEdit);
         setErrorMessages(initErrorMessages);
@@ -55,7 +72,7 @@ function EditUserModal({ userEdit }) {
                 <div className="modal-dialog">
                     <div className="modal-content">
                         <div className="modal-header">
-                            <h4 className="modal-title">Edit User</h4>
+                            <h4 className="modal-title">Chỉnh sửa người dùng</h4>
                             <button
                                 id="close-edit-user-btn"
                                 type="button"
@@ -71,16 +88,25 @@ function EditUserModal({ userEdit }) {
                                     <input
                                         disabled
                                         type="text"
-                                        placeholder="Enter email"
+                                        placeholder="Nhập email"
                                         className="form-control"
                                         value={userDetail.email}
                                     />
+                                    <div className="mt-2">
+                                        <span
+                                            className={`badge ${userDetail.email_verified ? "bg-success" : "bg-warning"}`}
+                                        >
+                                            {userDetail.email_verified
+                                                ? "Email đã xác thực"
+                                                : "Email chưa xác thực"}
+                                        </span>
+                                    </div>
                                 </div>
                                 <div className="mb-3">
-                                    <label className="form-label">Name</label>
+                                    <label className="form-label">Họ và tên</label>
                                     <input
                                         type="text"
-                                        placeholder="Enter name"
+                                        placeholder="Nhập họ và tên"
                                         className={`form-control ${
                                             errorMessages.name?.length > 0 && "is-invalid"
                                         }`}
@@ -89,12 +115,79 @@ function EditUserModal({ userEdit }) {
                                     />
                                     <span className="invalid-feedback">{errorMessages.name}</span>
                                 </div>
+                                <div className="mb-3">
+                                    <label className="form-label">Số điện thoại</label>
+                                    <input
+                                        type="tel"
+                                        placeholder="Nhập số điện thoại"
+                                        className={`form-control ${
+                                            errorMessages.phone?.length > 0 && "is-invalid"
+                                        }`}
+                                        value={userDetail.phone || ""}
+                                        onChange={(e) => handleSetPhone(e.target.value)}
+                                    />
+                                    <span className="invalid-feedback">{errorMessages.phone}</span>
+                                </div>
+                                <div className="mb-3">
+                                    <label className="form-label">Vai trò</label>
+                                    <select
+                                        className={`form-control ${
+                                            errorMessages.role?.length > 0 && "is-invalid"
+                                        }`}
+                                        value={userDetail.role || 0}
+                                        onChange={(e) => handleSetRole(e.target.value)}
+                                    >
+                                        <option value={0}>Người dùng</option>
+                                        <option value={1}>Quản trị viên</option>
+                                    </select>
+                                    <span className="invalid-feedback">{errorMessages.role}</span>
+                                </div>
+
+                                {/* Feedback Information Section */}
+                                {(userDetail.feedback_name ||
+                                    userDetail.feedback_message ||
+                                    userDetail.feedback_rating) && (
+                                    <div className="mb-3">
+                                        <label className="form-label">Thông tin phản hồi</label>
+                                        <div className="feedback-info-card p-3 border rounded bg-light">
+                                            {userDetail.feedback_name && (
+                                                <div className="mb-2">
+                                                    <strong>Tên phản hồi:</strong> {userDetail.feedback_name}
+                                                </div>
+                                            )}
+                                            {userDetail.feedback_rating && (
+                                                <div className="mb-2">
+                                                    <strong>Đánh giá:</strong>
+                                                    <span className="ms-2">
+                                                        {[...Array(5)].map((_, i) => (
+                                                            <i
+                                                                key={i}
+                                                                className={`fa-solid fa-star ${i < userDetail.feedback_rating ? "text-warning" : "text-muted"}`}
+                                                            />
+                                                        ))}
+                                                        <span className="ms-1">
+                                                            ({userDetail.feedback_rating}/5)
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {userDetail.feedback_message && (
+                                                <div className="mb-0">
+                                                    <strong>Nội dung phản hồi:</strong>
+                                                    <div className="mt-1 p-2 bg-white rounded border">
+                                                        <small>{userDetail.feedback_message}</small>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </form>
                         </div>
 
                         <div className="modal-footer">
                             <button className="btn btn-primary" onClick={handleOnSubmit}>
-                                Save Changes
+                                Lưu thay đổi
                             </button>
                         </div>
                     </div>

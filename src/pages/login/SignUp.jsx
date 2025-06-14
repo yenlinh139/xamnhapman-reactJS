@@ -41,10 +41,10 @@ function SignUp() {
 
             ToastCommon(
                 TOAST.SUCCESS,
-                "Successfully registered! Please check your email to verify your account.",
+                "Đăng ký thành công! Vui lòng kiểm tra email để xác minh tài khoản của bạn.",
             );
         } catch (error) {
-            setErrorMessage(error?.response?.data?.message || "An error occurred during registration.");
+            setErrorMessage(error?.response?.data?.message || "Đã xảy ra lỗi trong quá trình đăng ký.");
         }
     };
 
@@ -58,7 +58,7 @@ function SignUp() {
                     className="inputLogin"
                     type="text"
                     name="name"
-                    placeholder="Name"
+                    placeholder="Họ và tên"
                     ref={name}
                     onKeyDown={(e) => handleKeyPress(e, email)}
                 />
@@ -74,7 +74,7 @@ function SignUp() {
                     className="inputLogin"
                     type="password"
                     name="pswd"
-                    placeholder="Password"
+                    placeholder="Mật khẩu"
                     ref={password}
                     onKeyDown={(e) => handleKeyPress(e, confirmPassword)}
                 />
@@ -82,12 +82,12 @@ function SignUp() {
                     className="inputLogin"
                     type="password"
                     name="pswd"
-                    placeholder="Confirm Password"
+                    placeholder="Xác nhận mật khẩu"
                     ref={confirmPassword}
                     onKeyDown={(e) => handleKeyPress(e, null)}
                 />
                 <button type="button" className="btnLogin btnLoginSubmit" onClick={() => handleSignUp()}>
-                    Sign up
+                    Đăng ký
                 </button>
             </form>
         </div>

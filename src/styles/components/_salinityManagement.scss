@@ -69,8 +69,22 @@
   .filter-row {
     display: flex;
     align-items: flex-end;
+    justify-content: space-between;
     gap: 1.5rem;
     flex-wrap: wrap;
+  }
+
+  .filter-left {
+    display: flex;
+    align-items: flex-end;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+
+  .filter-right {
+    display: flex;
+    align-items: flex-end;
   }
 
   .filter-group {
@@ -192,6 +206,36 @@
       text-align: center;
     }
 
+    &.sortable-header {
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+
+      &:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+      }
+
+      i.fa-sort,
+      i.fa-sort-up,
+      i.fa-sort-down {
+        opacity: 0.7;
+        transition: all 0.2s ease;
+
+        &.text-primary {
+          opacity: 1;
+        }
+
+        &.text-muted {
+          color: #94a3b8 !important;
+        }
+      }
+
+      &:hover i {
+        opacity: 1;
+      }
+    }
+
     .station-header {
       display: flex;
       flex-direction: column;
@@ -236,9 +280,58 @@
       text-align: center;
       position: relative;
 
+      // Bình thường (độ mặn tại các điểm <1‰)
+      &.normal {
+        background-color: rgba(40, 167, 69, 0.1);
+        border-left: 3px solid #28a745;
+        
+        .salinity-value {
+          color: #28a745;
+        }
+      }
+
+      // Rủi ro cấp 1 (độ mặn tại Nhà Bè 1-4‰)
+      &.warning {
+        background-color: rgba(255, 193, 7, 0.1);
+        border-left: 3px solid #ffc107;
+        
+        .salinity-value {
+          color: #ffc107;
+        }
+      }
+
+      // Rủi ro cấp 2 (độ mặn tại Nhà Bè >4‰, các điểm khác 1-4‰)
+      &.high-warning {
+        background-color: rgba(253, 126, 20, 0.1);
+        border-left: 3px solid #fd7e14;
+        
+        .salinity-value {
+          color: #fd7e14;
+        }
+      }
+
+      // Rủi ro cấp 3 (độ mặn tại các điểm >4‰)
+      &.critical {
+        background-color: rgba(220, 53, 69, 0.1);
+        border-left: 3px solid #dc3545;
+        
+        .salinity-value {
+          color: #dc3545;
+        }
+      }
+
+      // Khuyết số liệu
+      &.no-data {
+        background-color: rgba(108, 117, 125, 0.1);
+        border-left: 3px solid #6c757d;
+        color: #6c757d;
+        font-style: italic;
+      }
+
+      // Legacy support for old class names
       &.low {
         background-color: rgba(40, 167, 69, 0.1);
-        border-left: 3px solid var(--blue);
+        border-left: 3px solid #28a745;
       }
 
       &.medium {
@@ -249,13 +342,6 @@
       &.high {
         background-color: rgba(220, 53, 69, 0.1);
         border-left: 3px solid #dc3545;
-      }
-
-      &.no-data {
-        background-color: rgba(108, 117, 125, 0.1);
-        border-left: 3px solid #6c757d;
-        color: #6c757d;
-        font-style: italic;
       }
 
       .salinity-value {
@@ -475,6 +561,28 @@
       border-radius: 2px;
       border: 1px solid var(--border-color);
 
+      // New classification colors
+      &.normal {
+        background-color: #28a745;
+      }
+
+      &.warning {
+        background-color: #ffc107;
+      }
+
+      &.high-warning {
+        background-color: #fd7e14;
+      }
+
+      &.critical {
+        background-color: #dc3545;
+      }
+
+      &.no-data {
+        background-color: #6c757d;
+      }
+
+      // Legacy support
       &.low {
         background-color: #28a745;
       }
@@ -485,10 +593,6 @@
 
       &.high {
         background-color: #dc3545;
-      }
-
-      &.no-data {
-        background-color: #6c757d;
       }
     }
   }
@@ -767,6 +871,44 @@
         font-size: 0.8rem;
         margin-top: 0.25rem;
         display: block;
+      }
+
+      // Date group styles
+      &.date-group {
+        .date-row {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          margin-bottom: 0.5rem;
+
+          label {
+            margin-bottom: 0;
+            min-width: 50px;
+            flex-shrink: 0;
+          }
+
+          .date-display {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #495057;
+            font-weight: 500;
+
+            i {
+              color: var(--blue);
+            }
+          }
+        }
+
+        .form-note {
+          margin-top: 0;
+          margin-bottom: 0;
+          background-color: transparent;
+          border: none;
+          padding: 0;
+          font-size: 0.8rem;
+          color: #6c757d;
+        }
       }
     }
 

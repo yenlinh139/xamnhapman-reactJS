@@ -1,167 +1,135 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { useSelector, useDispatch } from "react-redux";
 import Header from "@pages/themes/headers/Header";
 import Footer from "@pages/themes/footer/Footer";
-import FeatureCard from "@pages/home/FeatureCard";
-import Banner from "@components/Banner";
+import Banner from "@/pages/home/Banner";
 import bannerAbout from "@assets/bannerAbout.jpg";
+import { getAllFeedbackData, loadMoreFeedback, feedbackActions } from "@/stores/actions/feedbackActions";
 
-const researchObjectives = [
+const userRoles = [
     {
-        icon: "🗺️",
-        title: "Xây dựng CSDL không gian",
-        description: "Thiết lập cơ sở dữ liệu không gian toàn diện để giám sát và cảnh báo xâm nhập mặn.",
+        title: "Người dùng chưa đăng nhập",
+        icon: "👁️",
+        color: "gray",
+        features: [
+            "Xem thông tin tổng quan hệ thống",
+            "Xem vị trí các trạm quan trắc",
+            "Truy cập thông tin cơ bản",
+        ],
     },
     {
-        icon: "🌊",
-        title: "Phát triển WebGIS",
-        description: "Xây dựng hệ thống WebGIS hiện đại hỗ trợ theo dõi độ mặn theo thời gian thực.",
-    },
-    {
-        icon: "⚡",
-        title: "Cảnh báo tự động",
-        description: "Thiết lập cơ chế thông báo tự động khi độ mặn vượt ngưỡng an toàn cho phép.",
-    },
-    {
-        icon: "📊",
-        title: "Trực quan hóa dữ liệu",
-        description: "Hiển thị dữ liệu thủy văn một cách trực quan, hỗ trợ ra quyết định hiệu quả.",
-    },
-];
-
-const features = [
-    {
-        icon: "🌊",
-        title: "Giám sát độ mặn",
-        description: "Theo dõi và phân tích diễn biến xâm nhập mặn theo thời gian thực.",
+        title: "Người dùng đã đăng nhập",
+        icon: "👤",
         color: "blue",
+        features: [
+            "Tương tác đầy đủ với bản đồ WebGIS",
+            "Xem chi tiết dữ liệu trạm khí tượng và xâm nhập mặn",
+            "Phân tích dữ liệu: lọc theo ngày, xuất biểu đồ",
+            "Tìm kiếm trạm theo tên và đơn vị hành chính",
+            "Zoom đến khu vực/trạm quan tâm",
+            "Xem thông tin nền: ranh giới, thủy văn, giao thông",
+            "Gửi đánh giá và chỉnh sửa thông tin cá nhân",
+        ],
     },
     {
-        icon: "📊",
-        title: "Phân tích dữ liệu",
-        description: "Biểu đồ và thống kê chi tiết về tình hình xâm nhập mặn.",
-        color: "green",
-    },
-    {
-        icon: "🗺️",
-        title: "Bản đồ tương tác",
-        description: "Bản đồ WebGIS hiển thị trực quan các điểm đo và khu vực ảnh hưởng.",
-        color: "purple",
-    },
-    {
-        icon: "⚡",
-        title: "Cảnh báo tức thời",
-        description: "Thông báo ngay khi độ mặn vượt ngưỡng cho phép.",
-        color: "orange",
-    },
-    {
-        icon: "📱",
-        title: "Truy cập đa nền tảng",
-        description: "Sử dụng trên mọi thiết bị với giao diện tối ưu.",
+        title: "Quản trị viên",
+        icon: "⚙️",
         color: "red",
-    },
-    {
-        icon: "📄",
-        title: "Báo cáo chuyên sâu",
-        description: "Tự động tạo báo cáo với số liệu và biểu đồ chi tiết.",
-        color: "teal",
-    },
-];
-
-const stats = [
-    {
-        value: "24/7",
-        label: "Giám sát",
-        description: "Theo dõi liên tục",
-        icon: "⚡",
-    },
-    {
-        value: "100+",
-        label: "Điểm đo",
-        description: "Trên toàn thành phố",
-        icon: "📍",
-    },
-    {
-        value: "95%",
-        label: "Độ chính xác",
-        description: "Trong dự báo",
-        icon: "📊",
-    },
-    {
-        value: "<2p",
-        label: "Cập nhật",
-        description: "Thời gian thực",
-        icon: "⏱️",
+        features: [
+            "Tất cả chức năng của người dùng",
+            "Quản lý thông tin người dùng hệ thống",
+            "Quản lý dữ liệu mặn và cập nhật",
+            "Các chức năng mở rộng quản trị hệ thống",
+        ],
     },
 ];
 
 const Home = () => {
+    const dispatch = useDispatch();
+    const {
+        loading: feedbackLoading,
+        overview,
+        timeStats,
+        recentFeedback,
+        ratingStats,
+        showAllFeedback,
+        error: feedbackError,
+    } = useSelector((state) => state.feedback || {});
+
+    // State for feedback display
+    const [displayedFeedbackCount, setDisplayedFeedbackCount] = useState(3);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+    // Fetch feedback data on component mount
+    useEffect(() => {
+        dispatch(getAllFeedbackData());
+    }, [dispatch]);
+
+    // Handle load more feedback
+    const handleLoadMore = async () => {
+        setIsLoadingMore(true);
+        try {
+            // Load thêm 10 feedback nữa
+            await dispatch(loadMoreFeedback(recentFeedback.length, 10));
+            setDisplayedFeedbackCount((prev) => prev + 10);
+        } catch (error) {
+            console.error("Error loading more feedback:", error);
+        } finally {
+            setIsLoadingMore(false);
+        }
+    };
+
+    // Handle show all feedback
+    const handleShowAll = async () => {
+        if (!showAllFeedback) {
+            setIsLoadingMore(true);
+            try {
+                // Load all feedback (limit 50)
+                await dispatch(loadMoreFeedback(0, 50));
+                dispatch(feedbackActions.setShowAll(true));
+                setDisplayedFeedbackCount(50);
+            } catch (error) {
+                console.error("Error loading all feedback:", error);
+            } finally {
+                setIsLoadingMore(false);
+            }
+        } else {
+            // Reset về 3 feedback
+            dispatch(feedbackActions.setShowAll(false));
+            setDisplayedFeedbackCount(3);
+        }
+    };
+
+    // Get displayed feedback
+    const getDisplayedFeedback = () => {
+        if (!recentFeedback || recentFeedback.length === 0) {
+            return [];
+        }
+        return showAllFeedback ? recentFeedback : recentFeedback.slice(0, displayedFeedbackCount);
+    };
+
     return (
         <div className="home-container">
             <Helmet>
                 <title>Trang chủ | Xâm nhập mặn Tp. Hồ Chí Minh</title>
             </Helmet>
             <Header />
-
-            {/* Hero Section */}
-            <section className="hero-section">
-                <div className="hero-content">
-                    <h1>Hệ thống Giám sát Xâm nhập Mặn</h1>
-                    <p>Giải pháp toàn diện cho việc theo dõi và quản lý tình hình xâm nhập mặn tại TP.HCM</p>
-                    <div className="hero-buttons">
-                        <Link to="/ban-do" className="primary-button">
-                            Xem bản đồ <span className="icon">🗺️</span>
-                        </Link>
-                        <a href="#about-section" className="secondary-button">
-                            Tìm hiểu thêm <span className="icon">ℹ️</span>
-                        </a>
-                    </div>
-                </div>
-                <div className="hero-stats">
-                    {stats.map((stat, index) => (
-                        <div key={index} className="stat-card">
-                            <div className="stat-icon">{stat.icon}</div>
-                            <div className="stat-value">{stat.value}</div>
-                            <div className="stat-label">{stat.label}</div>
-                            <div className="stat-description">{stat.description}</div>
-                        </div>
-                    ))}
-                </div>
-            </section>
-
-            {/* Features Section */}
-            <section className="features-section">
-                <div className="section-header">
-                    <h2>Tính năng nổi bật</h2>
-                    <p>Khám phá các công cụ mạnh mẽ giúp bạn theo dõi và phân tích tình hình xâm nhập mặn</p>
-                </div>
-                <div className="features-grid">
-                    {features.map((feature, index) => (
-                        <FeatureCard
-                            key={index}
-                            icon={feature.icon}
-                            title={feature.title}
-                            description={feature.description}
-                            color={feature.color}
-                        />
-                    ))}
-                </div>
-            </section>
-
-            {/* About Section */}
             <section id="about-section" className="about-section">
                 <Banner
                     backgroundImage={bannerAbout}
-                    title="GIỚI THIỆU KHÓA LUẬN"
+                    title="WEBGIS GIÁM SÁT VÀ CẢNH BÁO XÂM NHẬP MẶN TRÊN HỆ THỐNG SÔNG, KÊNH, RẠCH TẠI THÀNH PHỐ HỒ CHÍ MINH"
                     description="Khóa luận tốt nghiệp được thực hiện bởi Nguyễn Võ Yến Linh dưới sự hướng dẫn của ThS. Nguyễn Duy Liêm."
                 />
 
                 {/* Introduction Section */}
                 <div className="container mt-5">
                     <div className="introduction-section">
-                        <div className="section-content">
+                        <div className="section-header-home">
                             <h2>Tổng quan nghiên cứu</h2>
+                        </div>
+                        <div className="section-content">
                             <div className="content-wrapper mt-5">
                                 <div className="text-content ">
                                     <p className="highlight-text">
@@ -205,62 +173,281 @@ const Home = () => {
                         </div>
                     </div>
                 </div>
-
-                {/* Objectives Section */}
+            </section>
+            {/* System Overview */}
+            <section className="system-overview-section">
                 <div className="container">
-                    <div className="objectives-section">
-                        <div className="section-content">
-                            <h2>Mục tiêu nghiên cứu</h2>
-                            <div className="objectives-grid">
-                                {researchObjectives.map((objective, index) => (
-                                    <div className="objective-card" key={index}>
-                                        <span className="objective-icon">{objective.icon}</span>
-                                        <h3>{objective.title}</h3>
-                                        <p>{objective.description}</p>
-                                    </div>
-                                ))}
+                    <div className="section-header-home">
+                        <h2>Tổng quan hệ thống</h2>
+                    </div>
+
+                    <div className="overview-grid">
+                        {/* 1. Bản đồ tương tác WebGIS */}
+                        <div className="overview-card">
+                            <div className="card-image">
+                                <i
+                                    className="fa-solid fa-map"
+                                    style={{ color: "blue", fontSize: "1.5rem" }}
+                                ></i>
+                            </div>
+                            <div className="card-content">
+                                <h3>Bản đồ tương tác WebGIS</h3>
+                                <p>
+                                    Hệ thống bản đồ trực quan với khả năng zoom, pan và tương tác thời gian
+                                    thực, hỗ trợ giám sát hiệu quả.
+                                </p>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                {/* Team Section */}
-                <div className="container">
-                    <div className="team-section">
-                        <div className="section-content">
-                            <h2>Đội ngũ thực hiện</h2>
-                            <div className="team-grid">
-                                <div className="team-card student">
-                                    <div className="card-content">
-                                        <h3>Sinh viên thực hiện</h3>
-                                        <div className="member-name">Nguyễn Võ Yến Linh</div>
-                                        <div className="member-role">Khoa Môi trường và Tài nguyên</div>
-                                    </div>
-                                </div>
-                                <div className="team-card advisor">
-                                    <div className="card-content">
-                                        <h3>Giảng viên hướng dẫn</h3>
-                                        <div className="member-name">ThS. Nguyễn Duy Liêm</div>
-                                        <div className="member-role">Khoa Môi trường và Tài nguyên</div>
-                                    </div>
-                                </div>
+                        {/* 2. Giám sát khí tượng thủy văn */}
+                        <div className="overview-card">
+                            <div className="card-image">
+                                <i
+                                    className="fa-solid fa-tower-observation"
+                                    style={{ color: "red", fontSize: "1.5rem" }}
+                                ></i>
+                            </div>
+                            <div className="card-content">
+                                <h3>Giám sát khí tượng thủy văn</h3>
+                                <p>
+                                    Theo dõi dữ liệu từ các trạm đo khí tượng trên địa bàn TP.HCM, phục vụ
+                                    phân tích tình hình thời tiết và thủy văn.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* 3. Trạm xâm nhập mặn */}
+                        <div className="overview-card">
+                            <div className="card-image">
+                                <i
+                                    className="fa-solid fa-droplet"
+                                    style={{ color: "#003366", fontSize: "1.5rem" }}
+                                ></i>
+                            </div>
+                            <div className="card-content">
+                                <h3>Trạm xâm nhập mặn</h3>
+                                <p>
+                                    Giám sát độ mặn tại các điểm quan trắc trọng yếu, phát hiện và cảnh báo
+                                    sớm tình trạng xâm nhập mặn.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* 4. Phân tích dữ liệu chuyên sâu */}
+                        <div className="overview-card">
+                            <div className="card-image">
+                                <i
+                                    className="fa-solid fa-chart-column"
+                                    style={{ color: "purple", fontSize: "1.5rem" }}
+                                ></i>
+                            </div>
+                            <div className="card-content">
+                                <h3>Phân tích dữ liệu chuyên sâu</h3>
+                                <p>
+                                    Cung cấp công cụ lọc dữ liệu, xuất biểu đồ, thống kê và báo cáo hỗ trợ ra
+                                    quyết định chính xác.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* 5. Tìm kiếm thông minh */}
+                        <div className="overview-card">
+                            <div className="card-image">
+                                <i
+                                    className="fa-solid fa-magnifying-glass-location"
+                                    style={{ color: "orange", fontSize: "1.5rem" }}
+                                ></i>
+                            </div>
+                            <div className="card-content">
+                                <h3>Tìm kiếm thông minh</h3>
+                                <p>
+                                    Tìm kiếm trạm quan trắc theo tên, vị trí hoặc địa giới hành chính kèm tính
+                                    năng tự động zoom tới vị trí.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* 6. Thông tin nền */}
+                        <div className="overview-card">
+                            <div className="card-image">
+                                <i
+                                    className="fa-solid fa-layer-group"
+                                    style={{ color: "blue", fontSize: "1.5rem" }}
+                                ></i>
+                            </div>
+                            <div className="card-content">
+                                <h3>Thông tin nền</h3>
+                                <p>
+                                    Bao gồm ranh giới hành chính, sông ngòi, hệ thống giao thông và quy hoạch
+                                    sử dụng đất hỗ trợ phân tích không gian.
+                                </p>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Call to Action Section */}
-            <section className="cta-section">
-                <div className="cta-content">
-                    <h2>Bắt đầu ngay hôm nay</h2>
-                    <p>
-                        Truy cập bản đồ để xem thông tin chi tiết về tình hình xâm nhập mặn tại khu vực của
-                        bạn
-                    </p>
-                    <Link to="/ban-do" className="cta-button">
-                        Mở bản đồ WebGIS <span className="icon">→</span>
-                    </Link>
+            {/* User Roles Section */}
+            <section className="user-roles-section">
+                <div className="container">
+                    <div className="section-header-home">
+                        <h2>Tính năng theo phân quyền</h2>
+                    </div>
+
+                    <div className="roles-grid">
+                        {userRoles.map((role, index) => (
+                            <div key={index} className={`role-card ${role.color}`}>
+                                <div className="role-header">
+                                    <span className="role-icon">{role.icon}</span>
+                                    <h3>{role.title}</h3>
+                                </div>
+                                <ul className="role-features">
+                                    {role.features.map((feature, featureIndex) => (
+                                        <li key={featureIndex}>
+                                            <span className="feature-check">✓</span>
+                                            {feature}
+                                        </li>
+                                    ))}
+                                </ul>
+                                {index === 1 && (
+                                    <div className="role-cta">
+                                        <Link to="/dang-nhap" className="role-button">
+                                            Đăng nhập để trải nghiệm
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Feedback Section - Simplified and Clean */}
+            <section className="feedback-section">
+                <div className="container">
+                    <div className="section-header">
+                        <h2>Đánh giá hệ thống</h2>
+                    </div>
+
+                    {feedbackLoading ? (
+                        <div className="loading-state">
+                            <div className="spinner"></div>
+                            <p>Đang tải dữ liệu...</p>
+                        </div>
+                    ) : feedbackError ? (
+                        <div className="error-state">
+                            <i className="fa-solid fa-exclamation-triangle"></i>
+                            <p>Không thể tải dữ liệu đánh giá</p>
+                        </div>
+                    ) : (
+                        <div className="home-feedback-content">
+                            {/* Quick Stats */}
+                            <div className="quick-stats">
+                                <div className="stat-item">
+                                    <i className="fa-solid fa-comments"></i>
+                                    <div className="stat-info">
+                                        <span className="stat-number">{overview?.total || 0}</span>
+                                        <span className="stat-label">Phản hồi</span>
+                                    </div>
+                                </div>
+                                <div className="stat-item">
+                                    <i className="fa-solid fa-star"></i>
+                                    <div className="stat-info">
+                                        <span className="stat-number">
+                                            {overview?.averageRating?.toFixed(1) || "0.0"}
+                                        </span>
+                                        <span className="stat-label">Điểm TB</span>
+                                    </div>
+                                </div>
+                                <div className="stat-item">
+                                    <i className="fa-solid fa-thumbs-up"></i>
+                                    <div className="stat-info">
+                                        <span className="stat-number">
+                                            {overview?.satisfactionRate || 0}%
+                                        </span>
+                                        <span className="stat-label">Hài lòng</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Recent Feedback - Simple Cards */}
+                            <div className="recent-feedback-home">
+                                <h3>Phản hồi gần đây</h3>
+                                <div className="feedback-grid">
+                                    {getDisplayedFeedback() && getDisplayedFeedback().length > 0 ? (
+                                        getDisplayedFeedback().map((feedback, index) => (
+                                            <div key={index} className="feedback-card">
+                                                <div className="feedback-header">
+                                                    <div className="user-info">
+                                                        <div className="user-avatar">
+                                                            <i className="fa-solid fa-user"></i>
+                                                        </div>
+                                                        <div className="user-details">
+                                                            <span className="user-name">
+                                                                {feedback.user?.name || "Người dùng"}
+                                                            </span>
+                                                            <div className="rating">
+                                                                {Array.from({ length: 5 }, (_, i) => (
+                                                                    <i
+                                                                        key={i}
+                                                                        className={`fa-${i < feedback.rating ? "solid" : "regular"} fa-star`}
+                                                                    ></i>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <span className="feedback-date">
+                                                        {new Date(feedback.createdAt).toLocaleDateString(
+                                                            "vi-VN",
+                                                        )}
+                                                    </span>
+                                                </div>
+                                                <div className="feedback-content">
+                                                    <p>
+                                                        "{feedback.comment || "Đánh giá tích cực về hệ thống"}
+                                                        "
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="no-feedback">
+                                            <i className="fa-regular fa-comment"></i>
+                                            <p>Chưa có phản hồi nào</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Load More / Show All Button */}
+                                {recentFeedback && recentFeedback.length > 3 && (
+                                    <div className="load-more-section">
+                                        <button
+                                            onClick={handleShowAll}
+                                            className="load-more-btn"
+                                            disabled={isLoadingMore}
+                                        >
+                                            {isLoadingMore ? (
+                                                <>
+                                                    <i className="fa-solid fa-spinner fa-spin"></i>
+                                                    Đang tải...
+                                                </>
+                                            ) : showAllFeedback ? (
+                                                <>
+                                                    <i className="fa-solid fa-chevron-up"></i>
+                                                    Thu gọn
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <i className="fa-solid fa-chevron-down"></i>
+                                                    Xem tất cả ({recentFeedback.length} phản hồi)
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </section>
 

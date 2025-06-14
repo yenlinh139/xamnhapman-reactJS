@@ -21,7 +21,7 @@ export const signUp = (params) => {
             if (resp) {
                 ToastCommon(
                     TOAST.SUCCESS,
-                    "Successfully registered! Please check your email to verify your account.",
+                    "Đăng ký thành công! Vui lòng kiểm tra email để xác minh tài khoản của bạn.",
                 );
                 dispatch({
                     type: SET_SHOW_SIGNUP,

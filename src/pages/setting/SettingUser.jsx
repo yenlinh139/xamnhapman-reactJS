@@ -26,7 +26,6 @@ function SettingUser() {
         email: userInfo?.email || "",
         password: "",
         confirmPassword: "",
-        birthday: userInfo?.birthday || "",
         phone: userInfo?.phone || "",
     });
 
@@ -63,11 +62,6 @@ function SettingUser() {
             setErrorMessages(errors);
             return;
         }
-
-        const updatedData = {
-            ...formState,
-            birthday: formatDateForDB(formState.birthday), // Chuyển đổi ngày sinh
-        };
 
         setUpdatedFormState(updatedData);
         setShowConfirmModal(true);
@@ -125,18 +119,6 @@ function SettingUser() {
                                         placeholder="Nhập email của bạn"
                                     />
                                     <FaEnvelope className="input-icon" />
-                                </div>
-
-                                <div className="inputGroup">
-                                    <label htmlFor="birthday">Ngày sinh</label>
-                                    <input
-                                        type="date"
-                                        id="birthday"
-                                        name="birthday"
-                                        value={formState.birthday}
-                                        onChange={handleChange}
-                                    />
-                                    <FaCalendar className="input-icon" />
                                 </div>
 
                                 <div className="inputGroup">

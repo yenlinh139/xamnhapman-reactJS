@@ -44,8 +44,6 @@ export const handleFeatureHighlight = (
     if (!highlightedFeature) {
         return;
     }
-    highlightedFeature ? console.log(`highlightedFeature:`, highlightedFeature) : null;
-
     const isPoint = highlightedFeature?.geometry?.type === "Point";
     const coordinates = isPoint ? highlightedFeature?.geometry?.coordinates : null;
 
@@ -86,7 +84,6 @@ export const handleFeatureHighlight = (
             icon: customIcon,
             zIndexOffset: 1000,
         }).addTo(map);
-        console.log("✅ Marker đã add vào map", highlightedMarkerRef.current);
         highlightedMarkerRef.current.bindPopup(`
             <div class="highlight-popup">
                 <h4 style="margin:0 0 8px;color:#007bff;">
@@ -123,7 +120,6 @@ export const handleFeatureHighlight = (
             const bounds = geoJsonLayer.getBounds();
 
             if (bounds.isValid()) {
-                console.log("✅ Bounds hợp lệ, zoom tới vùng này.");
                 map.fitBounds(bounds);
             } else {
                 console.warn("Bounds invalid, possibly because geometry is a Point.");

@@ -1,4 +1,4 @@
-import axiosInstance from "../../config/axios-config";
+import axiosInstance from "@config/axios-config";
 
 // Action creators for reducer
 export const salinityActions = {
@@ -100,8 +100,6 @@ export const updateSalinityData =
 // Delete salinity data by date
 export const deleteSalinityData = (date) => async (dispatch) => {
     try {
-        console.log(`Deleting salinity data for date: ${date}`);
-
         const response = await axiosInstance.delete(`/salinity-data/${date}`);
 
         if (response.data.code === 200) {

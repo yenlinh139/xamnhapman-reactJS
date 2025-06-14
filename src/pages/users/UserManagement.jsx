@@ -18,7 +18,6 @@ function User() {
         name: "",
         email: "",
         password: "",
-        birthday: "",
         phone: "",
     });
 

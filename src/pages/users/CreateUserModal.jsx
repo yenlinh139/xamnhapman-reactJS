@@ -13,6 +13,7 @@ import { createUser } from "@stores/actions/userActions";
 const initErrorMessages = {
     name: "",
     email: "",
+    phone: "",
     password: "",
     confirmPassword: "",
 };
@@ -20,6 +21,8 @@ const initErrorMessages = {
 function CreateUserModal() {
     const email = useRef(null);
     const name = useRef(null);
+    const phone = useRef(null);
+    const role = useRef(null);
     const password = useRef(null);
     const confirmPassword = useRef(null);
 
@@ -57,9 +60,10 @@ function CreateUserModal() {
             createUser({
                 name: name.current.value,
                 email: email.current.value,
+                phone: phone.current.value,
                 password: password.current.value,
                 confirmPassword: confirmPassword.current.value,
-                role: 0,
+                role: parseInt(role.current.value) || 0,
             }),
         );
 
@@ -71,7 +75,7 @@ function CreateUserModal() {
             <div className="modal-dialog">
                 <div className="modal-content">
                     <div className="modal-header">
-                        <h4 className="modal-title">Create User</h4>
+                        <h4 className="modal-title">Tạo người dùng</h4>
                         <button
                             id="close-create-user-btn"
                             type="button"
@@ -83,7 +87,7 @@ function CreateUserModal() {
                     <div className="modal-body">
                         <form>
                             <div className="mb-3">
-                                <label className="form-label">Name</label>
+                                <label className="form-label">Họ và tên</label>
                                 <input
                                     type="text"
                                     className={`form-control ${
@@ -105,7 +109,26 @@ function CreateUserModal() {
                                 <span className="invalid-feedback">{errorMessages.email}</span>
                             </div>
                             <div className="mb-3">
-                                <label className="form-label">Password</label>
+                                <label className="form-label">Số điện thoại</label>
+                                <input
+                                    type="tel"
+                                    className={`form-control ${
+                                        errorMessages.phone?.length > 0 && "is-invalid"
+                                    }`}
+                                    ref={phone}
+                                    placeholder="Nhập số điện thoại"
+                                />
+                                <span className="invalid-feedback">{errorMessages.phone}</span>
+                            </div>
+                            <div className="mb-3">
+                                <label className="form-label">Vai trò</label>
+                                <select className="form-select" ref={role} defaultValue="0">
+                                    <option value="0">Người dùng</option>
+                                    <option value="1">Quản trị viên</option>
+                                </select>
+                            </div>
+                            <div className="mb-3">
+                                <label className="form-label">Mật khẩu</label>
                                 <input
                                     type="password"
                                     className={`form-control ${
@@ -116,7 +139,7 @@ function CreateUserModal() {
                                 <span className="invalid-feedback">{errorMessages.password}</span>
                             </div>
                             <div className="mb-3">
-                                <label className="form-label">Confirm Password</label>
+                                <label className="form-label">Xác nhận mật khẩu</label>
                                 <input
                                     type="password"
                                     className={`form-control ${
@@ -131,7 +154,7 @@ function CreateUserModal() {
 
                     <div className="modal-footer">
                         <button className="btn btn-primary" onClick={handleOnSubmit}>
-                            Save Changes
+                            Lưu thay đổi
                         </button>
                     </div>
                 </div>

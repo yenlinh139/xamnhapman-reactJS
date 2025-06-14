@@ -12,6 +12,7 @@ import Map from "@pages/map/Map";
 import SettingUser from "@pages/setting/SettingUser";
 import UserManagement from "@pages/users/UserManagement";
 import SalinityManagement from "@pages/salinity/SalinityManagement";
+import SalinityReport from "@pages/salinity/SalinityReport";
 import Feedback from "@pages/feedback/Feedback";
 
 const App = () => {
@@ -24,11 +25,12 @@ const App = () => {
                     <Route path={ROUTES.login} element={<WrapperLogin />} />
                     <Route element={<ProtectedRoute />}>
                         <Route path={ROUTES.setting} element={<SettingUser />} />
+                        <Route path={ROUTES.feedback} element={<Feedback />} />
+                        <Route path={ROUTES.map} element={<Map />} />
                         <Route element={<RoleBasedRoute requiredRole={1} />}>
-                            <Route path={ROUTES.map} element={<Map />} />
                             <Route path={ROUTES.users} element={<UserManagement />} />
                             <Route path={ROUTES.salinity} element={<SalinityManagement />} />
-                            <Route path={ROUTES.feedback} element={<Feedback />} />
+                            <Route path={ROUTES.salinityReport} element={<SalinityReport />} />
                         </Route>
                     </Route>
                 </Routes>

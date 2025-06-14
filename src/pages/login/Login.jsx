@@ -66,13 +66,13 @@ const Login = () => {
                         className="inputLogin"
                         type="password"
                         name="pswd"
-                        placeholder="Password"
+                        placeholder="Mật khẩu"
                         ref={password}
                         onKeyDown={handleKeyPress}
                     />
                     {errorMessage && <div className="error-message">{errorMessage}</div>}
                     <button type="button" className="btnLogin btnLoginSubmit" onClick={() => handleLogin()}>
-                        Login
+                        Đăng nhập
                     </button>
                 </form>
                 <div className="line mt-5"></div>

@@ -261,64 +261,75 @@
 
     .multi-param-grid {
         display: grid;
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
         gap: 8px;
-        margin: 16px 0;
-        padding: 12px;
-        background: rgba(248, 250, 252, 0.8);
-        border-radius: 8px;
-        border: 1px solid #e2e8f0;
+        margin-top: 12px;
 
         .param-item {
-            display: flex;
-            align-items: center;
-            padding: 8px 12px;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-
-            &:hover {
-                transform: translateY(-1px);
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            }
-
-            &.rainfall {
-                background: linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 100%);
-                border-left: 4px solid #0288d1;
-            }
-
-            &.temperature {
-                background: linear-gradient(135deg, #fff3e0 0%, #ffcc02 100%);
-                border-left: 4px solid #f57c00;
-            }
-
-            &.humidity {
-                background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
-                border-left: 4px solid #388e3c;
-            }
-
-            .param-icon {
-                font-size: 1.2rem;
-                margin-right: 10px;
-                width: 24px;
-                text-align: center;
-            }
+            background: rgba(248, 249, 250, 0.6);
+            border-radius: 8px;
+            padding: 8px 10px;
+            border: 1px solid rgba(0, 0, 0, 0.06);
 
             .param-content {
-                flex: 1;
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
 
                 .param-label {
-                    display: block;
-                    font-size: 0.75rem;
-                    color: #64748b;
+                    font-size: 11px;
+                    color: var(--textColorLight);
                     font-weight: 500;
-                    margin-bottom: 2px;
                 }
 
                 .param-value {
-                    display: block;
-                    font-size: 0.9rem;
+                    font-size: 12px;
                     font-weight: 600;
-                    color: #1e293b;
+                    color: var(--textColorDark);
+                }
+            }
+        }
+    }
+
+    .no-data-message {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 16px;
+        background: rgba(248, 249, 250, 0.8);
+        border-radius: 10px;
+        color: var(--textColorLight);
+        font-style: italic;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+
+        .no-data-icon {
+            font-size: 16px;
+            opacity: 0.7;
+        }
+    }
+
+    /* Enhanced specific styling */
+    &.enhanced {
+        max-width: 400px;
+        
+        .popup-header {
+            padding: 18px 24px;
+        }
+
+        .popup-content {
+            padding: 20px 24px;
+        }
+
+        .detail-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+
+            .detail-item {
+                .detail-content {
+                    padding: 12px 16px;
+                    background: rgba(248, 249, 250, 0.6);
+                    border-radius: 10px;
+                    border: 1px solid rgba(0, 0, 0, 0.06);
                 }
             }
         }
@@ -975,6 +986,37 @@ button:hover,
                 color: #e64555; // đỏ Bootstrap
                 border: 1px solid #dc3545;
             }
+
+            // New salinity risk level status classes
+            &.status-normal {
+                background: rgba(40, 167, 69, 0.15);
+                color: #28a745;
+                border: 1px solid #28a745;
+            }
+
+            &.status-warning {
+                background: rgba(255, 193, 7, 0.15);
+                color: #ffc107;
+                border: 1px solid #ffc107;
+            }
+
+            &.status-high-warning {
+                background: rgba(253, 126, 20, 0.15);
+                color: #fd7e14;
+                border: 1px solid #fd7e14;
+            }
+
+            &.status-critical {
+                background: rgba(220, 53, 69, 0.15);
+                color: #dc3545;
+                border: 1px solid #dc3545;
+            }
+
+            &.status-no-data {
+                background: rgba(108, 117, 125, 0.15);
+                color: #6c757d;
+                border: 1px solid #6c757d;
+            }
         }
     }
 
@@ -1123,24 +1165,39 @@ button:hover,
         border-top-color: rgba(0, 0, 0, 0.8) !important;
     }
 
-    /* Salinity level based colors */
+    /* Salinity level based colors - Updated for new 5-level classification */
     &.tooltip-normal {
-        background: rgba(0, 0, 255, 0.9) !important; /* Blue for normal (< 1) */
+        background: rgba(40, 167, 69, 0.9) !important; /* Green for normal (< 1‰) */
         &::before {
-            border-top-color: rgba(0, 0, 255, 0.9) !important;
+            border-top-color: rgba(40, 167, 69, 0.9) !important;
         }
     }
 
     &.tooltip-warning {
-        background: rgba(255, 102, 0, 0.9) !important; /* Orange for warning (1-4) */
+        background: rgba(255, 193, 7, 0.9) !important; /* Yellow for risk level 1 (Nhà Bè 1-4‰) */
+        &::before {
+            border-top-color: rgba(255, 193, 7, 0.9) !important;
+        }
+    }
+
+    &.tooltip-high-warning {
+        background: rgba(253, 126, 20, 0.9) !important; /* Orange for risk level 2 (other stations 1-4‰) */
+        &::before {
+            border-top-color: rgba(253, 126, 20, 0.9) !important;
+        }
     }
 
     &.tooltip-critical {
-        background: rgba(255, 0, 0, 0.9) !important;
-
-        /* Red for critical (> 4) */
+        background: rgba(220, 53, 69, 0.9) !important; /* Red for risk level 3 (> 4‰) */
         &::before {
-            border-top-color: rgba(255, 0, 0, 0.9) !important;
+            border-top-color: rgba(220, 53, 69, 0.9) !important;
+        }
+    }
+
+    &.tooltip-no-data {
+        background: rgba(108, 117, 125, 0.9) !important; /* Gray for no data */
+        &::before {
+            border-top-color: rgba(108, 117, 125, 0.9) !important;
         }
     }
 }
@@ -1148,15 +1205,15 @@ button:hover,
 /* Marker Pulse Animation */
 @keyframes markerPulse {
     0% {
-        box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.7);
+        box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.7);
         transform: scale(1);
     }
     50% {
-        box-shadow: 0 0 0 10px rgba(13, 110, 253, 0);
+        box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
         transform: scale(1.05);
     }
     100% {
-        box-shadow: 0 0 0 0 rgba(13, 110, 253, 0);
+        box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
         transform: scale(1);
     }
 }
@@ -1288,49 +1345,8 @@ button:hover,
     overflow-y: visible;
 }
 
-.station-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #ffffff;
-    border-radius: 6px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    border: 1px solid #e9ecef;
-    overflow: hidden;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    padding: 8px 12px;
-
-    &:hover {
-        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
-        transform: translateY(-2px);
-    }
-
-    &:active {
-        transform: translateY(0);
-    }
-}
-
-.station-name {
-    font-size: 13px;
-    font-weight: 500;
-    color: #212529;
-    display: flex;
-    align-items: center;
-}
 .legend-section {
     padding: 16px;
-}
-.station-value {
-    font-weight: 600;
-    font-size: 13px;
-    border-radius: 4px;    
-}
-
-.station-params {
-    padding: 8px 12px;
-    background-color: #ffffff;
-    border-top: 1px solid #f1f3f5;
 }
 
 .param-item {
@@ -1355,94 +1371,143 @@ button:hover,
     color: #212529;
 }
 
-/* Responsive adjustments for legend scrolling */
-@media (max-height: 800px) {
-    .legend-container {
-        .legend-content {
-            max-height: 75vh;
-        }
+/* ===============================
+   Administrative Area Labels
+   =============================== */
 
-        .legend-layers, .legend-summary {
-            max-height: calc(50vh - 150px);
+.label-marker {
+    z-index: 1000 !important;
+    pointer-events: none;
+    
+    .district-label, .commune-label {
+        transition: all 0.3s ease;
+        transform-origin: center;
+        
+        &:hover {
+            transform: scale(1.1);
+        }
+    }
+    
+    .district-label {
+        font-size: 16px !important;
+        font-weight: 600 !important;        
+    }
+    
+    .commune-label {
+        font-size: 14px !important;
+        font-weight: 700 !important;        
+    }
+}
+
+/* ===============================
+   Modern Map Label Styles
+   =============================== */
+
+/* Label Marker Container */
+.label-marker {
+    z-index: 500 !important;
+    pointer-events: none !important;
+    
+    .district-label,
+    .commune-label {
+        animation: fadeInLabel 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+        transform-origin: center !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        position: relative !important;
+    }
+    
+    .district-label {
+        &:hover {
+            transform: scale(1.05) !important;
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2)) !important;
+        }
+    }
+    
+    .commune-label {
+        &:hover {
+            transform: scale(1.03) !important;
+            filter: drop-shadow(0 3px 8px rgba(0,0,0,0.15)) !important;
         }
     }
 }
 
-@media (max-height: 600px) {
-    .legend-container {
-        width: 320px;
-
-        .legend-header {
-            padding: 12px 14px;
-
-            .legend-title {
-                font-size: 13px;
-            }
-        }
-
-        .legend-content {
-            max-height: 85vh;
-        }
-
-        .legend-search {
-            padding: 12px;
-        }
-
-        .legend-tabs .tab-btn {
-            padding: 10px 0;
-            font-size: 12px;
-        }
-
-        .tab-content {
-            padding: 12px;
-        }
-
-        .legend-layers, .legend-summary {
-            max-height: calc(40vh - 120px);
-        }
-
-        .station-name {
-            padding: 8px 10px;
-        }
-    }
-}
-
-/* Mobile responsive design */
-@media (max-width: 576px) {
-    .legend-container {
-        width: 280px;
-
-        .legend-header {
-            padding: 10px 12px;
-        }
-
-        .tab-content {
-            padding: 10px;
-        }
-
-        .data-summary-card .summary-stats .stat-item .stat-label {
-            padding: 6px 10px;
-        }
-    }
-}
-
-/* Marker Pulse Animation */
-@keyframes markerPulse {
+/* Smooth Fade In Animation */
+@keyframes fadeInLabel {
     0% {
-        box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.7);
-        transform: scale(1);
+        opacity: 0;
+        transform: translateY(-15px) scale(0.7);
+        filter: blur(2px);
     }
     50% {
-        box-shadow: 0 0 0 10px rgba(13, 110, 253, 0);
-        transform: scale(1.05);
+        opacity: 0.7;
+        transform: translateY(-5px) scale(0.9);
+        filter: blur(1px);
     }
     100% {
-        box-shadow: 0 0 0 0 rgba(13, 110, 253, 0);
-        transform: scale(1);
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
     }
 }
 
-.marker-pulse {
-    animation: markerPulse 1.5s ease-out;
-    z-index: 1000 !important;
+/* Zoom Level Responsive Behavior */
+.leaflet-zoom-animated {
+    .label-marker {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        
+        .district-label,
+        .commune-label {
+            will-change: transform, opacity !important;
+        }
+    }
+}
+
+/* Responsive Label Sizes */
+@media (max-width: 1200px) {
+    .label-marker {
+        .district-label {
+            font-size: 14px !important;
+            padding: 3px 7px !important;
+        }
+        
+        .commune-label {
+            font-size: 12px !important;
+            padding: 3px 6px !important;
+        }
+    }
+}
+
+@media (max-width: 768px) {
+    .label-marker {
+        .district-label {
+            font-size: 13px !important;
+            padding: 3px 6px !important;
+        }
+        
+        .commune-label {
+            font-size: 11px !important;
+            padding: 2px 5px !important;
+        }
+    }
+}
+
+@media (max-width: 480px) {
+    .label-marker {
+        .district-label {
+            font-size: 12px !important;
+            padding: 2px 5px !important;
+        }
+        
+        .commune-label {
+            font-size: 10px !important;
+            padding: 2px 4px !important;
+        }
+    }
+}
+
+/* Performance Optimizations */
+.label-marker * {
+    backface-visibility: hidden !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
 }

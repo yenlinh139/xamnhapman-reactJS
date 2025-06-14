@@ -22,7 +22,7 @@ const CreateSalinityModal = ({ onClose, onSuccess }) => {
 
     // Station names for display
     const stations = {
-        CRT: "Cầu Rạch Trà",
+        CRT: "Cầu Rạch Tra",
         CTT: "Cầu Thủ Thiêm",
         COT: "Cầu Ông Thìn",
         CKC: "Cống Kênh C",
@@ -117,33 +117,35 @@ const CreateSalinityModal = ({ onClose, onSuccess }) => {
         <div className="modal-overlay" onClick={handleOverlayClick}>
             <div className="modal-content salinity-modal">
                 <div className="modal-header">
-                    <h2>Thêm Dữ Liệu Độ Mặn Mới</h2>
+                    <h2>Thêm dữ liệu độ mặn mới</h2>
                     <button className="modal-close" onClick={onClose} type="button">
                         <i className="fas fa-times"></i>
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="modal-body">
+                <form onSubmit={handleSubmit} className="modal-body pt-4">
                     {/* Date Input */}
-                    <div className="form-group">
-                        <label htmlFor="date" className="required">
-                            Ngày <span className="required-star">*</span>
-                        </label>
-                        <input
-                            type="date"
-                            id="date"
-                            name="Ngày"
-                            value={formData.Ngày}
-                            onChange={handleChange}
-                            className={`form-input ${errors.Ngày ? "error" : ""}`}
-                            required
-                        />
-                        {errors.Ngày && <span className="error-text">{errors.Ngày}</span>}
+                    <div className="form-group date-group">
+                        <div className="date-row">
+                            <label htmlFor="date" className="required">
+                                Ngày <span className="required-star">*</span>
+                            </label>
+                            <input
+                                type="date"
+                                id="date"
+                                name="Ngày"
+                                value={formData.Ngày}
+                                onChange={handleChange}
+                                className={`form-input ${errors.Ngày ? "error" : ""}`}
+                                required
+                            />
+                            {errors.Ngày && <span className="error-text">{errors.Ngày}</span>}
+                        </div>
                     </div>
 
                     {/* Salinity Measurements */}
                     <div className="salinity-measurements">
-                        <h3>Giá Trị Độ Mặn (‰)</h3>
+                        <h3>Giá trị độ mặn (‰)</h3>
                         <div className="measurements-grid">
                             {Object.entries(stations).map(([key, name]) => (
                                 <div key={key} className="form-group">

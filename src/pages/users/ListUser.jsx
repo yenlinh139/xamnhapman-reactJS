@@ -18,22 +18,28 @@ const ListUser = ({ setUserEdit }) => {
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [role, setRole] = useState("default");
+    const [emailVerified, setEmailVerified] = useState("default");
     const [showModal, setShowModal] = useState(false);
     const [modalMessage, setModalMessage] = useState("");
     const [actionType, setActionType] = useState(null);
     const [actionPayload, setActionPayload] = useState(null);
+    const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
     const itemsPerPage = 5;
 
-    // Memoized filtered data
+    // Memoized filtered and sorted data
     const filteredData = useMemo(() => {
         let result = listUser;
 
+        // Apply filters
         if (searchTerm.length > 0) {
             result = result.filter(
                 (user) =>
                     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    user.name.toLowerCase().includes(searchTerm.toLowerCase()),
+                    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    (user.phone && user.phone.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                    (user.feedback_name &&
+                        user.feedback_name.toLowerCase().includes(searchTerm.toLowerCase())),
             );
         }
 
@@ -41,8 +47,51 @@ const ListUser = ({ setUserEdit }) => {
             result = result.filter((user) => user.role === Number(role));
         }
 
+        if (emailVerified !== "default") {
+            result = result.filter((user) => user.email_verified === (emailVerified === "true"));
+        }
+
+        // Apply sorting
+        if (sortConfig.key) {
+            result.sort((a, b) => {
+                let aValue = a[sortConfig.key];
+                let bValue = b[sortConfig.key];
+
+                // Handle different data types
+                if (sortConfig.key === "role") {
+                    aValue = aValue === 1 ? "Người quản trị" : "Người dùng";
+                    bValue = bValue === 1 ? "Người quản trị" : "Người dùng";
+                }
+
+                if (sortConfig.key === "email_verified") {
+                    aValue = aValue ? "Đã xác thực" : "Chưa xác thực";
+                    bValue = bValue ? "Đã xác thực" : "Chưa xác thực";
+                }
+
+                if (sortConfig.key === "feedback_rating") {
+                    // Handle numeric sorting for rating
+                    return sortConfig.direction === "asc" ? aValue - bValue : bValue - aValue;
+                }
+
+                if (
+                    ["name", "email", "phone", "feedback_name", "feedback_message"].includes(sortConfig.key)
+                ) {
+                    aValue = (aValue || "").toLowerCase();
+                    bValue = (bValue || "").toLowerCase();
+                }
+
+                if (aValue < bValue) {
+                    return sortConfig.direction === "asc" ? -1 : 1;
+                }
+                if (aValue > bValue) {
+                    return sortConfig.direction === "asc" ? 1 : -1;
+                }
+                return 0;
+            });
+        }
+
         return result;
-    }, [searchTerm, role, listUser]);
+    }, [searchTerm, role, emailVerified, listUser, sortConfig]);
 
     const totalPage = Math.ceil(filteredData?.length / itemsPerPage);
     const indexOfFirstItem = (currentPage - 1) * itemsPerPage;
@@ -62,6 +111,12 @@ const ListUser = ({ setUserEdit }) => {
     const handleFilterRole = useCallback((event) => {
         const value = event.target.value;
         setRole(value);
+        setCurrentPage(1);
+    }, []);
+
+    const handleFilterEmailVerified = useCallback((event) => {
+        const value = event.target.value;
+        setEmailVerified(value);
         setCurrentPage(1);
     }, []);
 
@@ -87,23 +142,49 @@ const ListUser = ({ setUserEdit }) => {
             if (actionType === "changeRole") {
                 dispatch(
                     changeRole(actionPayload, () => {
-                        toast.success("Role changed successfully");
-                        navigate("/login");
+                        toast.success("Đã thay đổi quyền thành công");
+                        navigate("/dang-nhap");
                     }),
                 );
             } else if (actionType === "deleteUser") {
                 dispatch(
                     deleteUser(actionPayload, () => {
-                        toast.success("User deleted successfully");
+                        toast.success("Đã xóa người dùng thành công");
                     }),
                 );
             }
         } catch (error) {
-            toast.error("An error occurred. Please try again.");
+            toast.error("Đã xảy ra lỗi. Vui lòng thử lại.");
         } finally {
             setShowModal(false);
         }
     }, [actionType, actionPayload, dispatch, navigate]);
+
+    const handleSort = useCallback(
+        (key) => {
+            let direction = "asc";
+            if (sortConfig.key === key && sortConfig.direction === "asc") {
+                direction = "desc";
+            }
+            setSortConfig({ key, direction });
+            setCurrentPage(1); // Reset to first page when sorting
+        },
+        [sortConfig],
+    );
+
+    const getSortIcon = useCallback(
+        (columnKey) => {
+            if (sortConfig.key !== columnKey) {
+                return <i className="fa-solid fa-sort text-muted"></i>;
+            }
+            return sortConfig.direction === "asc" ? (
+                <i className="fa-solid fa-sort-up text-primary"></i>
+            ) : (
+                <i className="fa-solid fa-sort-down text-primary"></i>
+            );
+        },
+        [sortConfig],
+    );
 
     if (loading) {
         return <Loading />;
@@ -117,22 +198,33 @@ const ListUser = ({ setUserEdit }) => {
                         className="create-user-btn"
                         data-bs-toggle="modal"
                         data-bs-target="#modalCreateUser"
-                        title="Create User"
+                        title="Tạo người dùng"
                     >
                         <i className="fa-solid fa-plus"></i>
-                        <span>Create User</span>
+                        <span>Tạo người dùng mới</span>
                     </button>
 
                     <div className="search-filter-group">
                         <div className="search-input">
                             <i className="fa-solid fa-search"></i>
-                            <input type="search" placeholder="Search users..." onChange={handleSearch} />
+                            <input type="search" placeholder="Tìm kiếm..." onChange={handleSearch} />
                         </div>
                         <div className="role-filter">
                             <select className="form-select" onChange={handleFilterRole} value={role}>
-                                <option value="default">All Roles</option>
-                                <option value="1">Admin</option>
-                                <option value="0">User</option>
+                                <option value="default">Tất cả vai trò</option>
+                                <option value="1">Người quản trị</option>
+                                <option value="0">Người dùng</option>
+                            </select>
+                        </div>
+                        <div className="email-verified-filter">
+                            <select
+                                className="form-select"
+                                onChange={handleFilterEmailVerified}
+                                value={emailVerified}
+                            >
+                                <option value="default">Tất cả trạng thái</option>
+                                <option value="true">Email đã xác thực</option>
+                                <option value="false">Email chưa xác thực</option>
                             </select>
                         </div>
                     </div>
@@ -142,10 +234,31 @@ const ListUser = ({ setUserEdit }) => {
                     <table className="user-table">
                         <thead>
                             <tr>
-                                <th style={{ width: "25%" }}>Name</th>
-                                <th style={{ width: "35%" }}>Email</th>
-                                <th style={{ width: "15%" }}>Role</th>
-                                <th style={{ width: "15%" }}>Actions</th>
+                                <th onClick={() => handleSort("name")} className="sortable-header">
+                                    <span>Tên người dùng</span>
+                                    {getSortIcon("name")}
+                                </th>
+                                <th onClick={() => handleSort("email")} className="sortable-header">
+                                    <span>Email</span>
+                                    {getSortIcon("email")}
+                                </th>
+                                <th onClick={() => handleSort("email_verified")} className="sortable-header">
+                                    <span>Trạng thái email</span>
+                                    {getSortIcon("email_verified")}
+                                </th>
+                                <th onClick={() => handleSort("phone")} className="sortable-header">
+                                    <span>Số điện thoại</span>
+                                    {getSortIcon("phone")}
+                                </th>
+                                <th onClick={() => handleSort("role")} className="sortable-header">
+                                    <span>Phân quyền</span>
+                                    {getSortIcon("role")}
+                                </th>
+                                <th onClick={() => handleSort("feedback_rating")} className="sortable-header">
+                                    <span>Đánh giá</span>
+                                    {getSortIcon("feedback_rating")}
+                                </th>
+                                <th>Hành động</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -160,8 +273,8 @@ const ListUser = ({ setUserEdit }) => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="4" className="text-center">
-                                        No users found
+                                    <td colSpan="7" className="text-center">
+                                        Không tìm thấy người dùng nào phù hợp với tiêu chí tìm kiếm
                                     </td>
                                 </tr>
                             )}

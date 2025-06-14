@@ -470,8 +470,6 @@
         border-color: var(--hoverPrimary);
 
         .layer-icon-wrapper {
-            background: var(--hoverPrimary);
-            color: white;
             transform: scale(1.1);
         }
 
@@ -510,21 +508,7 @@
     align-items: center;
     justify-content: center;
     margin-right: 12px;
-    transition: all 0.3s ease;
-
-    &.salinity-icon {
-        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-        color: white;
-    }
-
-    &.hydromet-icon {
-        background: linear-gradient(135deg, #059669, #047857);
-        color: white;
-    }
-
-    i {
-        font-size: 16px;
-    }
+    transition: all 0.3s ease;  
 }
 
 .layer-details {

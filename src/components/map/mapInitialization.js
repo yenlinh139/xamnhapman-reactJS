@@ -22,14 +22,14 @@ export const createLegendControl = () => {
           <div class="legend-search">
             <div class="search-header">
               <i class="search-icon fas fa-calendar-alt"></i>
-              <span>Lọc dữ liệu theo ngày</span>
+              <span>Chọn ngày quan trắc</span>
             </div>
             <input type="date" id="legend-date" class="legend-date-input" 
                    placeholder="Chọn ngày thống kê" />
           </div>
           
           <div class="legend-section">
-            <h5 class="legend-section-title">Dữ liệu trạm</h5>
+            <h5 class="legend-section-title">Số liệu quan trắc</h5>
             <div class="legend-layers">
               <div class="legend-primary" id="legend-primary">
                 <!-- Dynamic data content will be inserted here -->
@@ -42,7 +42,7 @@ export const createLegendControl = () => {
           </div>
           
           <div class="legend-section">
-            <h5 class="legend-section-title">Lớp hiển thị</h5>
+            <h5 class="legend-section-title">Chú giải</h5>
             <div class="legend-summary" id="legend-summary">
               <div class="legend-secondary" id="legend-secondary">
                 <!-- Dynamic layer content will be inserted here -->

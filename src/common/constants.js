@@ -8,6 +8,7 @@ export const ROUTES = {
     login: "/dang-nhap",
     users: "/quan-ly-nguoi-dung",
     salinity: "/quan-ly-do-man",
+    salinityReport: "/bao-cao-do-man",
     setting: "/cai-dat",
     feedback: "/gop-y-danh-gia",
     map: "/ban-do",
