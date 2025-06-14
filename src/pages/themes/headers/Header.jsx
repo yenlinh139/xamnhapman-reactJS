@@ -95,17 +95,17 @@ function Header() {
                                     <NavLink to={ROUTES.map}>BẢN ĐỒ</NavLink>
                                 </li>
                                 {hasAccess && (
-                                    <>
-                                        <li className="text-center">
-                                            <NavLink to={ROUTES.salinity}>ĐỘ MẶN</NavLink>
-                                        </li>
-                                        <li className="text-center">
-                                            <NavLink to={ROUTES.salinityReport}>BÁO CÁO</NavLink>
-                                        </li>
-                                        <li className="text-center">
-                                            <NavLink to={ROUTES.users}>NGƯỜI DÙNG</NavLink>
-                                        </li>
-                                    </>
+                                    <li className="text-center">
+                                        <NavLink to={ROUTES.salinity}>ĐỘ MẶN</NavLink>
+                                    </li>
+                                )}
+                                <li className="text-center">
+                                    <NavLink to={ROUTES.salinityReport}>BÁO CÁO</NavLink>
+                                </li>
+                                {hasAccess && (
+                                    <li className="text-center">
+                                        <NavLink to={ROUTES.users}>NGƯỜI DÙNG</NavLink>
+                                    </li>
                                 )}
                                 <li className="text-center">
                                     <NavLink to={ROUTES.feedback}>GÓP Ý</NavLink>
