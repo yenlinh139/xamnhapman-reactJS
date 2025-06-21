@@ -72,7 +72,7 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
           ${createParameterCards(rainfallParams, temperatureParams, humidityParams)}
         </div>
         
-        <div class="popup-details">
+        <div class="popup-details mt-3">
           <div class="detail-grid">
             <div class="detail-item">
               <div class="detail-content">
@@ -376,8 +376,6 @@ const createBasicPopup = (station, message) => {
 export const renderHydrometStations = async (mapInstance, setHydrometData, setSelectedStation) => {
     try {
         const stations = await fetchHydrometStations();
-        console.log(`stations`, stations);
-
         const latLngs = [];
 
         for (const station of stations) {
@@ -466,8 +464,6 @@ export const renderHydrometStations = async (mapInstance, setHydrometData, setSe
             });
 
             marker.on("click", () => {
-                console.log(`hydrometeorologyData`, hydrometeorologyData);
-
                 try {
                     const zoomLevel = 13;
                     const clickLat = dmsToDecimal(station.ViDo);

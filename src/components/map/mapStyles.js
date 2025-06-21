@@ -20,12 +20,12 @@ export const legendNames = {
 
 export const createBaseMaps = () => {
     return {
-        "Google Satellite": L.tileLayer("https://mt1.google.com/vt/lyrs=m&hl=vi&x={x}&y={y}&z={z}", {
+        "Google Streets": L.tileLayer("https://mt1.google.com/vt/lyrs=m&hl=vi&x={x}&y={y}&z={z}", {
             maxZoom: 20,
             attribution: "© Google",
         }),
 
-        "Google Streets": L.tileLayer("https://mt1.google.com/vt/lyrs=y&hl=vi&x={x}&y={y}&z={z}", {
+        "Google Satellite": L.tileLayer("https://mt1.google.com/vt/lyrs=y&hl=vi&x={x}&y={y}&z={z}", {
             maxZoom: 20,
             attribution: "© Google",
         }),

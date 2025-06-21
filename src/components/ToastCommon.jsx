@@ -12,7 +12,9 @@ export const ToastCommon = (type, message) => {
         case TOAST.ERROR:
             toast.error(message, { icon: "💥" });
             break;
-
+        case TOAST.LOADING:
+            toast.loading(message);
+            break;
         default:
             toast.error("toast type not found");
             break;

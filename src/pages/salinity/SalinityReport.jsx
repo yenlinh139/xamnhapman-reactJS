@@ -20,6 +20,7 @@ const SalinityReport = () => {
     const [reportData, setReportData] = useState(null);
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
     const [generatingPDF, setGeneratingPDF] = useState(false);
+    const [generatingFrontendPDF, setGeneratingFrontendPDF] = useState(false);
     const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
     // Load report data
@@ -36,31 +37,157 @@ const SalinityReport = () => {
         }
     };
 
-    // Generate PDF report
-    const generatePDFReport = async () => {
+    // Generate PDF from frontend
+    const generateFrontendPDF = async () => {
         try {
-            setGeneratingPDF(true);
-            const response = await axiosInstance.get(`/salinity-report-pdf/${selectedDate}`, {
-                responseType: "blob",
-            });
+            setGeneratingFrontendPDF(true);
 
-            // Create download link
-            const blob = new Blob([response.data], { type: "application/pdf" });
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = `BaoCaoDoMan_${selectedDate}.pdf`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
+            // Dynamically import html2pdf
+            let html2pdf;
+            try {
+                html2pdf = (await import("html2pdf.js")).default;
+            } catch (error) {
+                console.error("Error importing html2pdf:", error);
+                // Fallback to window.html2pdf if dynamic import fails
+                if (window.html2pdf) {
+                    html2pdf = window.html2pdf;
+                } else {
+                    throw new Error("html2pdf library not found");
+                }
+            }
+
+            // Add print mode class to body
+            document.body.classList.add("print-mode");
+
+            // Get the content to convert to PDF
+            const element = document.getElementById("pdf-content-wrapper");
+            if (!element) {
+                ToastCommon(TOAST.ERROR, "Không tìm thấy nội dung để xuất PDF");
+                return;
+            }
+
+            // Make sure PDF header is visible during generation
+            const pdfHeader = document.querySelector(".pdf-header");
+            if (pdfHeader) {
+                pdfHeader.classList.add("pdf-visible");
+            }
+
+            // Format date for filename
+            const reportDate = new Date(selectedDate);
+            const day = reportDate.getDate().toString().padStart(2, "0");
+            const month = (reportDate.getMonth() + 1).toString().padStart(2, "0");
+            const year = reportDate.getFullYear();
+            const formattedDate = `${day}${month}${year}`;
+
+            // Configure PDF options
+            const options = {
+                margin: [20, 10, 20, 10], // top, left, bottom, right
+                filename: `BaoCaoDoMan_TPHCM_${formattedDate}.pdf`,
+                image: {
+                    type: "jpeg",
+                    quality: 1.0,
+                },
+                html2canvas: {
+                    scale: 2, // Higher scale for better quality
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: "#ffffff",
+                    letterRendering: true,
+                    logging: false,
+                    scrollX: 0,
+                    scrollY: 0,
+                    width: window.innerWidth * 0.9, // Use most of screen width for better resolution
+                },
+                jsPDF: {
+                    unit: "mm",
+                    format: "a4",
+                    orientation: "landscape", // Change to landscape for better table display
+                    compress: true,
+                    precision: 16,
+                    putOnlyUsedFonts: true,
+                    floatPrecision: 16,
+                },
+            };
+
+            // Prepare PDF before generation - optimize for better rendering
+            const preparePdfContent = () => {
+                // Add classes for PDF optimization
+                document.body.classList.add("pdf-preparing");
+
+                // Find all table cells and optimize them
+                const tableCells = document.querySelectorAll(".pdf-content table td, .pdf-content table th");
+                tableCells.forEach((cell) => {
+                    // Add text selection class to ensure text is selectable
+                    cell.classList.add("pdf-text-selectable");
+                });
+
+                // Optimize chart for PDF rendering
+                const chartContainer = document.querySelector(".chart-container");
+                if (chartContainer) {
+                    chartContainer.classList.add("pdf-chart-optimize");
+                }
+
+                // Return cleanup function
+                return () => {
+                    document.body.classList.remove("pdf-preparing");
+                    tableCells.forEach((cell) => {
+                        cell.classList.remove("pdf-text-selectable");
+                    });
+                    if (chartContainer) {
+                        chartContainer.classList.remove("pdf-chart-optimize");
+                    }
+                };
+            };
+
+            // Set up PDF optimizations
+            const cleanup = preparePdfContent();
+
+            // Add pagebreak settings to options
+            options.pagebreak = { mode: ["avoid-all", "css", "legacy"] };
+
+            // Generate and download PDF
+            await html2pdf().set(options).from(element).save();
 
             ToastCommon(TOAST.SUCCESS, "Xuất báo cáo PDF thành công");
         } catch (error) {
-            console.error("Error generating PDF:", error);
-            ToastCommon(TOAST.ERROR, "Không thể tạo báo cáo PDF");
+            console.error("Error generating frontend PDF:", error);
+            ToastCommon(TOAST.ERROR, "Không thể tạo báo cáo PDF từ frontend");
         } finally {
-            setGeneratingPDF(false);
+            // Clean up PDF optimizations
+            if (typeof cleanup === "function") {
+                cleanup();
+            }
+
+            // Remove print mode class
+            document.body.classList.remove("print-mode");
+
+            // Hide PDF header after generation if it was made visible
+            const pdfHeader = document.querySelector(".pdf-header");
+            if (pdfHeader) {
+                pdfHeader.classList.remove("pdf-visible");
+            }
+
+            setGeneratingFrontendPDF(false);
+        }
+    };
+
+    // Load data and generate PDF
+    const loadDataAndGeneratePDF = async () => {
+        try {
+            setGeneratingFrontendPDF(true);
+            ToastCommon(TOAST.LOADING, "Đang tải dữ liệu và chuẩn bị xuất PDF...");
+
+            // First load the data
+            await loadReportData(selectedDate);
+
+            // Wait for chart and data to render completely before generating PDF
+            setTimeout(() => {
+                generateFrontendPDF();
+            }, 1500); // Increased timeout to ensure charts render properly
+        } catch (error) {
+            console.error("Error in load and generate PDF:", error);
+            ToastCommon(TOAST.ERROR, "Không thể tải dữ liệu và tạo PDF");
+            setGeneratingFrontendPDF(false);
         }
     };
 
@@ -197,7 +324,7 @@ const SalinityReport = () => {
             labels,
             datasets: [
                 {
-                    label: "Độ mặn hiện tại (‰)",
+                    label: `Độ mặn ngày ${new Date(reportData.reportDate).toLocaleDateString("vi-VN")} (‰)`,
                     data: currentData,
                     backgroundColor: "rgba(54, 162, 235, 0.6)",
                     borderColor: "rgba(54, 162, 235, 1)",
@@ -231,25 +358,126 @@ const SalinityReport = () => {
     // Chart options function
     const getChartOptions = () => ({
         responsive: true,
+        maintainAspectRatio: false,
+        devicePixelRatio: 3, // Higher resolution for better PDF quality
+        animation: {
+            duration: 0, // Disable animation for faster PDF generation
+        },
+        plugins: {
+            legend: {
+                position: "top",
+                align: "start",
+                labels: {
+                    padding: 20,
+                    boxWidth: 15,
+                    usePointStyle: true,
+                    font: {
+                        size: 12,
+                        family: "Arial, sans-serif",
+                        weight: "500",
+                    },
+                    color: "#2d3748",
+                },
+                title: {
+                    display: false,
+                },
+                maxHeight: 60,
+            },
+            tooltip: {
+                backgroundColor: "rgba(0,0,0,0.9)",
+                titleColor: "#fff",
+                bodyColor: "#fff",
+                titleFont: {
+                    size: 12,
+                    family: "Arial, sans-serif",
+                    weight: "bold",
+                },
+                bodyFont: {
+                    size: 11,
+                    family: "Arial, sans-serif",
+                },
+                padding: 12,
+                cornerRadius: 8,
+                displayColors: true,
+                borderColor: "rgba(255,255,255,0.2)",
+                borderWidth: 1,
+            },
+        },
         scales: {
             y: {
                 beginAtZero: true,
                 title: {
                     display: true,
                     text: "Độ mặn (‰)",
+                    font: {
+                        size: 14,
+                        weight: "bold",
+                        family: "Arial, sans-serif",
+                    },
+                    color: "#2d3748",
+                    padding: { top: 10, bottom: 10 },
+                },
+                ticks: {
+                    font: {
+                        size: 11,
+                        family: "Arial, sans-serif",
+                        weight: "500",
+                    },
+                    padding: 8,
+                    color: "#4a5568",
+                    maxTicksLimit: 8,
+                },
+                grid: {
+                    color: "rgba(74, 85, 104, 0.1)",
+                    drawBorder: true,
+                },
+                // Ensure consistency in formatting
+                afterFit: function (scaleInstance) {
+                    scaleInstance.width = 50; // more space for the y-axis labels
                 },
             },
         },
+        elements: {
+            bar: {
+                borderRadius: {
+                    topLeft: 4,
+                    topRight: 4,
+                },
+                borderSkipped: false,
+                borderWidth: 1,
+            },
+        },
+        animation: {
+            duration: 0, // Disable animation for PDF export
+        },
+        layout: {
+            padding: {
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: 20,
+            },
+        },
+        // Optimize for PDF rendering
+        onResize: null,
+        aspectRatio: window.innerWidth < 768 ? 1.2 : 2.5, // Better aspect ratio for different screen sizes
     });
 
     // Format date to Vietnamese format
     const formatDateVietnamese = (dateString) => {
         if (!dateString) return "";
-        const date = new Date(dateString);
-        const day = date.getDate();
-        const month = date.getMonth() + 1;
-        const year = date.getFullYear();
-        return `Ngày ${day.toString().padStart(2, "0")} tháng ${month.toString().padStart(2, "0")} năm ${year}`;
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return "Ngày 06 tháng 06 năm 2024"; // Fallback to the requested date
+
+            const day = date.getDate();
+            const month = date.getMonth() + 1;
+            const year = date.getFullYear();
+            return `Ngày ${day.toString().padStart(2, "0")} tháng ${month.toString().padStart(2, "0")} năm ${year}`;
+        } catch (error) {
+            console.error("Error formatting date:", error);
+            return "Ngày 06 tháng 06 năm 2024"; // Fallback to the requested date
+        }
     };
 
     // Get current month and year from selected date
@@ -287,12 +515,12 @@ const SalinityReport = () => {
         <div className="salinity-report">
             <Header />
             <main className="main-content">
-                <div className="container-fluid">
+                <div className="container">
                     <div className="row">
                         <div className="col-12">
                             <div className="page-header">
                                 <h1 className="page-title">
-                                    BÁO CÁO KHẢO SÁT XÂM NHẬP MẶN TRÊN SÔNG RẠCH TPHCM
+                                    BÁO CÁO GIÁM SÁT XÂM NHẬP MẶN TRÊN SÔNG RẠCH TPHCM
                                 </h1>
                                 <p className="page-description">{formatDateVietnamese(selectedDate)}</p>
                             </div>
@@ -318,7 +546,7 @@ const SalinityReport = () => {
                         <div className="col-md-6">
                             <div className="action-buttons">
                                 <button
-                                    className="btn btn-primary"
+                                    className="btn btn-info ms-2"
                                     onClick={() => loadReportData(selectedDate)}
                                     disabled={loading || !selectedDate}
                                 >
@@ -330,24 +558,24 @@ const SalinityReport = () => {
                                     ) : (
                                         <>
                                             <i className="bi bi-arrow-clockwise me-2"></i>
-                                            Tải lại báo cáo
+                                            Tải lại dữ liệu
                                         </>
                                     )}
                                 </button>
                                 <button
-                                    className="btn btn-success ms-2"
-                                    onClick={generatePDFReport}
-                                    disabled={generatingPDF || !reportData || loading}
+                                    className="btn btn-primary btn-lg"
+                                    onClick={loadDataAndGeneratePDF}
+                                    disabled={loading || !selectedDate || generatingFrontendPDF}
                                 >
-                                    {generatingPDF ? (
+                                    {loading || generatingFrontendPDF ? (
                                         <>
                                             <span className="spinner-border spinner-border-sm me-2" />
-                                            Đang tạo PDF...
+                                            {loading ? "Đang tải dữ liệu..." : "Đang tạo PDF..."}
                                         </>
                                     ) : (
                                         <>
-                                            <i className="bi bi-file-earmark-pdf me-2"></i>
-                                            Xuất PDF
+                                            <i className="bi bi-file-earmark-pdf-fill me-2"></i>
+                                            Tải & Xuất PDF Báo Cáo
                                         </>
                                     )}
                                 </button>
@@ -358,7 +586,26 @@ const SalinityReport = () => {
                     {loading && <Loading />}
 
                     {reportData && (
-                        <>
+                        <div className="pdf-content" id="pdf-content-wrapper">
+                            {/* PDF Header for print */}
+                            <div className="pdf-header">
+                                <div className="pdf-header-gradient">
+                                    <h2 className="text-center mb-2">
+                                        BÁO CÁO GIÁM SÁT XÂM NHẬP MẶN TRÊN SÔNG RẠCH TPHCM
+                                    </h2>
+                                    <h4 className="text-center">{formatDateVietnamese(selectedDate)}</h4>
+                                </div>
+                                <div className="pdf-header-info mt-3">
+                                    <p className="text-center mb-0">
+                                        <strong>Đơn vị thực hiện:</strong> Nguyễn Võ Yến Linh
+                                    </p>
+                                    <p className="text-center">
+                                        <strong>Thời gian xuất báo cáo:</strong>{" "}
+                                        {new Date().toLocaleString("vi-VN")}
+                                    </p>
+                                </div>
+                            </div>
+
                             {/* Summary Statistics */}
                             <div className="row mb-4">
                                 <div className="col-12">
@@ -629,7 +876,9 @@ const SalinityReport = () => {
                                                                         className={`salinity-value ${getSalinityClassLocal(
                                                                             calculateArrayAverage(
                                                                                 station.prevYearMonthlyData,
-                                                                            ), station.stationCode)}`}
+                                                                            ),
+                                                                            station.stationCode,
+                                                                        )}`}
                                                                     >
                                                                         {formatSalinity(
                                                                             calculateArrayAverage(
@@ -643,7 +892,9 @@ const SalinityReport = () => {
                                                                         className={`salinity-value ${getSalinityClassLocal(
                                                                             calculateArrayAverage(
                                                                                 station.allYearsMonthlyData,
-                                                                            ), station.stationCode)}`}
+                                                                            ),
+                                                                            station.stationCode,
+                                                                        )}`}
                                                                     >
                                                                         {formatSalinity(
                                                                             calculateArrayAverage(
@@ -686,43 +937,47 @@ const SalinityReport = () => {
                             </div>
 
                             {/* Chart */}
-                            <div className="row">
-                                <div className="col-12">
-                                    <div className="card">
-                                        <div className="card-header">
-                                            <h5 className="card-title mb-0">
-                                                Giá trị độ mặn tại các trạm quan trắc{" "}
-                                                {new Date(reportData.reportDate).toLocaleDateString("vi-VN")}{" "}
-                                                so với độ mặn quan trắc liền trước, trung bình tháng cùng kỳ
-                                                năm trước và trung bình tháng cùng kỳ nhiều năm
-                                            </h5>
-                                        </div>
-                                        <div className="card-body">
-                                            {getChartData() && (
-                                                <div
-                                                    style={{
-                                                        height: "550px",
-                                                        display: "flex",
-                                                        justifyContent: "center",
-                                                        alignItems: "center",
-                                                    }}
-                                                >
-                                                    <Bar data={getChartData()} options={getChartOptions()} />
-                                                </div>
-                                            )}
+                            <div className="container">
+                                <div className="row">
+                                    <div className="col-12">
+                                        <div className="card">
+                                            <div className="card-header">
+                                                <h5 className="card-title mb-0">
+                                                    Giá trị độ mặn tại các trạm quan trắc{" "}
+                                                    {new Date(reportData.reportDate).toLocaleDateString(
+                                                        "vi-VN",
+                                                    )}{" "}
+                                                    so với độ mặn quan trắc liền trước, trung bình tháng cùng
+                                                    kỳ năm trước và trung bình tháng cùng kỳ nhiều năm
+                                                </h5>
+                                            </div>
+                                            <div className="card-body">
+                                                {getChartData() && (
+                                                    <div className="chart-container">
+                                                        <div className="chart-wrapper">
+                                                            <Bar
+                                                                data={getChartData()}
+                                                                options={getChartOptions()}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </>
+                        </div>
                     )}
 
                     {!loading && !reportData && selectedDate && (
-                        <div className="row">
-                            <div className="col-12">
-                                <div className="alert alert-info text-center">
-                                    <i className="bi bi-info-circle me-2"></i>
-                                    Không có dữ liệu cho ngày đã chọn. Vui lòng chọn ngày khác.
+                        <div className="container">
+                            <div className="row">
+                                <div className="col-12">
+                                    <div className="alert alert-info text-center">
+                                        <i className="bi bi-info-circle me-2"></i>
+                                        Không có dữ liệu cho ngày đã chọn. Vui lòng chọn ngày khác.
+                                    </div>
                                 </div>
                             </div>
                         </div>

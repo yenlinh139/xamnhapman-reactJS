@@ -1,6 +1,7 @@
 export const TOAST = {
     SUCCESS: "SUCCESS",
     ERROR: "ERROR",
+    LOADING: "LOADING",
 };
 
 export const ROUTES = {

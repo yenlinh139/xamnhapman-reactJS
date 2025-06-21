@@ -243,7 +243,7 @@ const ListUser = ({ setUserEdit }) => {
                                     {getSortIcon("email")}
                                 </th>
                                 <th onClick={() => handleSort("email_verified")} className="sortable-header">
-                                    <span>Trạng thái email</span>
+                                    <span>Trạng thái</span>
                                     {getSortIcon("email_verified")}
                                 </th>
                                 <th onClick={() => handleSort("phone")} className="sortable-header">

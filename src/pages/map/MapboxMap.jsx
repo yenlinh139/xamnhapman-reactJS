@@ -39,7 +39,6 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
     const [hydrometData, setHydrometData] = useState([]);
     const highlightedLayerRef = useRef(null);
     const highlightedMarkerRef = useRef(null);
-    console.log(`selectedStation`, selectedStation);
 
     const handleCloseDetails = () => {
         setSelectedPoint(null);
@@ -70,8 +69,6 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
         };
 
         window.openHydrometDetails = async (stationName) => {
-            console.log(`stationName`, stationName);
-
             try {
                 // Set the selected station info for the chart
                 if (stationName) {
@@ -79,12 +76,11 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
                     const existingStation = hydrometData.find(
                         (data) => data.TenTam === stationName || data.maTram === stationName,
                     );
-                    console.log(`existingStation`, existingStation);
 
                     if (existingStation) {
                         setSelectedStation({
                             maTram: existingStation.maTram || stationName,
-                            tenTram: existingStation.tenTram || stationName,
+                            tenTram: existingStation.thongTin.TenTram || stationName,
                             thongTin: existingStation.thongTin || {},
                             data: hydrometData,
                         });
@@ -1265,7 +1261,7 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
             <HydrometChartFull
                 show={showHydrometChart}
                 kiHieu={selectedStation?.maTram || selectedPoint?.kiHieu}
-                TenTam={selectedStation?.tenTram || selectedPoint?.tenDiem}
+                TenTam={selectedStation?.thongTin?.TenTam || selectedPoint?.tenDiem}
                 hydrometData={hydrometData}
                 onClose={() => setShowHydrometChart(false)}
             />

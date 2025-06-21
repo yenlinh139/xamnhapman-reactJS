@@ -42,7 +42,7 @@ function ElementUser({ user, handleEditUser, handleShowModal }) {
                         onChange={(e) => handleChangeRole(user.email, e.target.value)}
                     >
                         <option value={0}>Người dùng</option>
-                        <option value={1}>Người quản</option>
+                        <option value={1}>Người quản trị</option>
                     </select>
                 </td>
                 <td>

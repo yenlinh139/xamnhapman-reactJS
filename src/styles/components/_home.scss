@@ -16,7 +16,7 @@
         position: relative;
 
         &::after {
-            content: '';
+            content: "";
             position: absolute;
             bottom: -10px;
             left: 50%;
@@ -134,7 +134,7 @@
         overflow: hidden;
 
         &::before {
-            content: '';
+            content: "";
             position: absolute;
             top: 0;
             left: -100%;
@@ -346,10 +346,8 @@
 }
 
 @media (max-width: 480px) {
-
     .system-overview-section,
     .user-roles-section {
-
         .overview-card,
         .role-card {
             padding: 25px 15px;

@@ -5,7 +5,6 @@ import { useSelector, useDispatch } from "react-redux";
 import Header from "@pages/themes/headers/Header";
 import Footer from "@pages/themes/footer/Footer";
 import Banner from "@/pages/home/Banner";
-import bannerAbout from "@assets/bannerAbout.jpg";
 import { getAllFeedbackData, loadMoreFeedback, feedbackActions } from "@/stores/actions/feedbackActions";
 
 const userRoles = [
@@ -113,12 +112,11 @@ const Home = () => {
     return (
         <div className="home-container">
             <Helmet>
-                <title>Trang chủ | Xâm nhập mặn Tp. Hồ Chí Minh</title>
+                <title>Xâm nhập mặn Tp. Hồ Chí Minh</title>
             </Helmet>
             <Header />
             <section id="about-section" className="about-section">
                 <Banner
-                    backgroundImage={bannerAbout}
                     title="WEBGIS GIÁM SÁT VÀ CẢNH BÁO XÂM NHẬP MẶN TRÊN HỆ THỐNG SÔNG, KÊNH, RẠCH TẠI THÀNH PHỐ HỒ CHÍ MINH"
                     description="Khóa luận tốt nghiệp được thực hiện bởi Nguyễn Võ Yến Linh dưới sự hướng dẫn của ThS. Nguyễn Duy Liêm."
                 />
@@ -156,7 +154,7 @@ const Home = () => {
                                     <div className="stat-card">
                                         <span className="stat-icon">📅</span>
                                         <h3>Thời gian</h3>
-                                        <p>2007 - 2024</p>
+                                        <p>2007 - 2025</p>
                                     </div>
                                     <div className="stat-card">
                                         <span className="stat-icon">🎯</span>
@@ -325,7 +323,7 @@ const Home = () => {
             {/* Feedback Section - Simplified and Clean */}
             <section className="feedback-section">
                 <div className="container">
-                    <div className="section-header">
+                    <div className="section-header-home">
                         <h2>Đánh giá hệ thống</h2>
                     </div>
 

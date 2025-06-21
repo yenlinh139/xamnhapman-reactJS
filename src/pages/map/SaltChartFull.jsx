@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import axiosInstance from "@config/axios-config";
 import SalinityBarChart from "@pages/map/SalinityBarChart";
 import html2canvas from "html2canvas";
+import { getDisplayStationName, getFilenameSafeStationName } from "@common/stationMapping";
+import { getSingleStationClassification } from "@common/salinityClassification";
 
 const ExportPreviewTable = ({ data }) => {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
@@ -76,16 +78,45 @@ const ExportPreviewTable = ({ data }) => {
                                 {getSortIcon("salinity")}
                             </div>
                         </th>
+                        <th style={{ minWidth: "120px" }}>
+                            <div className="d-flex align-items-center">
+                                <span>⚠️ Cấp độ rủi ro</span>
+                            </div>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
-                    {sortedData.map((item, idx) => (
-                        <tr key={idx}>
-                            <td>{idx + 1}</td>
-                            <td>{new Date(item.date).toLocaleDateString("vi-VN")}</td>
-                            <td>{Number(item.salinity).toFixed(4)}</td>
-                        </tr>
-                    ))}
+                    {sortedData.map((item, idx) => {
+                        const riskClassification = getSingleStationClassification(item.salinity, kiHieu);
+                        const riskColorMap = {
+                            normal: "#28a745", // Green - Bình thường
+                            warning: "#ffc107", // Yellow - Rủi ro cấp 1
+                            "high-warning": "#ff8c00", // Orange - Rủi ro cấp 2
+                            critical: "#dc3545", // Red - Rủi ro cấp 3
+                            "no-data": "#6c757d", // Gray - Khuyết số liệu
+                        };
+
+                        return (
+                            <tr key={idx}>
+                                <td>{idx + 1}</td>
+                                <td>{new Date(item.date).toLocaleDateString("vi-VN")}</td>
+                                <td className="text-end fw-bold">{Number(item.salinity).toFixed(4)}</td>
+                                <td>
+                                    <span
+                                        className="badge rounded-pill px-2 py-1"
+                                        style={{
+                                            backgroundColor:
+                                                riskColorMap[riskClassification.class] || "#6c757d",
+                                            color: "white",
+                                            fontSize: "0.75rem",
+                                        }}
+                                    >
+                                        {riskClassification.shortText}
+                                    </span>
+                                </td>
+                            </tr>
+                        );
+                    })}
                 </tbody>
             </table>
         </div>
@@ -93,6 +124,10 @@ const ExportPreviewTable = ({ data }) => {
 };
 
 const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
+    // Get display name for the station using utility function
+    const displayStationName = getDisplayStationName(tenDiem, kiHieu);
+    const filenameSafeName = getFilenameSafeStationName(displayStationName);
+
     const [data, setData] = useState([]);
     const [exportRange, setExportRange] = useState({
         startDate: "",
@@ -171,7 +206,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.href = url;
-            const fileName = `DoMan_${tenDiem || kiHieu}_${exportRange.startDate}_${exportRange.endDate}.xlsx`;
+            const fileName = `do_man_${filenameSafeName}_${exportRange.startDate}_${exportRange.endDate}.xlsx`;
             link.setAttribute("download", fileName);
             document.body.appendChild(link);
             link.click();
@@ -199,13 +234,13 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
             titleDiv.style.marginBottom = "20px";
             titleDiv.innerHTML = `
                 <h5 style="font-weight: bold; margin-bottom: 8px; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    Diễn biến độ mặn - ${tenDiem}
+                    🧂 Diễn biến độ mặn - ${displayStationName}
                 </h5>
                 ${
                     startDate && endDate
                         ? `
                     <div style="color: #6c757d; font-size: 14px">
-                        Từ <strong>${startDate}</strong> đến <strong>${endDate}</strong>
+                        📅 Từ <strong>${startDate}</strong> đến <strong>${endDate}</strong>
                     </div>
                 `
                         : ""
@@ -237,7 +272,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
             const url = canvas.toDataURL("image/png");
             const link = document.createElement("a");
             link.href = url;
-            link.download = `BieuDo_${tenDiem || kiHieu}.png`;
+            link.download = `bieu_do_do_man_${filenameSafeName}_${new Date().getTime()}.png`;
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -258,11 +293,16 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
             tabIndex="-1"
             style={{ backgroundColor: show ? "rgba(0,0,0,0.5)" : "transparent" }}
         >
-            <div className="modal-dialog modal-lg modal-dialog-centered">
-                <div className="modal-content">
+            <div
+                className="modal-dialog modal-xl modal-dialog-centered"
+                style={{ maxWidth: "95%", height: "90vh" }}
+            >
+                <div className="modal-content" style={{ height: "100%" }}>
                     <div className="modal-header border-0 pb-0">
                         <div className="w-100 text-center">
-                            <h5 className="modal-title mb-1 fw-bold">Diễn biến độ mặn - {tenDiem}</h5>
+                            <h5 className="modal-title mb-1 fw-bold">
+                                🧂 Diễn biến độ mặn - {displayStationName}
+                            </h5>
                             {startDate && endDate && (
                                 <div className="text-muted small">
                                     Từ <strong>{startDate}</strong> đến <strong>{endDate}</strong>
@@ -307,7 +347,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                 {data.length > 0 ? (
                                     <>
                                         <div id="salinity-chart">
-                                            <SalinityBarChart data={data} height={350} />
+                                            <SalinityBarChart data={data} height={450} />
                                         </div>
                                         <div className="mt-3 d-flex justify-content-between align-items-center">
                                             <div className="text-muted small">
@@ -327,6 +367,53 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                             <div className="tab-pane fade" id="export">
                                 {data.length > 0 ? (
                                     <>
+                                        {/* Risk Level Legend */}
+                                        <div className="alert alert-info mb-3">
+                                            <h6 className="mb-2">
+                                                📊 Cấp độ rủi ro thiên tai do xâm nhập mặn:
+                                            </h6>
+                                            <div className="row g-2 small">
+                                                <div className="col-6 col-md-3">
+                                                    <span
+                                                        className="badge rounded-pill"
+                                                        style={{ backgroundColor: "#28a745", color: "white" }}
+                                                    >
+                                                        Bình thường
+                                                    </span>
+                                                    <div className="text-muted">{"< 1‰"}</div>
+                                                </div>
+                                                <div className="col-6 col-md-3">
+                                                    <span
+                                                        className="badge rounded-pill"
+                                                        style={{ backgroundColor: "#ffc107", color: "black" }}
+                                                    >
+                                                        Rủi ro cấp 1
+                                                    </span>
+                                                    <div className="text-muted">Nhà Bè: 1-4‰</div>
+                                                </div>
+                                                <div className="col-6 col-md-3">
+                                                    <span
+                                                        className="badge rounded-pill"
+                                                        style={{ backgroundColor: "#ff8c00", color: "white" }}
+                                                    >
+                                                        Rủi ro cấp 2
+                                                    </span>
+                                                    <div className="text-muted">
+                                                        Nhà Bè {"> 4‰"}, khác 1-4‰
+                                                    </div>
+                                                </div>
+                                                <div className="col-6 col-md-3">
+                                                    <span
+                                                        className="badge rounded-pill"
+                                                        style={{ backgroundColor: "#dc3545", color: "white" }}
+                                                    >
+                                                        Rủi ro cấp 3
+                                                    </span>
+                                                    <div className="text-muted">Các điểm {"> 4‰"}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div className="mb-4">
                                             <h6 className="mb-3">Chọn khoảng thời gian xuất dữ liệu:</h6>
                                             <div className="row g-3">

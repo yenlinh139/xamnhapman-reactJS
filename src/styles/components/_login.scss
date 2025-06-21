@@ -39,7 +39,7 @@
     transition: 0.5s ease-in-out;
 }
 .login .labelLogin {
-    margin: 2vh 0;
+    margin: 5vh 0 2vh;
 }
 .inputLogin {
     width: 70%;
@@ -80,7 +80,7 @@
     height: 600px;
     background: #eee;
     border-radius: 50% / 10%;
-    transform: translateY(-280px);
+    transform: translateY(-410px);
     transition: 0.8s ease-in-out;
 }
 .signUp .labelLogin {
@@ -91,7 +91,7 @@
 }
 
 #chk:checked ~ .signUp {
-    transform: translateY(-660px);
+    transform: translateY(-840px);
     border-radius: 10%;
 }
 #chk:checked ~ .signUp .labelLogin {
@@ -151,7 +151,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    margin: 0 0 20px;
+    margin: 20px 0 40px;
 }
 .line {
     width: 15vw;

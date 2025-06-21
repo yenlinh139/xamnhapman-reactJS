@@ -41,10 +41,10 @@ export const showCommuneLabels = async (mapInstance) => {
 
         // Chỉ hiển thị label xã khi zoom >= 12 để tránh quá tải
         const currentZoom = mapInstance.getZoom();
-        // if (currentZoom < 12) {
-        //     console.log("Zoom level quá thấp để hiển thị label xã");
-        //     return;
-        // }
+        if (currentZoom < 12) {
+            console.log("Zoom level quá thấp để hiển thị label xã");
+            return;
+        }
 
         communes.forEach((commune) => {
             if (commune.centroid) {
@@ -118,10 +118,10 @@ export const handleLayerLabelToggle = async (mapInstance, layerName, isEnabled) 
         case "DiaPhanXa":
             if (isEnabled) {
                 await showCommuneLabels(mapInstance);
-                // const currentZoom = mapInstance.getZoom();
-                // if (currentZoom >= 9) {
-                //     await showCommuneLabels(mapInstance);
-                // }
+                const currentZoom = mapInstance.getZoom();
+                if (currentZoom >= 9) {
+                    await showCommuneLabels(mapInstance);
+                }
             } else {
                 clearCommuneLabels(mapInstance);
             }

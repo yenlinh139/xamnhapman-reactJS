@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axiosInstance from "@config/axios-config";
 import HydrometBarChart from "@pages/map/HydrometBarChart";
 import html2canvas from "html2canvas";
+import { getDisplayStationName, getFilenameSafeStationName } from "@common/stationMapping";
 import "@styles/components/_hydrometChart.scss";
 
 const ExportPreviewTable = ({ data }) => {
@@ -114,7 +115,7 @@ const ExportPreviewTable = ({ data }) => {
     };
 
     return (
-        <div className="table-responsive mb-3" style={{ maxHeight: 400, overflowY: "auto" }}>
+        <div className="table-responsive mb-3" style={{ maxHeight: "80vh", overflowY: "auto" }}>
             <table className="table table-bordered table-sm table-striped">
                 <thead className="table-light sticky-top">
                     <tr>
@@ -168,6 +169,10 @@ const ExportPreviewTable = ({ data }) => {
 };
 
 const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
+    // Get display name for the station using utility function
+    const displayStationName = getDisplayStationName(TenTam, kiHieu);
+    const filenameSafeName = getFilenameSafeStationName(displayStationName);
+
     const [data, setData] = useState([]);
     const [filteredChartData, setFilteredChartData] = useState([]);
     const [chartDateRange, setChartDateRange] = useState({
@@ -444,7 +449,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
         const startDateStr = new Date(exportRange.startDate).toLocaleDateString("vi-VN").replace(/\//g, "-");
         const endDateStr = new Date(exportRange.endDate).toLocaleDateString("vi-VN").replace(/\//g, "-");
 
-        link.download = `khituong_thuyvan_${TenTam || kiHieu}_${startDateStr}_${endDateStr}.csv`;
+        link.download = `khituong_thuyvan_${filenameSafeName}_${startDateStr}_${endDateStr}.csv`;
         link.click();
     };
 
@@ -459,7 +464,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                 });
 
                 const link = document.createElement("a");
-                link.download = `bieu_do_khituong_thuyvan_${TenTam || kiHieu}_${new Date().getTime()}.png`;
+                link.download = `bieu_do_khituong_thuyvan_${filenameSafeName}_${new Date().getTime()}.png`;
                 link.href = canvas.toDataURL();
                 link.click();
             } catch (error) {
@@ -490,12 +495,15 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
             tabIndex="-1"
             style={{ backgroundColor: show ? "rgba(0,0,0,0.5)" : "transparent" }}
         >
-            <div className="modal-dialog modal-xl modal-dialog-centered">
-                <div className="modal-content">
+            <div
+                className="modal-dialog modal-xl modal-dialog-centered"
+                style={{ maxWidth: "95%", height: "90vh" }}
+            >
+                <div className="modal-content" style={{ height: "100%" }}>
                     <div className="modal-header border-0 pb-0">
                         <div className="w-100 text-center">
                             <h5 className="modal-title mb-1 fw-bold">
-                                🌤️ Diễn biến khí tượng thủy văn - {TenTam || kiHieu}
+                                🌤️ Diễn biến khí tượng thủy văn - {displayStationName}
                             </h5>
                             {startDate && endDate && (
                                 <div className="text-muted small">
@@ -638,7 +646,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                 {filteredChartData.length > 0 ? (
                                     <>
                                         <div id="hydromet-chart">
-                                            <HydrometBarChart data={filteredChartData} height={400} />
+                                            <HydrometBarChart data={filteredChartData} height={500} />
                                         </div>
                                         <div className="export-actions mt-3 d-flex justify-content-between align-items-center">
                                             <div className="text-muted small">

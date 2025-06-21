@@ -232,7 +232,9 @@
                 border: 1px solid #f1b2b7;
             }
 
-            &:not(.normal):not(.warning):not(.high-warning):not(.critical):not(.salinity-normal):not(.salinity-warning):not(.salinity-critical) {
+            &:not(.normal):not(.warning):not(.high-warning):not(.critical):not(.salinity-normal):not(
+                    .salinity-warning
+                ):not(.salinity-critical) {
                 background-color: #e9ecef;
                 color: #6c757d;
                 border: 1px solid #dee2e6;
@@ -402,27 +404,293 @@
                 }
             }
         }
+
+        // Responsive chart styling
+        .chart-container {
+            height: 400px;
+
+            .chart-wrapper {
+                width: 95%; // Use more width on mobile for better visibility
+            }
+        }
     }
 
-    // Print styles
+    @media (max-width: 576px) {
+        .chart-container {
+            height: 350px;
+
+            .chart-wrapper {
+                width: 100%; // Use full width on small mobile screens
+            }
+        }
+    }
+
+    // PDF Header (initially hidden, shown only for PDF)
+    .pdf-header {
+        display: none;
+        margin-bottom: 25px;
+
+        &.pdf-visible {
+            display: block;
+        }
+
+        .pdf-header-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+
+            h2 {
+                font-size: 1.8rem;
+                font-weight: 700;
+                margin-bottom: 10px;
+                text-transform: uppercase;
+            }
+
+            h4 {
+                font-size: 1.3rem;
+                font-weight: 500;
+                opacity: 0.95;
+            }
+        }
+
+        .pdf-header-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            margin-top: 15px;
+
+            p {
+                margin-bottom: 5px;
+                color: #495057;
+
+                strong {
+                    color: #343a40;
+                }
+            }
+        }
+    }
+
+    // PDF Specific Styles
+    .pdf-content {
+        // Optimize table for PDF
+        .table {
+            page-break-inside: avoid;
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 20px;
+
+            th,
+            td {
+                font-size: 0.9rem;
+                padding: 8px;
+                border: 1px solid #dee2e6;
+                text-align: center;
+            }
+
+            th {
+                background-color: #343a40 !important;
+                color: white !important;
+                font-weight: 600;
+            }
+
+            .salinity-value {
+                display: inline-block;
+                padding: 4px 8px;
+                border-radius: 20px;
+                font-weight: 600;
+                min-width: 50px;
+                text-align: center;
+            }
+        }
+
+        // Optimize chart for PDF
+        .card {
+            page-break-inside: avoid;
+            margin-bottom: 30px;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+
+            .card-header {
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                padding: 15px;
+                border-bottom: 1px solid #dee2e6;
+
+                .card-title {
+                    margin: 0;
+                    color: #343a40;
+                    font-weight: 600;
+                    font-size: 1.1rem;
+                }
+            }
+
+            .card-body {
+                padding: 15px;
+            }
+        }
+    }
+
+    // Chart container styles
+    .chart-container {
+        height: 550px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0 auto;
+        position: relative;
+
+        .chart-wrapper {
+            width: 80%;
+            height: 100%;
+            position: relative;
+        }
+
+        canvas {
+            max-height: 100%;
+            max-width: 100%;
+        }
+    }
+
+    // Print specific chart styles
     @media print {
-        .main-content {
+        .chart-container {
+            height: 400px !important;
+            page-break-inside: avoid;
+            break-inside: avoid;
 
-            .action-buttons,
-            .date-selector {
-                display: none;
+            .chart-wrapper {
+                width: 100% !important; // Use full width in PDF for better utilization
+            }
+        }
+    }
+
+    .print-mode {
+        .page-header,
+        .date-selector,
+        .action-buttons {
+            display: none !important;
+        }
+    }
+
+    // Print Styles
+    @media print {
+        .salinity-report {
+            background-color: white !important;
+
+            .main-content {
+                background-color: white !important;
+                padding: 0 !important;
+                min-height: auto !important;
+            }
+        }
+
+        .pdf-header {
+            display: block !important;
+        }
+
+        .page-header,
+        .date-selector,
+        .action-buttons,
+        header,
+        footer {
+            display: none !important;
+        }
+
+        .table {
+            border-collapse: collapse !important;
+            width: 100% !important;
+
+            th {
+                background-color: #f0f0f0 !important;
+                color: black !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
 
-            .card {
-                box-shadow: none;
-                border: 1px solid #000;
+            th,
+            td {
+                font-size: 11px !important;
+                padding: 5px !important;
+                border: 1px solid #ddd !important;
+            }
+        }
+
+        .card {
+            box-shadow: none !important;
+            border: 1px solid #eee !important;
+            margin-bottom: 15px !important;
+        }
+
+        .stat-item {
+            border: 1px solid #eee !important;
+        }
+    }
+
+    // PDF-specific salinity value styles
+    @media print {
+        .salinity-value {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+
+            &.normal,
+            &.salinity-normal {
+                background-color: #d4edda !important;
+                color: #155724 !important;
+                border: 1px solid #c3e6cb !important;
             }
 
-            .page-header {
-                background: none !important;
-                color: #000 !important;
-                box-shadow: none;
+            &.warning,
+            &.salinity-warning {
+                background-color: #fff3cd !important;
+                color: #856404 !important;
+                border: 1px solid #ffeaa7 !important;
             }
+
+            &.high-warning,
+            &.salinity-high-warning {
+                background-color: #ffe8d6 !important;
+                color: #cc5500 !important;
+                border: 1px solid #ffcc99 !important;
+            }
+
+            &.critical,
+            &.salinity-critical {
+                background-color: #f8d7da !important;
+                color: #721c24 !important;
+                border: 1px solid #f1b2b7 !important;
+            }
+        }
+
+        .legend-color {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+    }
+
+    // PDF page break controls
+    @media print {
+        .row {
+            display: block !important;
+        }
+
+        .pdf-header {
+            page-break-after: avoid;
+            break-after: avoid;
+        }
+
+        .card {
+            page-break-inside: avoid;
+            break-inside: avoid;
+            page-break-after: auto;
+            break-after: auto;
+        }
+
+        // Add page breaks where needed
+        .row:nth-of-type(3) {
+            page-break-before: always;
+            break-before: always;
         }
     }
 }

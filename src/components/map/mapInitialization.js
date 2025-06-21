@@ -91,7 +91,7 @@ export const initializeMap = (container) => {
     const overlayMaps = {};
 
     // Add default base layer
-    baseMaps["Google Satellite"].addTo(mapInstance);
+    baseMaps["Google Streets"].addTo(mapInstance);
 
     // Add WMS layer
     const wmsLayer = createWMSLayer();
@@ -113,6 +113,7 @@ export const initializeMap = (container) => {
             strings: {
                 title: "Vị trí của tôi",
             },
+            zoom: 15,
         })
         .addTo(mapInstance);
 
