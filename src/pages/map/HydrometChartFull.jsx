@@ -81,34 +81,36 @@ const ExportPreviewTable = ({ data }) => {
     // Get parameter info for display
     const getParamInfo = (paramKey) => {
         const paramMap = {
-            // Rainfall parameters
-            R_AP: { label: "Mưa An Phú", unit: "mm" },
-            R_BC: { label: "Mưa Bình Chánh", unit: "mm" },
-            R_CG: { label: "Mưa Cần Giờ", unit: "mm" },
-            R_CL: { label: "Mưa Cát Lái", unit: "mm" },
-            R_CC: { label: "Mưa Củ Chi", unit: "mm" },
-            R_HM: { label: "Mưa Hóc Môn", unit: "mm" },
-            R_LMX: { label: "Mưa Lê Minh Xuân", unit: "mm" },
-            R_LS: { label: "Mưa Long Sơn", unit: "mm" },
-            R_MDC: { label: "Mưa Mạc Đĩnh Chi", unit: "mm" },
-            R_NB: { label: "Mưa Nhà Bè", unit: "mm" },
-            R_PVC: { label: "Mưa Phạm Văn Cội", unit: "mm" },
-            R_TTH: { label: "Mưa Tam Thôn Hiệp", unit: "mm" },
-            R_TD: { label: "Mưa Thủ Đức", unit: "mm" },
-            R_TSH: { label: "Mưa Tân Sơn Hòa", unit: "mm" },
+            // Rainfall parameters - all stations
+            R_AP: { label: "Lượng mưa", unit: "mm" },
+            R_BC: { label: "Lượng mưa", unit: "mm" },
+            R_CG: { label: "Lượng mưa", unit: "mm" },
+            R_CL: { label: "Lượng mưa", unit: "mm" },
+            R_CC: { label: "Lượng mưa", unit: "mm" },
+            R_HM: { label: "Lượng mưa", unit: "mm" },
+            R_LMX: { label: "Lượng mưa", unit: "mm" },
+            R_LS: { label: "Lượng mưa", unit: "mm" },
+            R_MDC: { label: "Lượng mưa", unit: "mm" },
+            R_NB: { label: "Lượng mưa", unit: "mm" },
+            R_PVC: { label: "Lượng mưa", unit: "mm" },
+            R_TTH: { label: "Lượng mưa", unit: "mm" },
+            R_TD: { label: "Lượng mưa", unit: "mm" },
+            R_TSH: { label: "Lượng mưa", unit: "mm" },
 
-            // Temperature parameters (Tân Sơn Hòa station - NB_KT)
-            Ttb_TSH: { label: "Nhiệt độ TB Tân Sơn Hòa", unit: "°C" },
-            Tx_TSH: { label: "Nhiệt độ Max Tân Sơn Hòa", unit: "°C" },
-            Tm_TSH: { label: "Nhiệt độ Min Tân Sơn Hòa", unit: "°C" },
+            // Temperature parameters - Tân Sơn Hòa station
+            Ttb_TSH: { label: "Nhiệt độ không khí trung bình", unit: "°C" },
+            Tx_TSH: { label: "Nhiệt độ không khí cao nhất", unit: "°C" },
+            Tm_TSH: { label: "Nhiệt độ không khí thấp nhất", unit: "°C" },
 
-            // Water level parameters (Nhà Bè station - NB_TV: Thủy văn, mực nước 24/24)
-            Htb_NB: { label: "Mực nước TB Nhà Bè", unit: "cm" },
-            Hx_NB: { label: "Mực nước Max Nhà Bè", unit: "cm" },
-            Hm_NB: { label: "Mực nước Min Nhà Bè", unit: "cm" },
-            Htb_PA: { label: "Mực nước TB Phú An", unit: "cm" },
-            Hx_PA: { label: "Mực nước Max Phú An", unit: "cm" },
-            Hm_PA: { label: "Mực nước Min Phú An", unit: "cm" },
+            // Water level parameters - Nhà Bè station
+            Htb_NB: { label: "Mực nước trung bình", unit: "cm" },
+            Hx_NB: { label: "Mực nước cao nhất", unit: "cm" },
+            Hm_NB: { label: "Mực nước thấp nhất", unit: "cm" },
+            
+            // Water level parameters - Phú An station
+            Htb_PA: { label: "Mực nước trung bình", unit: "cm" },
+            Hx_PA: { label: "Mực nước cao nhất", unit: "cm" },
+            Hm_PA: { label: "Mực nước thấp nhất", unit: "cm" },
         };
 
         return paramMap[paramKey] || { label: paramKey, unit: "" };
@@ -169,22 +171,23 @@ const ExportPreviewTable = ({ data }) => {
 };
 
 const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
+    // Check if user is logged in
+    const isLoggedIn = localStorage.getItem("access_token");
+    
     // Get display name for the station using utility function
     const displayStationName = getDisplayStationName(TenTam, kiHieu);
     const filenameSafeName = getFilenameSafeStationName(displayStationName);
 
     const [data, setData] = useState([]);
     const [filteredChartData, setFilteredChartData] = useState([]);
+    
     const [chartDateRange, setChartDateRange] = useState({
-        startDate: "",
-        endDate: "",
-    });
-    const [exportRange, setExportRange] = useState({
         startDate: "",
         endDate: "",
     });
     const [filteredData, setFilteredData] = useState([]);
     const [presetRange, setPresetRange] = useState("all");
+    const [activeTab, setActiveTab] = useState("chart");
 
     // Helper function to convert Vietnamese date format to ISO
     const convertVietnameseDateToISO = (dateStr) => {
@@ -205,6 +208,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
 
             setData(validHydrometData);
             setFilteredChartData(validHydrometData);
+            setFilteredData(validHydrometData);
 
             if (validHydrometData.length > 0) {
                 const firstDate = validHydrometData[0].date || validHydrometData[0].Ngày;
@@ -223,17 +227,12 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                     startDate: startDateISO,
                     endDate: endDateISO,
                 });
-
-                setExportRange({
-                    startDate: startDateISO,
-                    endDate: endDateISO,
-                });
             }
         } else {
             setData([]);
             setFilteredChartData([]);
+            setFilteredData([]);
             setChartDateRange({ startDate: "", endDate: "" });
-            setExportRange({ startDate: "", endDate: "" });
         }
     }, [show, hydrometData]);
 
@@ -241,6 +240,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
         if (!show) {
             setData([]);
             setFilteredChartData([]);
+            setFilteredData([]);
         }
     }, [show]);
 
@@ -248,6 +248,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
     const filterChartData = (startDate, endDate) => {
         if (!startDate || !endDate || !data.length) {
             setFilteredChartData(data);
+            setFilteredData(data);
             return;
         }
 
@@ -270,6 +271,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
         });
 
         setFilteredChartData(filtered);
+        setFilteredData(filtered);
     };
 
     // Handle chart date range change
@@ -319,6 +321,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
             case "all":
             default:
                 setFilteredChartData(data);
+                setFilteredData(data);
                 // Reset to full data range
                 const firstItem = data[0];
                 const firstDateValue = firstItem.date || firstItem.Ngày;
@@ -347,39 +350,12 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
         filterChartData(startDateStr, endDateStr);
     };
 
-    const handleDateRangeChange = (e) => {
-        const { name, value } = e.target;
-        setExportRange((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
-
-        // Filter data based on date range
-        const startDate = new Date(name === "startDate" ? value : exportRange.startDate);
-        const endDate = new Date(name === "endDate" ? value : exportRange.endDate);
-
-        if (startDate && endDate && startDate <= endDate) {
-            const filtered = data.filter((item) => {
-                const dateValue = item.date || item.Ngày;
-                let itemDate;
-
-                // Handle Vietnamese date format (dd/MM/yyyy)
-                if (typeof dateValue === "string" && dateValue.includes("/")) {
-                    const [day, month, year] = dateValue.split("/");
-                    itemDate = new Date(year, month - 1, day);
-                } else {
-                    itemDate = new Date(dateValue);
-                }
-
-                return itemDate >= startDate && itemDate <= endDate;
-            });
-            setFilteredData(filtered);
-        } else {
-            setFilteredData(data);
-        }
-    };
-
     const downloadCSV = () => {
+        if (!isLoggedIn) {
+            alert("Bạn cần đăng nhập để tải xuống dữ liệu CSV");
+            return;
+        }
+        
         if (!data.length) return;
 
         const dataToExport = filteredData.length > 0 ? filteredData : data;
@@ -398,29 +374,36 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
         // Create CSV headers with Vietnamese labels
         const getParamInfo = (paramKey) => {
             const paramMap = {
-                R_AP: "Mưa An Phú (mm)",
-                R_BC: "Mưa Bình Chánh (mm)",
-                R_CG: "Mưa Cần Giờ (mm)",
-                R_CL: "Mưa Cát Lái (mm)",
-                R_CC: "Mưa Củ Chi (mm)",
-                R_HM: "Mưa Hóc Môn (mm)",
-                R_LMX: "Mưa Lê Minh Xuân (mm)",
-                R_LS: "Mưa Long Sơn (mm)",
-                R_MDC: "Mưa Mạc Đĩnh Chi (mm)",
-                R_NB: "Mưa Nhà Bè (mm)",
-                R_PVC: "Mưa Phạm Văn Cội (mm)",
-                R_TTH: "Mưa Tam Thôn Hiệp (mm)",
-                R_TD: "Mưa Thủ Đức (mm)",
-                R_TSH: "Mưa Tân Sơn Hòa (mm)",
-                Ttb_TSH: "Nhiệt độ TB (°C)",
-                Tx_TSH: "Nhiệt độ Max (°C)",
-                Tm_TSH: "Nhiệt độ Min (°C)",
-                Htb_NB: "Mực nước TB Nhà Bè (cm)",
-                Hx_NB: "Mực nước Max Nhà Bè (cm)",
-                Hm_NB: "Mực nước Min Nhà Bè (cm)",
-                Htb_PA: "Mực nước TB Phú An (cm)",
-                Hx_PA: "Mực nước Max Phú An (cm)",
-                Hm_PA: "Mực nước Min Phú An (cm)",
+                // Rainfall parameters - all stations
+                R_AP: "Lượng mưa (mm)",
+                R_BC: "Lượng mưa (mm)",
+                R_CG: "Lượng mưa (mm)",
+                R_CL: "Lượng mưa (mm)",
+                R_CC: "Lượng mưa (mm)",
+                R_HM: "Lượng mưa (mm)",
+                R_LMX: "Lượng mưa (mm)",
+                R_LS: "Lượng mưa (mm)",
+                R_MDC: "Lượng mưa (mm)",
+                R_NB: "Lượng mưa (mm)",
+                R_PVC: "Lượng mưa (mm)",
+                R_TTH: "Lượng mưa (mm)",
+                R_TSH: "Lượng mưa (mm)",
+                R_TD: "Lượng mưa (mm)",
+                
+                // Temperature parameters - Tân Sơn Hòa station
+                Ttb_TSH: "Nhiệt độ không khí trung bình (°C)",
+                Tx_TSH: "Nhiệt độ không khí cao nhất (°C)",
+                Tm_TSH: "Nhiệt độ không khí thấp nhất (°C)",
+                
+                // Water level parameters - Nhà Bè station
+                Htb_NB: "Mực nước trung bình (cm)",
+                Hx_NB: "Mực nước cao nhất (cm)",
+                Hm_NB: "Mực nước thấp nhất (cm)",
+                
+                // Water level parameters - Phú An station
+                Htb_PA: "Mực nước trung bình (cm)",
+                Hx_PA: "Mực nước cao nhất (cm)",
+                Hm_PA: "Mực nước thấp nhất (cm)",
             };
             return paramMap[paramKey] || paramKey;
         };
@@ -446,22 +429,58 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
 
-        const startDateStr = new Date(exportRange.startDate).toLocaleDateString("vi-VN").replace(/\//g, "-");
-        const endDateStr = new Date(exportRange.endDate).toLocaleDateString("vi-VN").replace(/\//g, "-");
+        const startDateStr = new Date(chartDateRange.startDate).toLocaleDateString("vi-VN").replace(/\//g, "-");
+        const endDateStr = new Date(chartDateRange.endDate).toLocaleDateString("vi-VN").replace(/\//g, "-");
 
         link.download = `khituong_thuyvan_${filenameSafeName}_${startDateStr}_${endDateStr}.csv`;
         link.click();
     };
 
     const downloadChart = async () => {
+        if (!isLoggedIn) {
+            alert("Bạn cần đăng nhập để tải xuống biểu đồ");
+            return;
+        }
+        
         const chartElement = document.getElementById("hydromet-chart");
+        const titleElement = document.getElementById("hydromet-chart-title");
+        
         if (chartElement) {
             try {
-                const canvas = await html2canvas(chartElement, {
+                // Create a temporary container that includes both title and chart
+                const tempContainer = document.createElement('div');
+                tempContainer.style.padding = '20px';
+                tempContainer.style.backgroundColor = '#ffffff';
+                tempContainer.style.fontFamily = 'Arial, sans-serif';
+                
+                // Clone the title
+                const titleClone = titleElement ? titleElement.cloneNode(true) : null;
+                if (titleClone) {
+                    titleClone.style.textAlign = 'center';
+                    titleClone.style.marginBottom = '20px';
+                    titleClone.style.color = '#000';
+                    tempContainer.appendChild(titleClone);
+                }
+                
+                // Clone the chart
+                const chartClone = chartElement.cloneNode(true);
+                tempContainer.appendChild(chartClone);
+                
+                // Temporarily add to body (hidden)
+                tempContainer.style.position = 'absolute';
+                tempContainer.style.left = '-9999px';
+                document.body.appendChild(tempContainer);
+
+                const canvas = await html2canvas(tempContainer, {
                     backgroundColor: "#ffffff",
                     scale: 2,
                     logging: false,
+                    width: tempContainer.scrollWidth,
+                    height: tempContainer.scrollHeight
                 });
+
+                // Remove temporary container
+                document.body.removeChild(tempContainer);
 
                 const link = document.createElement("a");
                 link.download = `bieu_do_khituong_thuyvan_${filenameSafeName}_${new Date().getTime()}.png`;
@@ -501,7 +520,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
             >
                 <div className="modal-content" style={{ height: "100%" }}>
                     <div className="modal-header border-0 pb-0">
-                        <div className="w-100 text-center">
+                        <div className="w-100 text-center" id="hydromet-chart-title">
                             <h5 className="modal-title mb-1 fw-bold">
                                 🌤️ Diễn biến khí tượng thủy văn - {displayStationName}
                             </h5>
@@ -525,33 +544,6 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                 <i className="bi bi-calendar-range me-2"></i>
                                 Lọc theo khoảng thời gian
                             </h6>
-
-                            {/* Preset Range Buttons */}
-                            <div className="preset-buttons mb-3">
-                                <div className="btn-group flex-wrap" role="group">
-                                    <button
-                                        type="button"
-                                        className={`btn btn-sm ${presetRange === "all" ? "btn-primary" : "btn-outline-primary"}`}
-                                        onClick={() => handlePresetRange("all")}
-                                        title="Hiển thị toàn bộ dữ liệu có sẵn"
-                                    >
-                                        <i className="bi bi-collection me-1"></i>
-                                        Tất cả
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`btn btn-sm ${presetRange === "1year" ? "btn-primary" : "btn-outline-primary"}`}
-                                        onClick={() => handlePresetRange("1year")}
-                                        title="1 năm gần nhất kể từ ngày cuối cùng có dữ liệu"
-                                    >
-                                        <i className="bi bi-calendar-year me-1"></i>1 năm cuối
-                                    </button>
-                                </div>
-                                <small className="text-muted d-block mt-2">
-                                    <i className="bi bi-info-circle me-1"></i>
-                                    Chọn khoảng thời gian hiển thị dữ liệu trên biểu đồ
-                                </small>
-                            </div>
 
                             {/* Custom Date Range */}
                             <div className="custom-range">
@@ -610,39 +602,42 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                         </button>
                                     </div>
                                 </div>
-                                <div className="row mt-2">
-                                    <div className="col-12">
-                                        <small className="text-muted">
-                                            <i className="bi bi-info-circle me-1"></i>
-                                            Hiển thị {filteredChartData.length} / {data.length} bản ghi
-                                            {data.length > 0 && (
-                                                <span className="ms-2">
-                                                    | Dữ liệu từ{" "}
-                                                    {(() => {
-                                                        const firstItem = data[0];
-                                                        const firstDate = firstItem.date || firstItem.Ngày;
-                                                        return firstDate.includes("/")
-                                                            ? firstDate
-                                                            : new Date(firstDate).toLocaleDateString("vi-VN");
-                                                    })()}{" "}
-                                                    đến{" "}
-                                                    {(() => {
-                                                        const lastItem = data[data.length - 1];
-                                                        const lastDate = lastItem.date || lastItem.Ngày;
-                                                        return lastDate.includes("/")
-                                                            ? lastDate
-                                                            : new Date(lastDate).toLocaleDateString("vi-VN");
-                                                    })()}
-                                                </span>
-                                            )}
-                                        </small>
-                                    </div>
-                                </div>
                             </div>
                         </div>
 
-                        <div className="tab-content">
-                            <div className="tab-pane fade show active" id="chart">
+                        {/* Tab Navigation */}
+                        <nav>
+                            <div className="nav nav-tabs" id="nav-tab" role="tablist">
+                                <button
+                                    className={`nav-link ${activeTab === "chart" ? "active" : ""}`}
+                                    id="nav-chart-tab"
+                                    type="button"
+                                    role="tab"
+                                    aria-controls="chart"
+                                    aria-selected={activeTab === "chart"}
+                                    onClick={() => setActiveTab("chart")}
+                                >
+                                    📊 Biểu đồ
+                                </button>
+                                <button
+                                    className={`nav-link ${activeTab === "export" ? "active" : ""}`}
+                                    id="nav-export-tab"
+                                    type="button"
+                                    role="tab"
+                                    aria-controls="export"
+                                    aria-selected={activeTab === "export"}
+                                    onClick={() => setActiveTab("export")}
+                                >
+                                    📋 Số liệu
+                                </button>
+                            </div>
+                        </nav>
+
+                        <div className="tab-content mt-3">
+                            <div
+                                className={`tab-pane fade ${activeTab === "chart" ? "show active" : ""}`}
+                                id="chart"
+                            >
                                 {filteredChartData.length > 0 ? (
                                     <>
                                         <div id="hydromet-chart">
@@ -653,8 +648,13 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                                 📊 Hiển thị: <strong>{filteredChartData.length}</strong> /{" "}
                                                 <strong>{data.length}</strong> ngày có dữ liệu
                                             </div>
-                                            <button className="btn btn-info" onClick={downloadChart}>
-                                                📸 Tải ảnh biểu đồ
+                                            <button 
+                                                className={`btn ${isLoggedIn ? 'btn-info' : 'btn-secondary'}`} 
+                                                onClick={downloadChart}
+                                                disabled={!isLoggedIn}
+                                                title={!isLoggedIn ? "Bạn cần đăng nhập để tải xuống biểu đồ" : ""}
+                                            >
+                                                📸 {isLoggedIn ? "Tải ảnh biểu đồ" : "Đăng nhập để tải"}
                                             </button>
                                         </div>
                                     </>
@@ -670,39 +670,13 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                 )}
                             </div>
 
-                            <div className="tab-pane fade" id="export">
+                            <div
+                                className={`tab-pane fade ${activeTab === "export" ? "show active" : ""}`}
+                                id="export"
+                            >
                                 {data.length > 0 ? (
                                     <>
-                                        <div className="mb-4">
-                                            <h6 className="mb-3">📅 Chọn khoảng thời gian xuất dữ liệu:</h6>
-                                            <div className="row g-3">
-                                                <div className="col-md-6">
-                                                    <label className="form-label">Từ ngày:</label>
-                                                    <input
-                                                        type="date"
-                                                        className="form-control"
-                                                        name="startDate"
-                                                        value={exportRange.startDate}
-                                                        onChange={handleDateRangeChange}
-                                                        max={exportRange.endDate}
-                                                    />
-                                                </div>
-                                                <div className="col-md-6">
-                                                    <label className="form-label">Đến ngày:</label>
-                                                    <input
-                                                        type="date"
-                                                        className="form-control"
-                                                        name="endDate"
-                                                        value={exportRange.endDate}
-                                                        onChange={handleDateRangeChange}
-                                                        min={exportRange.startDate}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-
                                         <div className="mb-3">
-                                            <h6 className="mb-2">📋 Dữ liệu xuất:</h6>
                                             <ExportPreviewTable
                                                 data={filteredData.length > 0 ? filteredData : data}
                                             />
@@ -716,11 +690,12 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                                 </strong>
                                             </div>
                                             <button
-                                                className="btn btn-success"
+                                                className={`btn ${isLoggedIn ? 'btn-success' : 'btn-secondary'}`}
                                                 onClick={downloadCSV}
-                                                disabled={data.length === 0}
+                                                disabled={data.length === 0 || !isLoggedIn}
+                                                title={!isLoggedIn ? "Bạn cần đăng nhập để xuất dữ liệu" : ""}
                                             >
-                                                📥 Tải CSV
+                                                📥 {isLoggedIn ? "Xuất dữ liệu" : "Đăng nhập để xuất"}
                                             </button>
                                         </div>
                                     </>

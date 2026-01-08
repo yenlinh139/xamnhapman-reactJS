@@ -12,7 +12,24 @@ export const mapLayers = {
             name: "Thủy văn",
             layers: ["ThuyHe_line", "ThuyHe_polygon"],
             nameItem: ["Thủy hệ 1 nét", "Thủy hệ 2 nét"],
+        }, 
+        {
+            icon: "fa-solid fa-tree",
+            name: "Sử dụng đất",
+            layers: ["HienTrangSDD_2020", "QuyHoachSDD_2030"],
+            nameItem: ["Hiện trạng sử dụng đất 2020", "Quy hoạch sử dụng đất 2030"],
         },
+        {
+            icon: "fa-solid fa-location-dot",
+            name: "Mô hình độ cao số",
+            layer: "diemdocao",
+        },
+        {
+            icon: "fa-solid fa-road",
+            name: "Giao thông",
+            layers: ["GiaoThong_line", "GiaoThong_polygon"],
+            nameItem: ["Giao thông 1 nét", "Giao thông 2 nét"],
+        },  
     ],
 };
 

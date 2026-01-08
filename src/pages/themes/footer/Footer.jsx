@@ -55,12 +55,12 @@ function Footer(props) {
                         <div className="footer-section">
                             <h4>CHỨC NĂNG TRANG BẢN ĐỒ</h4>
                             <ul>
-                                <li>Xem bản đồ địa hình</li>
+                                <li>Hiển thị dữ liệu bản đồ nền</li>
                                 <li>Hiển thị dữ liệu quan trắc</li>
                                 <li>Chọn vùng quan tâm</li>
                                 <li>Định vị GPS thiết bị</li>
                                 <li>Truy vấn dữ liệu đo mặn</li>
-                                <li>Nhận cảnh báo xâm nhập mặn</li>
+                                <li>Truy vấn dữ liệu khi tượng thủy văn</li>
                             </ul>
                         </div>
 
@@ -75,7 +75,7 @@ function Footer(props) {
                                     rel="noopener noreferrer"
                                 >
                                     <i className="fa-solid fa-location-dot"></i>
-                                    <span>Đại học Nông Lâm</span>
+                                    <span>Trường Đại học Nông Lâm TPHCM</span>
                                 </a>
                             </p>
                             <p>

@@ -180,7 +180,7 @@ function LeftMenuMap({
                     <div className="data-section">
                         <div className="section-header">
                             <i className="fa-solid fa-chart-line section-icon"></i>
-                            <h3 className="section-title">Dữ liệu quan trắc</h3>
+                            <h3 className="section-title">Dữ liệu chuyên đề</h3>
                         </div>
                         <div className="monitoring-layers">
                             <div className="layer-item monitoring-layer">
@@ -233,50 +233,80 @@ function LeftMenuMap({
                             {mapLayers.items.map((menu, index) => {
                                 const uniqueIndex = index;
                                 const isOpen = state.openMenuIndex === uniqueIndex;
+                                const isSingleLayer = menu.layer && !menu.layers;
 
                                 return (
                                     <div className="category-item" key={uniqueIndex}>
-                                        <div
-                                            className={`category-header ${isOpen ? "active" : ""}`}
-                                            onClick={() => toggleDropdown(uniqueIndex)}
-                                        >
-                                            <div className="category-info">
-                                                <i className={`${menu.icon} category-icon`}></i>
-                                                <span className="category-name">{menu.name}</span>
-                                            </div>
-                                            <i
-                                                className={`fa-solid fa-chevron-right expand-icon ${
-                                                    isOpen ? "rotated" : ""
-                                                }`}
-                                            ></i>
-                                        </div>
-
-                                        {isOpen && (
-                                            <div className="category-layers">
-                                                {menu.layers.map((layer, idx) => (
-                                                    <div className="layer-item" key={`${uniqueIndex}-${idx}`}>
-                                                        <div className="layer-toggle">
-                                                            <input
-                                                                type="checkbox"
-                                                                id={`layer-${layer}`}
-                                                                className="layer-checkbox"
-                                                                checked={state.enabledLayers.includes(layer)}
-                                                                onChange={(e) =>
-                                                                    handleLayerToggle(layer, e.target.checked)
-                                                                }
-                                                            />
-                                                            <label
-                                                                htmlFor={`layer-${layer}`}
-                                                                className="layer-label"
-                                                            >
-                                                                <span className="layer-name">
-                                                                    {menu.nameItem?.[idx] || layer}
-                                                                </span>
-                                                            </label>
+                                        {isSingleLayer ? (
+                                            // Single layer item - direct toggle
+                                            <div className="layer-item">
+                                                <div className="layer-toggle">
+                                                    <input
+                                                        type="checkbox"
+                                                        id={`layer-${menu.layer}`}
+                                                        className="layer-checkbox"
+                                                        checked={state.enabledLayers.includes(menu.layer)}
+                                                        onChange={(e) =>
+                                                            handleLayerToggle(menu.layer, e.target.checked)
+                                                        }
+                                                    />
+                                                    <label
+                                                        htmlFor={`layer-${menu.layer}`}
+                                                        className="layer-label"
+                                                    >
+                                                        <div className="layer-info">
+                                                            <i className={`${menu.icon} category-icon`}></i>
+                                                            <span className="layer-name">{menu.name}</span>
                                                         </div>
-                                                    </div>
-                                                ))}
+                                                    </label>
+                                                </div>
                                             </div>
+                                        ) : (
+                                            // Multi-layer item - dropdown
+                                            <>
+                                                <div
+                                                    className={`category-header ${isOpen ? "active" : ""}`}
+                                                    onClick={() => toggleDropdown(uniqueIndex)}
+                                                >
+                                                    <div className="category-info">
+                                                        <i className={`${menu.icon} category-icon`}></i>
+                                                        <span className="category-name">{menu.name}</span>
+                                                    </div>
+                                                    <i
+                                                        className={`fa-solid fa-chevron-right expand-icon ${
+                                                            isOpen ? "rotated" : ""
+                                                        }`}
+                                                    ></i>
+                                                </div>
+
+                                                {isOpen && (
+                                                    <div className="category-layers">
+                                                        {menu.layers.map((layer, idx) => (
+                                                            <div className="layer-item" key={`${uniqueIndex}-${idx}`}>
+                                                                <div className="layer-toggle">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        id={`layer-${layer}`}
+                                                                        className="layer-checkbox"
+                                                                        checked={state.enabledLayers.includes(layer)}
+                                                                        onChange={(e) =>
+                                                                            handleLayerToggle(layer, e.target.checked)
+                                                                        }
+                                                                    />
+                                                                    <label
+                                                                        htmlFor={`layer-${layer}`}
+                                                                        className="layer-label"
+                                                                    >
+                                                                        <span className="layer-name">
+                                                                            {menu.nameItem?.[idx] || layer}
+                                                                        </span>
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </>
                                         )}
                                     </div>
                                 );

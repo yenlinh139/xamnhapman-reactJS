@@ -14,6 +14,120 @@ import { TOAST } from "@common/constants";
 // Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
+// Custom plugin for station labels
+const stationLabelsPlugin = {
+    id: 'stationLabels',
+    afterDatasetsDraw: function(chart) {
+        const ctx = chart.ctx;
+        chart.data.datasets.forEach((dataset, datasetIndex) => {
+            const meta = chart.getDatasetMeta(datasetIndex);
+            if (!meta.hidden) {
+                meta.data.forEach((bar, index) => {
+                    const stationName = dataset.label;
+                    const value = dataset.data[index];
+                    
+                    // Only draw if bar has value > 0
+                    if (value > 0) {
+                        const x = bar.x;
+                        const y = bar.y - 20; // Position higher above the bar
+                        
+                        ctx.save();
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillStyle = '#1a202c';
+                        ctx.font = 'bold 9px Arial, sans-serif';
+                        
+                        // Measure text for background
+                        const textWidth = ctx.measureText(stationName).width;
+                        const textHeight = 12;
+                        const padding = 3;
+                        
+                        // Draw white background
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                        ctx.fillRect(
+                            x - textWidth/2 - padding, 
+                            y - textHeight/2 - padding/2, 
+                            textWidth + padding*2, 
+                            textHeight + padding
+                        );
+                        
+                        // Draw border
+                        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(
+                            x - textWidth/2 - padding, 
+                            y - textHeight/2 - padding/2, 
+                            textWidth + padding*2, 
+                            textHeight + padding
+                        );
+                        
+                        // Draw station name text
+                        ctx.fillStyle = '#1a202c';
+                        ctx.fillText(stationName, x, y);
+                        
+                        ctx.restore();
+                    }
+                });
+            }
+        });
+    }
+};
+
+// Register the custom plugin
+ChartJS.register(stationLabelsPlugin);
+
+// Station locations data for appendix
+const STATION_LOCATIONS = [
+    {
+        id: 1,
+        name: "Mũi Nhà Bè",
+        location: "Tại mũi Nhà Bè, phà Bình Khánh, trên sông Sài Gòn",
+        coordinates: { x: "681344.0", y: "1176921.0" },
+    },
+    {
+        id: 2,
+        name: "Phà Cát Lái",
+        location: "Tại bến phà Cát Lái, sông Đồng Nai",
+        coordinates: { x: "692700.0", y: "1181189.0" },
+    },
+    {
+        id: 3,
+        name: "Cầu Thủ Thiêm",
+        location: "Tại cầu Thủ Thiêm, sông Sài Gòn",
+        coordinates: { x: "676122.0", y: "1184199.0" },
+    },
+    {
+        id: 4,
+        name: "Cầu Ông Thìn",
+        location: "Tại cầu Ông Thìn, sông Cần Giuộc",
+        coordinates: { x: "661978.71", y: "1189011.92" },
+    },
+    {
+        id: 5,
+        name: "Cống Kênh C",
+        location: "Tại cầu Chợ Đệm, sông Chợ Đệm",
+        coordinates: { x: "696146.0", y: "1189993.0" },
+    },
+    {
+        id: 6,
+        name: "Kênh Xáng đứng 1",
+        location: "Trên kênh Xáng đứng, gần UBND xã Bình Lợi, huyện Bình Chánh",
+        coordinates: { x: "687636.0", y: "1195194.0" },
+    },
+    {
+        id: 7,
+        name: "Cầu Rạch Tra",
+        location: "Tại cầu Rạch Tra, tiếp giáp 02 huyện Củ Chi và Hóc Môn",
+        coordinates: { x: "679610.0", y: "1207751.0" },
+    },
+    {
+        id: 8,
+        name: "Kênh Xáng đứng 2",
+        location: "Trên kênh Xáng đứng, cách cống An Hạ 1,0 km về phía Bình Lợi",
+        coordinates: { x: "665207.0", y: "1192749.6" },
+    },
+];
+
 const SalinityReport = () => {
     const { userInfo } = useSelector((state) => state.authStore);
     const [loading, setLoading] = useState(false);
@@ -22,6 +136,9 @@ const SalinityReport = () => {
     const [generatingPDF, setGeneratingPDF] = useState(false);
     const [generatingFrontendPDF, setGeneratingFrontendPDF] = useState(false);
     const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+
+    // Check if user is logged in
+    const isLoggedIn = localStorage.getItem("access_token");
 
     // Load report data
     const loadReportData = async (date) => {
@@ -39,6 +156,12 @@ const SalinityReport = () => {
 
     // Generate PDF from frontend
     const generateFrontendPDF = async () => {
+        // Check if user is logged in before generating PDF
+        if (!isLoggedIn) {
+            ToastCommon(TOAST.ERROR, "Bạn cần đăng nhập để xuất báo cáo PDF");
+            return;
+        }
+
         try {
             setGeneratingFrontendPDF(true);
 
@@ -79,16 +202,16 @@ const SalinityReport = () => {
             const year = reportDate.getFullYear();
             const formattedDate = `${day}${month}${year}`;
 
-            // Configure PDF options
+            // Configure PDF options for optimal A4 portrait layout
             const options = {
-                margin: [20, 10, 20, 10], // top, left, bottom, right
+                margin: [10, 10, 10, 5], // Reduced margins for better space utilization
                 filename: `BaoCaoDoMan_TPHCM_${formattedDate}.pdf`,
                 image: {
-                    type: "jpeg",
-                    quality: 1.0,
+                    type: "png", // PNG for sharper text
+                    quality: 1.0, // Maximum quality
                 },
                 html2canvas: {
-                    scale: 2, // Higher scale for better quality
+                    scale: 1.5, // Optimized scale for A4 portrait
                     useCORS: true,
                     allowTaint: true,
                     backgroundColor: "#ffffff",
@@ -96,46 +219,34 @@ const SalinityReport = () => {
                     logging: false,
                     scrollX: 0,
                     scrollY: 0,
-                    width: window.innerWidth * 0.9, // Use most of screen width for better resolution
+                    width: 750, // Optimized width for A4 portrait
+                    height: null, // Let height adjust automatically
+                    foreignObjectRendering: false, // Better compatibility
+                    onclone: function (clonedDoc) {
+                        // Ensure print styles are applied
+                        const body = clonedDoc.body;
+                        if (body) {
+                            body.classList.add("print-mode");
+                        }
+                    },
                 },
                 jsPDF: {
                     unit: "mm",
                     format: "a4",
-                    orientation: "landscape", // Change to landscape for better table display
+                    orientation: "portrait", // Portrait orientation for better table fit
                     compress: true,
                     precision: 16,
                     putOnlyUsedFonts: true,
                     floatPrecision: 16,
+                    hotfixes: ["px_scaling"], // Fix scaling issues
                 },
             };
 
-            // Prepare PDF before generation - optimize for better rendering
+            // Prepare PDF before generation
             const preparePdfContent = () => {
-                // Add classes for PDF optimization
-                document.body.classList.add("pdf-preparing");
-
-                // Find all table cells and optimize them
-                const tableCells = document.querySelectorAll(".pdf-content table td, .pdf-content table th");
-                tableCells.forEach((cell) => {
-                    // Add text selection class to ensure text is selectable
-                    cell.classList.add("pdf-text-selectable");
-                });
-
-                // Optimize chart for PDF rendering
-                const chartContainer = document.querySelector(".chart-container");
-                if (chartContainer) {
-                    chartContainer.classList.add("pdf-chart-optimize");
-                }
-
-                // Return cleanup function
+                // No custom PDF preparation
                 return () => {
-                    document.body.classList.remove("pdf-preparing");
-                    tableCells.forEach((cell) => {
-                        cell.classList.remove("pdf-text-selectable");
-                    });
-                    if (chartContainer) {
-                        chartContainer.classList.remove("pdf-chart-optimize");
-                    }
+                    // No cleanup needed
                 };
             };
 
@@ -173,6 +284,12 @@ const SalinityReport = () => {
 
     // Load data and generate PDF
     const loadDataAndGeneratePDF = async () => {
+        // Check if user is logged in before generating PDF
+        if (!isLoggedIn) {
+            ToastCommon(TOAST.ERROR, "Bạn cần đăng nhập để xuất báo cáo PDF");
+            return;
+        }
+
         try {
             setGeneratingFrontendPDF(true);
             ToastCommon(TOAST.LOADING, "Đang tải dữ liệu và chuẩn bị xuất PDF...");
@@ -236,17 +353,17 @@ const SalinityReport = () => {
             } else if (sortConfig.key === "currentSalinity" || sortConfig.key === "previousSalinity") {
                 aValue = aValue ? parseFloat(aValue) : -1; // Put null/undefined at end
                 bValue = bValue ? parseFloat(bValue) : -1;
-            } else if (sortConfig.key === "prevYearMonthlyAvg") {
-                // Calculate average for sorting
-                aValue = calculateArrayAverage(a.prevYearMonthlyData);
-                bValue = calculateArrayAverage(b.prevYearMonthlyData);
+            } else if (sortConfig.key === "prevYearMonthlyMax") {
+                // Calculate maximum for sorting
+                aValue = calculateArrayMaximum(a.prevYearMonthlyData);
+                bValue = calculateArrayMaximum(b.prevYearMonthlyData);
                 // Convert NULL to -1 for sorting (put NULL values at end)
                 aValue = aValue === "NULL" ? -1 : aValue;
                 bValue = bValue === "NULL" ? -1 : bValue;
-            } else if (sortConfig.key === "allYearsMonthlyAvg") {
-                // Calculate average for sorting
-                aValue = calculateArrayAverage(a.allYearsMonthlyData);
-                bValue = calculateArrayAverage(b.allYearsMonthlyData);
+            } else if (sortConfig.key === "allYearsMonthlyMax") {
+                // Calculate maximum for sorting
+                aValue = calculateArrayMaximum(a.allYearsMonthlyData);
+                bValue = calculateArrayMaximum(b.allYearsMonthlyData);
                 // Convert NULL to -1 for sorting (put NULL values at end)
                 aValue = aValue === "NULL" ? -1 : aValue;
                 bValue = bValue === "NULL" ? -1 : bValue;
@@ -278,8 +395,8 @@ const SalinityReport = () => {
         return getSalinityClass(value, stationCode);
     };
 
-    // Calculate average from array data
-    const calculateArrayAverage = (dataArray) => {
+    // Calculate maximum from array data
+    const calculateArrayMaximum = (dataArray) => {
         if (!dataArray || dataArray.length === 0) return "NULL";
 
         const validValues = dataArray
@@ -288,70 +405,75 @@ const SalinityReport = () => {
 
         if (validValues.length === 0) return "NULL";
 
-        const sum = validValues.reduce((acc, value) => acc + value, 0);
-        return Math.round((sum / validValues.length) * 1000) / 1000; // Round to 3 decimal places
+        return Math.max(...validValues); // Get maximum value
     };
 
-    // Prepare chart data
+    // Get salinity color based on risk level
+    const getSalinityColor = (value, stationCode) => {
+        const riskClass = getSalinityClassLocal(value, stationCode);
+        switch (riskClass) {
+            case "normal":
+            case "salinity-normal":
+                return "#28a745";
+            case "warning":
+            case "salinity-warning":
+                return "#ffc107";
+            case "high-warning":
+            case "salinity-high-warning":
+                return "#fd7e14";
+            case "critical":
+            case "salinity-critical":
+                return "#dc3545";
+            default:
+                return "#6c757d"; // Gray for no data
+        }
+    };
+
+    // Prepare chart data - transposed structure
     const getChartData = () => {
         if (!reportData?.stations) return null;
 
-        const labels = reportData.stations.map((station) => station.stationName);
+        // Create labels for the 4 data types
+        const currentDateLabel = `Độ mặn ngày ${new Date(reportData.reportDate).toLocaleDateString("vi-VN")} (‰)`;
+        const previousDateLabel = getPreviousObservationDateLabel();
+        const prevYearLabel = `Độ mặn tháng ${getCurrentMonthYear().month}/${getCurrentMonthYear().year - 1} (‰)`;
+        const allYearsLabel = `Độ mặn tháng ${getCurrentMonthYear().month}/TBNN (‰)`;
 
-        // Current salinity data
-        const currentData = reportData.stations.map((station) =>
-            station.currentSalinity ? parseFloat(station.currentSalinity) : 0,
-        );
+        const labels = [currentDateLabel, previousDateLabel, prevYearLabel, allYearsLabel];
 
-        // Previous salinity data
-        const previousData = reportData.stations.map((station) =>
-            station.previousSalinity ? parseFloat(station.previousSalinity) : 0,
-        );
+        // Create datasets for each station
+        const datasets = reportData.stations.map((station, index) => {
+            // Calculate values for each data type
+            const currentValue = station.currentSalinity ? parseFloat(station.currentSalinity) : 0;
+            const previousValue = station.previousSalinity ? parseFloat(station.previousSalinity) : 0;
+            const prevYearMax = calculateArrayMaximum(station.prevYearMonthlyData);
+            const prevYearValue = prevYearMax === "NULL" ? 0 : prevYearMax;
+            const allYearsMax = calculateArrayMaximum(station.allYearsMonthlyData);
+            const allYearsValue = allYearsMax === "NULL" ? 0 : allYearsMax;
 
-        // Average of prevYearMonthlyData
-        const prevYearAvgData = reportData.stations.map((station) => {
-            const avg = calculateArrayAverage(station.prevYearMonthlyData);
-            return avg === "NULL" ? 0 : avg; // Convert NULL to 0 for chart display
-        });
+            const data = [currentValue, previousValue, prevYearValue, allYearsValue];
 
-        // Average of allYearsMonthlyData
-        const allYearsAvgData = reportData.stations.map((station) => {
-            const avg = calculateArrayAverage(station.allYearsMonthlyData);
-            return avg === "NULL" ? 0 : avg; // Convert NULL to 0 for chart display
+            // Generate colors for each bar based on salinity level
+            const backgroundColor = data.map((value, dataIndex) => {
+                if (value === 0) return "#6c757d"; // Gray for no data
+                return getSalinityColor(value, station.stationCode);
+            });
+
+            const borderColor = backgroundColor.map(color => color);
+
+            return {
+                label: station.stationName,
+                data: data,
+                backgroundColor: backgroundColor,
+                borderColor: borderColor,
+                borderWidth: 1,
+                maxBarThickness: 40,
+            };
         });
 
         return {
             labels,
-            datasets: [
-                {
-                    label: `Độ mặn ngày ${new Date(reportData.reportDate).toLocaleDateString("vi-VN")} (‰)`,
-                    data: currentData,
-                    backgroundColor: "rgba(54, 162, 235, 0.6)",
-                    borderColor: "rgba(54, 162, 235, 1)",
-                    borderWidth: 1,
-                },
-                {
-                    label: getPreviousObservationDateLabel(),
-                    data: previousData,
-                    backgroundColor: "rgba(255, 206, 86, 0.6)",
-                    borderColor: "rgba(255, 206, 86, 1)",
-                    borderWidth: 1,
-                },
-                {
-                    label: `Độ mặn tháng ${getCurrentMonthYear().month}/${getCurrentMonthYear().year - 1} (‰)`,
-                    data: prevYearAvgData,
-                    backgroundColor: "rgba(255, 99, 132, 0.6)",
-                    borderColor: "rgba(255, 99, 132, 1)",
-                    borderWidth: 1,
-                },
-                {
-                    label: `Độ mặn tháng ${getCurrentMonthYear().month}/TBNN (‰)`,
-                    data: allYearsAvgData,
-                    backgroundColor: "rgba(75, 192, 192, 0.6)",
-                    borderColor: "rgba(75, 192, 192, 1)",
-                    borderWidth: 1,
-                },
-            ],
+            datasets,
         };
     };
 
@@ -359,29 +481,13 @@ const SalinityReport = () => {
     const getChartOptions = () => ({
         responsive: true,
         maintainAspectRatio: false,
-        devicePixelRatio: 3, // Higher resolution for better PDF quality
+        devicePixelRatio: 1.5,
         animation: {
             duration: 0, // Disable animation for faster PDF generation
         },
         plugins: {
             legend: {
-                position: "top",
-                align: "start",
-                labels: {
-                    padding: 20,
-                    boxWidth: 15,
-                    usePointStyle: true,
-                    font: {
-                        size: 12,
-                        family: "Arial, sans-serif",
-                        weight: "500",
-                    },
-                    color: "#2d3748",
-                },
-                title: {
-                    display: false,
-                },
-                maxHeight: 60,
+                display: false, // Ẩn legend vì sẽ hiển thị tên trạm trên cột
             },
             tooltip: {
                 backgroundColor: "rgba(0,0,0,0.9)",
@@ -401,9 +507,52 @@ const SalinityReport = () => {
                 displayColors: true,
                 borderColor: "rgba(255,255,255,0.2)",
                 borderWidth: 1,
+                callbacks: {
+                    title: function(context) {
+                        return context[0].label;
+                    },
+                    label: function(context) {
+                        const stationName = context.dataset.label;
+                        const value = context.parsed.y;
+                        return `${stationName}: ${value.toFixed(2)} ‰`;
+                    }
+                }
             },
+            stationLabels: true // Enable the registered plugin
+        },
+        onHover: (event, activeElements) => {
+            // Add cursor pointer when hovering over bars
+            event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
         },
         scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: "Loại dữ liệu độ mặn",
+                    font: {
+                        size: 12,
+                        weight: "bold",
+                        family: "Arial, sans-serif",
+                    },
+                    color: "#2d3748",
+                    padding: { top: 10, bottom: 10 },
+                },
+                ticks: {
+                    font: {
+                        size: 9,
+                        family: "Arial, sans-serif",
+                        weight: "500",
+                    },
+                    padding: 8,
+                    color: "#4a5568",
+                    maxRotation: 45,
+                    minRotation: 0,
+                },
+                grid: {
+                    color: "rgba(74, 85, 104, 0.1)",
+                    drawBorder: true,
+                },
+            },
             y: {
                 beginAtZero: true,
                 title: {
@@ -431,9 +580,8 @@ const SalinityReport = () => {
                     color: "rgba(74, 85, 104, 0.1)",
                     drawBorder: true,
                 },
-                // Ensure consistency in formatting
                 afterFit: function (scaleInstance) {
-                    scaleInstance.width = 50; // more space for the y-axis labels
+                    scaleInstance.width = 90;
                 },
             },
         },
@@ -447,20 +595,16 @@ const SalinityReport = () => {
                 borderWidth: 1,
             },
         },
-        animation: {
-            duration: 0, // Disable animation for PDF export
-        },
         layout: {
             padding: {
-                left: 20,
-                right: 20,
-                top: 20,
+                left: 10,
+                right: 10,
+                top: 45, // Increased padding for station labels with background
                 bottom: 20,
             },
         },
-        // Optimize for PDF rendering
         onResize: null,
-        aspectRatio: window.innerWidth < 768 ? 1.2 : 2.5, // Better aspect ratio for different screen sizes
+        aspectRatio: 1.4, // Adjusted for new layout
     });
 
     // Format date to Vietnamese format
@@ -468,15 +612,15 @@ const SalinityReport = () => {
         if (!dateString) return "";
         try {
             const date = new Date(dateString);
-            if (isNaN(date.getTime())) return "Ngày 06 tháng 06 năm 2024"; // Fallback to the requested date
+            if (isNaN(date.getTime())) return;
 
             const day = date.getDate();
             const month = date.getMonth() + 1;
             const year = date.getFullYear();
-            return `Ngày ${day.toString().padStart(2, "0")} tháng ${month.toString().padStart(2, "0")} năm ${year}`;
+            return `NGÀY ${day.toString().padStart(2, "0")} THÁNG ${month.toString().padStart(2, "0")} NĂM ${year}`;
         } catch (error) {
             console.error("Error formatting date:", error);
-            return "Ngày 06 tháng 06 năm 2024"; // Fallback to the requested date
+            return;
         }
     };
 
@@ -504,7 +648,12 @@ const SalinityReport = () => {
         return `Độ mặn ngày ${formattedDate} (‰)`;
     };
 
-    // Load initial data
+    // Get station location from STATION_LOCATIONS
+    const getStationLocation = (stationName) => {
+        const stationLocation = STATION_LOCATIONS.find((location) => location.name === stationName);
+        return stationLocation ? stationLocation.location : stationName;
+    };
+
     useEffect(() => {
         if (selectedDate) {
             loadReportData(selectedDate);
@@ -516,17 +665,6 @@ const SalinityReport = () => {
             <Header />
             <main className="main-content">
                 <div className="container">
-                    <div className="row">
-                        <div className="col-12">
-                            <div className="page-header">
-                                <h1 className="page-title">
-                                    BÁO CÁO GIÁM SÁT XÂM NHẬP MẶN TRÊN SÔNG RẠCH TPHCM
-                                </h1>
-                                <p className="page-description">{formatDateVietnamese(selectedDate)}</p>
-                            </div>
-                        </div>
-                    </div>
-
                     <div className="row mb-4">
                         <div className="col-md-6">
                             <div className="date-selector">
@@ -563,9 +701,12 @@ const SalinityReport = () => {
                                     )}
                                 </button>
                                 <button
-                                    className="btn btn-primary btn-lg"
+                                    className={`btn ${isLoggedIn ? "btn-primary" : "btn-secondary"} btn-lg`}
                                     onClick={loadDataAndGeneratePDF}
-                                    disabled={loading || !selectedDate || generatingFrontendPDF}
+                                    disabled={
+                                        loading || !selectedDate || generatingFrontendPDF || !isLoggedIn
+                                    }
+                                    title={!isLoggedIn ? "Bạn cần đăng nhập để xuất báo cáo PDF" : ""}
                                 >
                                     {loading || generatingFrontendPDF ? (
                                         <>
@@ -575,7 +716,7 @@ const SalinityReport = () => {
                                     ) : (
                                         <>
                                             <i className="bi bi-file-earmark-pdf-fill me-2"></i>
-                                            Tải & Xuất PDF Báo Cáo
+                                            {isLoggedIn ? "Xuất Báo Cáo" : "Đăng nhập để xuất PDF"}
                                         </>
                                     )}
                                 </button>
@@ -583,388 +724,698 @@ const SalinityReport = () => {
                         </div>
                     </div>
 
+                    {/* Login notice for non-logged in users */}
+                    {!isLoggedIn && (
+                        <div className="row mb-4">
+                            <div className="col-12">
+                                <div className="alert alert-info d-flex align-items-center">
+                                    <i className="bi bi-info-circle me-2"></i>
+                                    <div>
+                                        <strong>Thông báo:</strong> Bạn có thể xem dữ liệu trực tiếp trên web.
+                                        Để xuất báo cáo PDF, vui lòng <strong>đăng nhập</strong> vào hệ thống.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {loading && <Loading />}
 
                     {reportData && (
                         <div className="pdf-content" id="pdf-content-wrapper">
                             {/* PDF Header for print */}
                             <div className="pdf-header">
-                                <div className="pdf-header-gradient">
-                                    <h2 className="text-center mb-2">
+                                <div className="pdf-header-gradient text-center">
+                                    <h2 className="text-center mb-2 fw-bold text-dark">
                                         BÁO CÁO GIÁM SÁT XÂM NHẬP MẶN TRÊN SÔNG RẠCH TPHCM
                                     </h2>
-                                    <h4 className="text-center">{formatDateVietnamese(selectedDate)}</h4>
-                                </div>
-                                <div className="pdf-header-info mt-3">
-                                    <p className="text-center mb-0">
-                                        <strong>Đơn vị thực hiện:</strong> Nguyễn Võ Yến Linh
-                                    </p>
-                                    <p className="text-center">
-                                        <strong>Thời gian xuất báo cáo:</strong>{" "}
-                                        {new Date().toLocaleString("vi-VN")}
-                                    </p>
+                                    <h4 className="text-center fw-bold text-dark">
+                                        {formatDateVietnamese(selectedDate)}
+                                    </h4>
+                                    <p className="text-center fw-bold text-dark">************</p>
                                 </div>
                             </div>
-
                             {/* Summary Statistics */}
-                            <div className="row mb-4">
-                                <div className="col-12">
-                                    <div className="card">
-                                        <div className="card-header">
-                                            <h6 className="card-title mb-0">
-                                                <i className="fa-solid fa-chart-bar me-2"></i>
-                                                Thống kê tổng quan
-                                            </h6>
-                                        </div>
-                                        <div className="card-body">
-                                            <div className="row text-center">
-                                                <div className="col-md-3">
-                                                    <div className="stat-item">
-                                                        <div className="stat-value text-primary">
-                                                            {reportData.stations?.length || 0}
-                                                        </div>
-                                                        <div className="stat-label">Tổng số trạm</div>
-                                                    </div>
-                                                </div>
-                                                <div className="col-md-3">
-                                                    <div className="stat-item">
-                                                        <div className="stat-value text-info">
-                                                            {Math.round(
-                                                                (reportData.stations?.reduce(
-                                                                    (sum, station) =>
-                                                                        sum +
-                                                                        (station.currentSalinity
-                                                                            ? parseFloat(
-                                                                                  station.currentSalinity,
-                                                                              )
-                                                                            : 0),
-                                                                    0,
-                                                                ) /
-                                                                    (reportData.stations?.length || 1)) *
-                                                                    1000,
-                                                            ) / 1000}{" "}
-                                                            ‰
-                                                        </div>
-                                                        <div className="stat-label">TB độ mặn hiện tại</div>
-                                                    </div>
-                                                </div>
-                                                <div className="col-md-3">
-                                                    <div className="stat-item">
-                                                        <div className="stat-value text-warning">
-                                                            {(() => {
-                                                                const validValues = reportData.stations
-                                                                    ?.map((station) => {
-                                                                        const avg = calculateArrayAverage(
-                                                                            station.prevYearMonthlyData,
-                                                                        );
-                                                                        return avg === "NULL" ? null : avg;
-                                                                    })
-                                                                    .filter((val) => val !== null);
-
-                                                                if (
-                                                                    !validValues ||
-                                                                    validValues.length === 0
-                                                                ) {
-                                                                    return "NULL";
-                                                                }
-
-                                                                return (
-                                                                    Math.round(
-                                                                        (validValues.reduce(
-                                                                            (sum, val) => sum + val,
-                                                                            0,
-                                                                        ) /
-                                                                            validValues.length) *
-                                                                            1000,
-                                                                    ) /
-                                                                        1000 +
-                                                                    " ‰"
-                                                                );
-                                                            })()}
-                                                        </div>
-                                                        <div className="stat-label">TB năm trước</div>
-                                                    </div>
-                                                </div>
-                                                <div className="col-md-3">
-                                                    <div className="stat-item">
-                                                        <div className="stat-value text-success">
-                                                            {(() => {
-                                                                const validValues = reportData.stations
-                                                                    ?.map((station) => {
-                                                                        const avg = calculateArrayAverage(
-                                                                            station.allYearsMonthlyData,
-                                                                        );
-                                                                        return avg === "NULL" ? null : avg;
-                                                                    })
-                                                                    .filter((val) => val !== null);
-
-                                                                if (
-                                                                    !validValues ||
-                                                                    validValues.length === 0
-                                                                ) {
-                                                                    return "NULL";
-                                                                }
-
-                                                                return (
-                                                                    Math.round(
-                                                                        (validValues.reduce(
-                                                                            (sum, val) => sum + val,
-                                                                            0,
-                                                                        ) /
-                                                                            validValues.length) *
-                                                                            1000,
-                                                                    ) /
-                                                                        1000 +
-                                                                    " ‰"
-                                                                );
-                                                            })()}
-                                                        </div>
-                                                        <div className="stat-label">TB tất cả năm</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                            <div className="card">
+                                <div className="card-header">
+                                    <h6 className="card-title mb-0">
+                                        <i className="fa-solid fa-chart-bar me-2"></i>
+                                        Thống kê tổng quan
+                                    </h6>
                                 </div>
-                            </div>
-
-                            {/* Statistics Table */}
-                            <div className="row mb-4">
-                                <div className="col-12">
-                                    <div className="card">
-                                        <div className="card-header">
-                                            <h5 className="card-title mb-0">
-                                                Số liệu quan trắc độ mặn trên sông rạch TPHCM{" "}
-                                                {new Date(reportData.reportDate).toLocaleDateString("vi-VN")}
-                                            </h5>
-                                        </div>
-                                        <div className="card-body">
-                                            <div className="table-responsive">
-                                                <table className="table table-striped table-hover">
-                                                    <thead className="table-dark">
-                                                        <tr>
-                                                            <th
-                                                                style={{
-                                                                    width: "5%",
-                                                                    cursor: "pointer",
-                                                                    userSelect: "none",
-                                                                }}
-                                                                onClick={() => handleSort("stt")}
-                                                            >
-                                                                <div className="d-flex align-items-center justify-content-center">
-                                                                    <span>STT</span>
-                                                                    {getSortIcon("stt")}
-                                                                </div>
-                                                            </th>
-                                                            <th
-                                                                style={{
-                                                                    width: "20%",
-                                                                    cursor: "pointer",
-                                                                    userSelect: "none",
-                                                                }}
-                                                                onClick={() => handleSort("stationName")}
-                                                            >
-                                                                <div className="d-flex align-items-center justify-content-center">
-                                                                    <span>Tên trạm</span>
-                                                                    {getSortIcon("stationName")}
-                                                                </div>
-                                                            </th>
-                                                            <th
-                                                                style={{
-                                                                    width: "20%",
-                                                                    cursor: "pointer",
-                                                                    userSelect: "none",
-                                                                }}
-                                                                onClick={() => handleSort("currentSalinity")}
-                                                            >
-                                                                <div className="d-flex align-items-center justify-content-center">
-                                                                    <span>
-                                                                        Độ mặn ngày{" "}
-                                                                        {new Date(
-                                                                            reportData.reportDate,
-                                                                        ).toLocaleDateString("vi-VN")}
-                                                                        (‰)
-                                                                    </span>
-                                                                    {getSortIcon("currentSalinity")}
-                                                                </div>
-                                                            </th>
-                                                            <th
-                                                                style={{
-                                                                    width: "20%",
-                                                                    cursor: "pointer",
-                                                                    userSelect: "none",
-                                                                }}
-                                                                onClick={() => handleSort("previousSalinity")}
-                                                            >
-                                                                <div className="d-flex align-items-center justify-content-center">
-                                                                    <span>
-                                                                        {getPreviousObservationDateLabel()}
-                                                                    </span>
-                                                                    {getSortIcon("previousSalinity")}
-                                                                </div>
-                                                            </th>
-                                                            <th
-                                                                style={{
-                                                                    width: "17.5%",
-                                                                    cursor: "pointer",
-                                                                    userSelect: "none",
-                                                                }}
-                                                                onClick={() =>
-                                                                    handleSort("prevYearMonthlyAvg")
-                                                                }
-                                                            >
-                                                                <div className="d-flex align-items-center justify-content-center">
-                                                                    <span>
-                                                                        Độ mặn tháng{" "}
-                                                                        {getCurrentMonthYear().month}/
-                                                                        {getCurrentMonthYear().year - 1} (‰)
-                                                                    </span>
-                                                                    {getSortIcon("prevYearMonthlyAvg")}
-                                                                </div>
-                                                            </th>
-                                                            <th
-                                                                style={{
-                                                                    width: "17.5%",
-                                                                    cursor: "pointer",
-                                                                    userSelect: "none",
-                                                                }}
-                                                                onClick={() =>
-                                                                    handleSort("allYearsMonthlyAvg")
-                                                                }
-                                                            >
-                                                                <div className="d-flex align-items-center justify-content-center">
-                                                                    <span>
-                                                                        Độ mặn tháng{" "}
-                                                                        {getCurrentMonthYear().month}/TBNN (‰)
-                                                                    </span>
-                                                                    {getSortIcon("allYearsMonthlyAvg")}
-                                                                </div>
-                                                            </th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {sortedStations.map((station) => (
-                                                            <tr key={station.stationCode}>
-                                                                <td>{station.stt}</td>
-                                                                <td>
-                                                                    <strong>{station.stationName}</strong>
-                                                                    <br />
-                                                                    <small className="text-muted">
-                                                                        ({station.stationCode})
-                                                                    </small>
-                                                                </td>
-                                                                <td>
-                                                                    <span
-                                                                        className={`salinity-value ${getSalinityClassLocal(station.currentSalinity, station.stationCode)}`}
-                                                                    >
-                                                                        {formatSalinity(
-                                                                            station.currentSalinity,
-                                                                        )}
-                                                                    </span>
-                                                                </td>
-                                                                <td>
-                                                                    <span
-                                                                        className={`salinity-value ${getSalinityClassLocal(station.previousSalinity, station.stationCode)}`}
-                                                                    >
-                                                                        {formatSalinity(
-                                                                            station.previousSalinity,
-                                                                        )}
-                                                                    </span>
-                                                                </td>
-                                                                <td>
-                                                                    <span
-                                                                        className={`salinity-value ${getSalinityClassLocal(
-                                                                            calculateArrayAverage(
-                                                                                station.prevYearMonthlyData,
-                                                                            ),
-                                                                            station.stationCode,
-                                                                        )}`}
-                                                                    >
-                                                                        {formatSalinity(
-                                                                            calculateArrayAverage(
-                                                                                station.prevYearMonthlyData,
-                                                                            ),
-                                                                        )}
-                                                                    </span>
-                                                                </td>
-                                                                <td>
-                                                                    <span
-                                                                        className={`salinity-value ${getSalinityClassLocal(
-                                                                            calculateArrayAverage(
-                                                                                station.allYearsMonthlyData,
-                                                                            ),
-                                                                            station.stationCode,
-                                                                        )}`}
-                                                                    >
-                                                                        {formatSalinity(
-                                                                            calculateArrayAverage(
-                                                                                station.allYearsMonthlyData,
-                                                                            ),
-                                                                        )}
-                                                                    </span>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-
-                                            <div className="legend mt-3">
-                                                <h6>Chú thích cấp độ rủi ro thiên tai do xâm nhập mặn:</h6>
-                                                <div className="d-flex gap-3">
-                                                    <span className="legend-item">
-                                                        <span className="legend-color salinity-normal"></span>
-                                                        Bình thường (độ mặn tại các điểm &lt;1‰)
-                                                    </span>
-                                                    <span className="legend-item">
-                                                        <span className="legend-color salinity-warning"></span>
-                                                        Rủi ro cấp 1 (độ mặn tại Nhà Bè 1-4‰)
-                                                    </span>
-                                                    <span className="legend-item">
-                                                        <span className="legend-color salinity-high-warning"></span>
-                                                        Rủi ro cấp 2 (độ mặn tại Nhà Bè &gt;4‰, các điểm khác
-                                                        1-4‰)
-                                                    </span>
-                                                    <span className="legend-item">
-                                                        <span className="legend-color salinity-critical"></span>
-                                                        Rủi ro cấp 3 (độ mặn tại các điểm &gt;4‰)
-                                                    </span>
+                                <div className="card-body">
+                                    <div className="row text-center">
+                                        <div className="col-md-2">
+                                            <div className="stat-item">
+                                                <div className="stat-value text-primary">
+                                                    {reportData.stations?.length || 0}
                                                 </div>
+                                                <div className="stat-label">Điểm đo mặn</div>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
+                                        <div className="col-md-2">
+                                            <div className="stat-item">
+                                                <div
+                                                    className={`stat-value ${(() => {
+                                                        const stationsWithValues = reportData.stations
+                                                            ?.map((station) => ({
+                                                                ...station,
+                                                                value: parseFloat(station.currentSalinity)
+                                                            }))
+                                                            .filter(
+                                                                (station) =>
+                                                                    station.value !== null &&
+                                                                    !isNaN(station.value) &&
+                                                                    station.currentSalinity !== "" &&
+                                                                    station.currentSalinity !== null &&
+                                                                    station.currentSalinity !== undefined
+                                                            );
 
-                            {/* Chart */}
-                            <div className="container">
-                                <div className="row">
-                                    <div className="col-12">
-                                        <div className="card">
-                                            <div className="card-header">
-                                                <h5 className="card-title mb-0">
-                                                    Giá trị độ mặn tại các trạm quan trắc{" "}
+                                                        if (!stationsWithValues || stationsWithValues.length === 0) {
+                                                            return "text-secondary";
+                                                        }
+
+                                                        // Find station with maximum value
+                                                        const maxStation = stationsWithValues.reduce((max, station) => 
+                                                            station.value > max.value ? station : max
+                                                        );
+
+                                                        return getSalinityClassLocal(maxStation.value, maxStation.stationCode);
+                                                    })()}`}
+                                                >
+                                                    {(() => {
+                                                        const validValues = reportData.stations
+                                                            ?.map((station) => station.currentSalinity)
+                                                            .filter(
+                                                                (val) =>
+                                                                    val !== null &&
+                                                                    val !== undefined &&
+                                                                    val !== "",
+                                                            )
+                                                            .map((val) => parseFloat(val));
+
+                                                        if (!validValues || validValues.length === 0) {
+                                                            return "--";
+                                                        }
+
+                                                        const max = Math.max(...validValues);
+                                                        return max.toFixed(2) + " ‰";
+                                                    })()}
+                                                </div>
+                                                <div className="stat-label">
+                                                    Max độ mặn ngày{" "}
                                                     {new Date(reportData.reportDate).toLocaleDateString(
                                                         "vi-VN",
                                                     )}{" "}
-                                                    so với độ mặn quan trắc liền trước, trung bình tháng cùng
-                                                    kỳ năm trước và trung bình tháng cùng kỳ nhiều năm
-                                                </h5>
+                                                    (‰)
+                                                </div>
                                             </div>
-                                            <div className="card-body">
-                                                {getChartData() && (
-                                                    <div className="chart-container">
-                                                        <div className="chart-wrapper">
-                                                            <Bar
-                                                                data={getChartData()}
-                                                                options={getChartOptions()}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                )}
+                                        </div>
+                                        <div className="col-md-2">
+                                            <div className="stat-item">
+                                                <div
+                                                    className={`stat-value ${(() => {
+                                                        const stationsWithValues = reportData.stations
+                                                            ?.map((station) => ({
+                                                                ...station,
+                                                                value: parseFloat(station.previousSalinity)
+                                                            }))
+                                                            .filter(
+                                                                (station) =>
+                                                                    station.value !== null &&
+                                                                    !isNaN(station.value) &&
+                                                                    station.previousSalinity !== "" &&
+                                                                    station.previousSalinity !== null &&
+                                                                    station.previousSalinity !== undefined
+                                                            );
+
+                                                        if (!stationsWithValues || stationsWithValues.length === 0) {
+                                                            return "text-secondary";
+                                                        }
+
+                                                        // Find station with maximum value
+                                                        const maxStation = stationsWithValues.reduce((max, station) => 
+                                                            station.value > max.value ? station : max
+                                                        );
+
+                                                        return getSalinityClassLocal(maxStation.value, maxStation.stationCode);
+                                                    })()}`}
+                                                >
+                                                    {(() => {
+                                                        const validValues = reportData.stations
+                                                            ?.map((station) => station.previousSalinity)
+                                                            .filter(
+                                                                (val) =>
+                                                                    val !== null &&
+                                                                    val !== undefined &&
+                                                                    val !== "",
+                                                            )
+                                                            .map((val) => parseFloat(val));
+
+                                                        if (!validValues || validValues.length === 0) {
+                                                            return "--";
+                                                        }
+
+                                                        const max = Math.max(...validValues);
+                                                        return max.toFixed(2) + " ‰";
+                                                    })()}
+                                                </div>
+                                                <div className="stat-label">
+                                                    Max {getPreviousObservationDateLabel()}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="col-md-3">
+                                            <div className="stat-item">
+                                                <div
+                                                    className={`stat-value ${(() => {
+                                                        const stationsWithValues = reportData.stations
+                                                            ?.map((station) => {
+                                                                const max = calculateArrayMaximum(
+                                                                    station.prevYearMonthlyData,
+                                                                );
+                                                                const value = max === "NULL" ? null : parseFloat(max);
+                                                                return {
+                                                                    ...station,
+                                                                    value: value
+                                                                };
+                                                            })
+                                                            .filter((station) => station.value !== null && !isNaN(station.value));
+
+                                                        if (!stationsWithValues || stationsWithValues.length === 0) {
+                                                            return "text-secondary";
+                                                        }
+
+                                                        // Find station with maximum value
+                                                        const maxStation = stationsWithValues.reduce((max, station) => 
+                                                            station.value > max.value ? station : max
+                                                        );
+
+                                                        return getSalinityClassLocal(maxStation.value, maxStation.stationCode);
+                                                    })()}`}
+                                                >
+                                                    {(() => {
+                                                        const validValues = reportData.stations
+                                                            ?.map((station) => {
+                                                                const max = calculateArrayMaximum(
+                                                                    station.prevYearMonthlyData,
+                                                                );
+                                                                return max === "NULL" ? null : max;
+                                                            })
+                                                            .filter((val) => val !== null);
+
+                                                        if (!validValues || validValues.length === 0) {
+                                                            return "--";
+                                                        }
+
+                                                        const max = Math.max(...validValues);
+                                                        return max.toFixed(2) + " ‰";
+                                                    })()}
+                                                </div>
+                                                <div className="stat-label">
+                                                    Max độ mặn tháng {getCurrentMonthYear().month}/
+                                                    {getCurrentMonthYear().year - 1} (‰)
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="col-md-3">
+                                            <div className="stat-item">
+                                                <div
+                                                    className={`stat-value ${(() => {
+                                                        const stationsWithValues = reportData.stations
+                                                            ?.map((station) => {
+                                                                const max = calculateArrayMaximum(
+                                                                    station.allYearsMonthlyData,
+                                                                );
+                                                                const value = max === "NULL" ? null : parseFloat(max);
+                                                                return {
+                                                                    ...station,
+                                                                    value: value
+                                                                };
+                                                            })
+                                                            .filter((station) => station.value !== null && !isNaN(station.value));
+
+                                                        if (!stationsWithValues || stationsWithValues.length === 0) {
+                                                            return "text-secondary";
+                                                        }
+
+                                                        // Find station with maximum value
+                                                        const maxStation = stationsWithValues.reduce((max, station) => 
+                                                            station.value > max.value ? station : max
+                                                        );
+
+                                                        return getSalinityClassLocal(maxStation.value, maxStation.stationCode);
+                                                    })()}`}
+                                                >
+                                                    {(() => {
+                                                        const validValues = reportData.stations
+                                                            ?.map((station) => {
+                                                                const max = calculateArrayMaximum(
+                                                                    station.allYearsMonthlyData,
+                                                                );
+                                                                return max === "NULL" ? null : max;
+                                                            })
+                                                            .filter((val) => val !== null);
+
+                                                        if (!validValues || validValues.length === 0) {
+                                                            return "--";
+                                                        }
+
+                                                        const max = Math.max(...validValues);
+                                                        return max.toFixed(2) + " ‰";
+                                                    })()}
+                                                </div>
+                                                <div className="stat-label">
+                                                    Max độ mặn tháng {getCurrentMonthYear().month}/TBNN
+                                                    (‰)
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                            {/* Statistics Table */}
+                            <div className="container">
+                                <div className="pdf-table-section">
+                                    <p className="pdf-table-intro pdf-only">
+                                        &nbsp;&nbsp;&nbsp;&nbsp;Dữ liệu xâm nhập mặn được đo ngày{" "}
+                                        <span className="text-lowercase">
+                                            {formatDateVietnamese(selectedDate)}
+                                        </span>
+                                        tại 8 trạm trên sông rạch chính thuộc khu vực Thành phố Hồ Chí Minh
+                                        được thống kê như sau:
+                                    </p>
+                                    <h5 className="pdf-table-title mb-3">
+                                        Bảng số liệu quan trắc độ mặn ngày{" "}
+                                        {new Date(reportData.reportDate).toLocaleDateString("vi-VN")}
+                                    </h5>
+                                    <div className="table-responsive">
+                                        <table className="table table-striped table-hover">
+                                            <thead className="table-dark">
+                                                <tr>
+                                                    <th
+                                                        style={{
+                                                            width: "5%",
+                                                            cursor: "pointer",
+                                                            userSelect: "none",
+                                                        }}
+                                                        onClick={() => handleSort("stt")}
+                                                    >
+                                                        <div className="d-flex align-items-center justify-content-center">
+                                                            <span>STT</span>
+                                                            {getSortIcon("stt")}
+                                                        </div>
+                                                    </th>
+                                                    <th
+                                                        style={{
+                                                            width: "20%",
+                                                            cursor: "pointer",
+                                                            userSelect: "none",
+                                                        }}
+                                                        onClick={() => handleSort("stationName")}
+                                                    >
+                                                        <div className="d-flex align-items-center justify-content-center">
+                                                            <span>Tên điểm đo mặn</span>
+                                                            {getSortIcon("stationName")}
+                                                        </div>
+                                                    </th>
+                                                    <th
+                                                        style={{
+                                                            width: "20%",
+                                                            cursor: "pointer",
+                                                            userSelect: "none",
+                                                        }}
+                                                        onClick={() => handleSort("currentSalinity")}
+                                                    >
+                                                        <div className="d-flex align-items-center justify-content-center">
+                                                            <span>
+                                                                Độ mặn ngày{" "}
+                                                                {new Date(
+                                                                    reportData.reportDate,
+                                                                ).toLocaleDateString("vi-VN")}
+                                                                (‰)
+                                                            </span>
+                                                            {getSortIcon("currentSalinity")}
+                                                        </div>
+                                                    </th>
+                                                    <th
+                                                        style={{
+                                                            width: "20%",
+                                                            cursor: "pointer",
+                                                            userSelect: "none",
+                                                        }}
+                                                        onClick={() => handleSort("previousSalinity")}
+                                                    >
+                                                        <div className="d-flex align-items-center justify-content-center">
+                                                            <span>{getPreviousObservationDateLabel()}</span>
+                                                            {getSortIcon("previousSalinity")}
+                                                        </div>
+                                                    </th>
+                                                    <th
+                                                        style={{
+                                                            width: "17.5%",
+                                                            cursor: "pointer",
+                                                            userSelect: "none",
+                                                        }}
+                                                        onClick={() => handleSort("prevYearMonthlyMax")}
+                                                    >
+                                                        <div className="d-flex align-items-center justify-content-center">
+                                                            <span>
+                                                                Độ mặn tháng {getCurrentMonthYear().month}/
+                                                                {getCurrentMonthYear().year - 1} (‰)
+                                                            </span>
+                                                            {getSortIcon("prevYearMonthlyMax")}
+                                                        </div>
+                                                    </th>
+                                                    <th
+                                                        style={{
+                                                            width: "17.5%",
+                                                            cursor: "pointer",
+                                                            userSelect: "none",
+                                                        }}
+                                                        onClick={() => handleSort("allYearsMonthlyMax")}
+                                                    >
+                                                        <div className="d-flex align-items-center justify-content-center">
+                                                            <span>
+                                                                Độ mặn tháng {getCurrentMonthYear().month}
+                                                                /TBNN (‰)
+                                                            </span>
+                                                            {getSortIcon("allYearsMonthlyMax")}
+                                                        </div>
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {sortedStations.map((station) => (
+                                                    <tr key={station.stationCode}>
+                                                        <td>{station.stt}</td>
+                                                        <td>
+                                                            <strong>{station.stationName}</strong>
+                                                            <br />
+                                                            <small className="text-muted">
+                                                                ({station.stationCode})
+                                                            </small>
+                                                        </td>
+                                                        <td>
+                                                            <span
+                                                                className={`salinity-value ${getSalinityClassLocal(station.currentSalinity, station.stationCode)}`}
+                                                            >
+                                                                {formatSalinity(station.currentSalinity)}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <span
+                                                                className={`salinity-value ${getSalinityClassLocal(station.previousSalinity, station.stationCode)}`}
+                                                            >
+                                                                {formatSalinity(station.previousSalinity)}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <span
+                                                                className={`salinity-value ${getSalinityClassLocal(
+                                                                    calculateArrayMaximum(
+                                                                        station.prevYearMonthlyData,
+                                                                    ),
+                                                                    station.stationCode,
+                                                                )}`}
+                                                            >
+                                                                {formatSalinity(
+                                                                    calculateArrayMaximum(
+                                                                        station.prevYearMonthlyData,
+                                                                    ),
+                                                                )}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <span
+                                                                className={`salinity-value ${getSalinityClassLocal(
+                                                                    calculateArrayMaximum(
+                                                                        station.allYearsMonthlyData,
+                                                                    ),
+                                                                    station.stationCode,
+                                                                )}`}
+                                                            >
+                                                                {formatSalinity(
+                                                                    calculateArrayMaximum(
+                                                                        station.allYearsMonthlyData,
+                                                                    ),
+                                                                )}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Explicit page break for Analysis */}
+                            <div className="pdf-page-break"></div>
+
+                            <div className="pdf-analysis-section pdf-only">
+                                <p className="analysis-intro">
+                                    Một số nhận định về kết quả dữ liệu xâm nhập mặn trên các tuyến sông, kênh
+                                    rạch khu vực Thành phố Hồ Chí Minh{" "}
+                                    <span className="text-lowercase">
+                                        {formatDateVietnamese(selectedDate)}
+                                    </span>{" "}
+                                    như sau:
+                                </p>
+                                <div className="analysis-content">
+                                    {reportData.stations?.map((station) => (
+                                        <div key={station.stationCode} className="station-analysis">
+                                            <strong>• {station.stationName}</strong>{" "}
+                                            <span className="fst-italic">
+                                                {" "}
+                                                (vị trí lấy mẫu: {getStationLocation(station.stationName)})
+                                            </span>
+                                            :
+                                            <div className="analysis-details">
+                                                - Giá trị mặn hiện tại ={" "}
+                                                {formatSalinity(station.currentSalinity)} ‰
+                                                {station.previousSalinity && (
+                                                    <>
+                                                        {" "}
+                                                        {parseFloat(station.currentSalinity || 0) >
+                                                        parseFloat(station.previousSalinity || 0)
+                                                            ? "tăng"
+                                                            : parseFloat(station.currentSalinity || 0) <
+                                                                parseFloat(station.previousSalinity || 0)
+                                                              ? "giảm"
+                                                              : "bằng"}{" "}
+                                                        so với lần quan trắc trước (
+                                                        {formatSalinity(station.previousSalinity)} ‰)
+                                                    </>
+                                                )}
+                                                {(() => {
+                                                    const prevYearMax = calculateArrayMaximum(
+                                                        station.prevYearMonthlyData,
+                                                    );
+                                                    const allYearsMax = calculateArrayMaximum(
+                                                        station.allYearsMonthlyData,
+                                                    );
+                                                    const currentVal = parseFloat(
+                                                        station.currentSalinity || 0,
+                                                    );
+
+                                                    return (
+                                                        <>
+                                                            {prevYearMax !== "NULL" && (
+                                                                <>
+                                                                    ,{" "}
+                                                                    {currentVal > prevYearMax
+                                                                        ? "cao hơn"
+                                                                        : currentVal < prevYearMax
+                                                                          ? "thấp hơn"
+                                                                          : "bằng"}{" "}
+                                                                    so với độ mặn tháng{" "}
+                                                                    {getCurrentMonthYear().month}/
+                                                                    {getCurrentMonthYear().year - 1} (
+                                                                    {formatSalinity(prevYearMax)} ‰)
+                                                                </>
+                                                            )}
+                                                            {allYearsMax !== "NULL" && (
+                                                                <>
+                                                                    {" và "}
+                                                                    {currentVal > allYearsMax
+                                                                        ? "cao hơn"
+                                                                        : currentVal < allYearsMax
+                                                                          ? "thấp hơn"
+                                                                          : "bằng"}{" "}
+                                                                    so với độ mặn tháng{" "}
+                                                                    {getCurrentMonthYear().month}/TBNN (
+                                                                    {formatSalinity(allYearsMax)} ‰)
+                                                                </>
+                                                            )}
+                                                        </>
+                                                    );
+                                                })()}
+                                                .
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Explicit page break for Chart */}
+                            <div className="pdf-page-break"></div>
+
+                            {/* Chart */}
+                            <div className="pdf-chart-section">
+                                {getChartData() && (
+                                    <>
+                                        <div className="pdf-only">
+                                            <p>
+                                                &nbsp; <br />
+                                                &nbsp;
+                                            </p>
+                                        </div>
+                                        {/* Custom Legend - Risk Level Colors */}
+                                        <div className="chart-legend-custom pdf-only">
+                                            <div className="legend-title text-center mb-2">
+                                                Chú thích cấp độ rủi ro thiên tai do xâm nhập mặn:
+                                            </div>
+                                            <div className="legend-items d-flex flex-wrap justify-content-center gap-3">
+                                                <div className="legend-item d-flex align-items-center">
+                                                    <div
+                                                        className="legend-color-box me-2"
+                                                        style={{
+                                                            width: "20px",
+                                                            height: "20px",
+                                                            backgroundColor: "#28a745",
+                                                            borderRadius: "3px",
+                                                            border: "1px solid #ccc",
+                                                        }}
+                                                    ></div>
+                                                    <span style={{ fontSize: "10px", fontWeight: "500" }}>
+                                                        Bình thường (&lt;1‰)
+                                                    </span>
+                                                </div>
+                                                <div className="legend-item d-flex align-items-center">
+                                                    <div
+                                                        className="legend-color-box me-2"
+                                                        style={{
+                                                            width: "20px",
+                                                            height: "20px",
+                                                            backgroundColor: "#ffc107",
+                                                            borderRadius: "3px",
+                                                            border: "1px solid #ccc",
+                                                        }}
+                                                    ></div>
+                                                    <span style={{ fontSize: "14px", fontWeight: "500" }}>
+                                                        Rủi ro cấp 1 (Nhà Bè: 1-4‰)
+                                                    </span>
+                                                </div>
+                                                <div className="legend-item d-flex align-items-center">
+                                                    <div
+                                                        className="legend-color-box me-2"
+                                                        style={{
+                                                            width: "20px",
+                                                            height: "20px",
+                                                            backgroundColor: "#ff8c00",
+                                                            borderRadius: "3px",
+                                                            border: "1px solid #ccc",
+                                                        }}
+                                                    ></div>
+                                                    <span style={{ fontSize: "14px", fontWeight: "500" }}>
+                                                        Rủi ro cấp 2 (Nhà Bè &gt;4‰, khác 1-4‰)
+                                                    </span>
+                                                </div>
+                                                <div className="legend-item d-flex align-items-center">
+                                                    <div
+                                                        className="legend-color-box me-2"
+                                                        style={{
+                                                            width: "20px",
+                                                            height: "20px",
+                                                            backgroundColor: "#dc3545",
+                                                            borderRadius: "3px",
+                                                            border: "1px solid #ccc",
+                                                        }}
+                                                    ></div>
+                                                    <span style={{ fontSize: "14px", fontWeight: "500" }}>
+                                                        Rủi ro cấp 3 (Các điểm &gt;4‰)
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="chart-container">
+                                            <div className="chart-wrapper">
+                                                <Bar data={getChartData()} options={getChartOptions()} />
+                                            </div>
+                                        </div>
+
+                                        <h5 className="pdf-table-title mt-3 text-center">
+                                            Biểu đồ quan trắc độ mặn ngày{" "}
+                                            {new Date(reportData.reportDate).toLocaleDateString("vi-VN")}
+                                        </h5>
+                                    </>
+                                )}
+                            </div>
+
+                            {/* Explicit page break for Appendix */}
+                            <div className="pdf-page-break"></div>
+
+                            {/* Appendix Section - Station Locations */}
+                            <div className="pdf-appendix-section pdf-only">
+                                <p>
+                                    &nbsp; <br />
+                                    &nbsp;
+                                </p>
+                                <h4 className="appendix-title">
+                                    PHỤ LỤC CÁC VỊ TRÍ LẤY MẪU KHẢO SÁT XÂM NHẬP MẶN
+                                </h4>
+                                <h5 className="appendix-table-title text-center mb-3">
+                                    Bảng vị trí và tọa độ lấy mẫu khảo sát xâm nhập mặn
+                                </h5>
+
+                                <div className="table-responsive">
+                                    <table className="table table-bordered appendix-table">
+                                        <thead className="table-dark">
+                                            <tr>
+                                                <th style={{ width: "8%", textAlign: "center" }}>TT</th>
+                                                <th style={{ width: "20%", textAlign: "center" }}>
+                                                    Tên điểm đo mặn
+                                                </th>
+                                                <th style={{ width: "52%", textAlign: "center" }}>Vị trí</th>
+                                                <th style={{ width: "20%", textAlign: "center" }}>
+                                                    Tọa độ
+                                                    <br />
+                                                    <div className="d-flex">
+                                                        <span style={{ width: "50%", textAlign: "center" }}>
+                                                            X (m)
+                                                        </span>
+                                                        <span style={{ width: "50%", textAlign: "center" }}>
+                                                            Y (m)
+                                                        </span>
+                                                    </div>
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {STATION_LOCATIONS.map((station) => (
+                                                <tr key={station.id}>
+                                                    <td style={{ textAlign: "center" }}>{station.id}</td>
+                                                    <td>{station.name}</td>
+                                                    <td>{station.location}</td>
+                                                    <td>
+                                                        <div className="d-flex">
+                                                            <span
+                                                                style={{ width: "50%", textAlign: "center" }}
+                                                            >
+                                                                {station.coordinates.x}
+                                                            </span>
+                                                            <span
+                                                                style={{ width: "50%", textAlign: "center" }}
+                                                            >
+                                                                {station.coordinates.y}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>

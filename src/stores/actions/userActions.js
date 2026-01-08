@@ -29,7 +29,6 @@ export const getListUser = () => {
                 dispatch(hideLoading());
             }
         } catch (error) {
-            console.log(error.response?.data?.message);
             dispatch(hideLoading());
         }
     };

@@ -65,7 +65,7 @@ const MapDetails = ({
 
             <div onClick={onOpenFullChart} style={{ cursor: "pointer" }} className="hover-shadow">
                 <SaltMiniChart salinityData={salinityData} />
-                <p className="text-center mt-2 text-primary small">Click để xem chi tiết và xuất dữ liệu</p>
+                <p className="text-center mt-2 text-primary small">Click để xem chi tiết (cần đăng nhập để xuất dữ liệu)</p>
             </div>
 
             {/* Hydromet Data Section */}
@@ -81,7 +81,7 @@ const MapDetails = ({
                             <HydrometBarChart data={hydrometData} height={200} />
                         </div>
                         <p className="text-center mt-2 text-primary small">
-                            Click để xem chi tiết và xuất dữ liệu
+                            Click để xem chi tiết (cần đăng nhập để xuất dữ liệu)
                         </p>
 
                         <div className="mt-3">

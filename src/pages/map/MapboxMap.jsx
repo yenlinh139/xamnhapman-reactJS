@@ -170,9 +170,13 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
         setHydrometData([]);
 
         // Clear existing overlay layers (WMS layers)
-        Object.entries(overlayLayers.current).forEach(([_, layer]) => {
-            if (map.hasLayer(layer)) {
-                map.removeLayer(layer);
+        Object.entries(overlayLayers.current).forEach(([layerName, layerData]) => {
+            // Get the actual layer instance (for WMS layers, diemdocao)
+            // Marker layers (salinityPoints, hydrometStations) don't have layer property
+            const actualLayer = layerData.layer;
+            
+            if (actualLayer && map.hasLayer(actualLayer)) {
+                map.removeLayer(actualLayer);
             }
         });
         overlayLayers.current = {};
@@ -197,10 +201,38 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
         selectedLayers.forEach((layerName) => {
             if (layerName === "salinityPoints") {
                 renderSalinityPoints(map, setSalinityData, setSelectedPoint);
-                // Add to overlay layers for legend visibility
+                // Add to overlay layers for legend visibility with color legend
                 overlayLayers.current[layerName] = {
                     name: "Điểm đo mặn",
                     type: "marker",
+                    legend: `
+                        <div class="d-flex justify-content-center gap-3 mt-2 small">
+                            <div class="d-flex align-items-center gap-1">
+                                <div
+                                    style="width: 12px; height: 12px; background-color: #28a745; border-radius: 2px;">
+                                </div>
+                                <span>Bình thường</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-1">
+                                <div
+                                    style="width: 12px; height: 12px; background-color: #ffc107; border-radius: 2px;">
+                                </div>
+                                <span>Rủi ro cấp 1</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-1">
+                                <div
+                                    style="width: 12px; height: 12px; background-color: #fd7e14; border-radius: 2px;">
+                                </div>
+                                <span>Rủi ro cấp 2</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-1">
+                                <div
+                                    style="width: 12px; height: 12px; background-color: #dc3545; border-radius: 2px;">
+                                </div>
+                                <span>Rủi ro cấp 3</span>
+                            </div>
+                        </div>
+                    `,
                 };
             } else if (layerName === "hydrometStations") {
                 renderHydrometStations(map, setHydrometData, setSelectedStation);
@@ -209,6 +241,101 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
                     name: "Trạm khí tượng thủy văn",
                     type: "marker",
                 };
+            } else if (layerName === "diemdocao") {
+                // Handle diemdocao as raster layer with special WMS handling
+                const rasterLayer = L.tileLayer.wms("http://localhost:8080/geoserver/xamnhapman_tphcm/wms", {
+                    layers: `xamnhapman_tphcm:${layerName}`,
+                    transparent: true,
+                    format: "image/png",
+                    version: "1.1.0",
+                    attribution: "GeoServer",
+                });
+
+                rasterLayer.addTo(map);
+                overlayLayers.current[layerName] = {
+                    layer: rasterLayer, // Store actual layer instance
+                    name: "Độ cao (m)",
+                    type: "raster",
+                    legend: `
+                        <div style="margin-left: 20px; margin-bottom: 10px; font-size: 1em;">
+                            <div><span style="display:inline-block;width:12px;height:12px;background:#08306b;margin-right:5px;"></span>-20 – 0 m</div>
+                            <div><span style="display:inline-block;width:12px;height:12px;background:#41ab5d;margin-right:5px;"></span>1 – 5 m</div>
+                            <div><span style="display:inline-block;width:12px;height:12px;background:#ffff00;margin-right:5px;"></span>6 – 10 m</div>
+                            <div><span style="display:inline-block;width:12px;height:12px;background:#fd8d3c;margin-right:5px;"></span>11 – 15 m</div>
+                            <div><span style="display:inline-block;width:12px;height:12px;background:#e31a1c;margin-right:5px;"></span>16 – 35 m</div>
+                        </div>
+                    `,
+                };
+            } else if (layerName === "QuyHoachSDD_2030") {
+                // Handle QuyHoachSDD_2030 with special legend from mapStyles
+                const wmsLayer = L.tileLayer.betterWms(
+                    "http://localhost:8080/geoserver/xamnhapman_tphcm/wms",
+                    {
+                        layers: `xamnhapman_tphcm:${layerName}`,
+                        transparent: true,
+                        format: "image/png",
+                        version: "1.1.1",
+                        info_format: "text/html",
+                        attribution: "GeoServer",
+                    },
+                );
+
+                wmsLayer.addTo(map);
+                
+                // Import layer styles for QuyHoachSDD_2030 legend
+                import('@components/map/mapStyles').then(({ layerStyles }) => {
+                    const layerStyle = layerStyles[layerName];
+                    overlayLayers.current[layerName] = {
+                        layer: wmsLayer, // Store actual layer instance
+                        name: "Quy hoạch sử dụng đất 2030",
+                        type: "polygon",
+                        legend: layerStyle?.legend || undefined
+                    };
+                    // Update legend after adding layer with legend info
+                    updateLegendVisibility(overlayLayers.current);
+                }).catch(() => {
+                    // Fallback if import fails
+                    overlayLayers.current[layerName] = {
+                        layer: wmsLayer,
+                        name: "Quy hoạch sử dụng đất 2030",
+                        type: "polygon"
+                    };
+                });
+            } else if (layerName === "HienTrangSDD_2020") {
+                // Handle HienTrangSDD_2020 with special legend from mapStyles
+                const wmsLayer = L.tileLayer.betterWms(
+                    "http://localhost:8080/geoserver/xamnhapman_tphcm/wms",
+                    {
+                        layers: `xamnhapman_tphcm:${layerName}`,
+                        transparent: true,
+                        format: "image/png",
+                        version: "1.1.1",
+                        info_format: "text/html",
+                        attribution: "GeoServer",
+                    },
+                );
+
+                wmsLayer.addTo(map);
+                
+                // Import layer styles for HienTrangSDD_2020 legend
+                import('@components/map/mapStyles').then(({ layerStyles }) => {
+                    const layerStyle = layerStyles[layerName];
+                    overlayLayers.current[layerName] = {
+                        layer: wmsLayer, // Store actual layer instance
+                        name: "Hiện trạng sử dụng đất 2020",
+                        type: "polygon",
+                        legend: layerStyle?.legend || undefined
+                    };
+                    // Update legend after adding layer with legend info
+                    updateLegendVisibility(overlayLayers.current);
+                }).catch(() => {
+                    // Fallback if import fails
+                    overlayLayers.current[layerName] = {
+                        layer: wmsLayer,
+                        name: "Hiện trạng sử dụng đất 2020",
+                        type: "polygon"
+                    };
+                });
             } else {
                 // Handle WMS layers from GeoServer
                 const wmsLayer = L.tileLayer.betterWms(
@@ -224,7 +351,26 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
                 );
 
                 wmsLayer.addTo(map);
-                overlayLayers.current[layerName] = wmsLayer;
+                
+                // Import layer styles for legend
+                import('@components/map/mapStyles').then(({ layerStyles }) => {
+                    const layerStyle = layerStyles[layerName];
+                    overlayLayers.current[layerName] = {
+                        layer: wmsLayer, // Store actual layer instance
+                        name: layerName,
+                        type: "wms",
+                        legend: layerStyle?.legend || undefined
+                    };
+                    // Update legend after adding layer with legend info
+                    updateLegendVisibility(overlayLayers.current);
+                }).catch(() => {
+                    // Fallback if import fails
+                    overlayLayers.current[layerName] = {
+                        layer: wmsLayer,
+                        name: layerName,
+                        type: "wms"
+                    };
+                });
             }
         });
 

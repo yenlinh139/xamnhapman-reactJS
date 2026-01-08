@@ -82,77 +82,83 @@ L.TileLayer.BetterWMS = L.TileLayer.WMS.extend({
                 DiaPhanXa: "Địa phận xã",
                 ThuyHe_line: "Thủy hệ 1 nét",
                 ThuyHe_polygon: "Thủy hệ 2 nét",
+                HienTrangSDD_2020: "Hiện trạng sử dụng đất 2020",
+                QuyHoachSDD_2030: "Quy hoạch sử dụng đất 2030",
+                diemdocao: "Mô hình độ cao số",
+                GiaoThong_line: "Giao thông 1 nét",
+                GiaoThong_polygon: "Giao thông 2 nét",
             };
             let popupContent = `
-      <div style="font-family: 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; padding: 6px 10px;">
-        <div style="font-weight: bold; color: #2c3e50; font-size: 16px; margin-bottom: 5px; border-bottom: 1px solid #ccc;">
-          🗂️ Thông tin lớp: ${legendNames[layerName]}
+      <div style="font-family: 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; padding: 10px 16px;">
+        <div style="font-weight: bold; color: #2c3e50; font-size: 16px; padding-bottom: 5px; margin-bottom: 5px; border-bottom: 1px solid #ccc;">
+          🗂️  ${legendNames[layerName]}
         </div>
     `;
 
             switch (layerName) {
                 case "DiaPhanHuyen":
                     popupContent += `
-          <b>📍 Huyện:</b> ${props.tenhuyen}<br/>
-          <b>🆔 Mã huyện:</b> ${props.mahuyen}<br/>
-          <b>📐 Diện tích:</b> ${props.dientichtunhien} m²
-        `;
+                        <b>📍 Huyện:</b> ${props.tenhuyen}<br/>
+                        <b>🆔 Mã huyện:</b> ${props.mahuyen}<br/>
+                        <b>📐 Diện tích:</b> ${props.dientichtunhien}m²
+                    `;
                     break;
                 case "DiaPhanXa":
                     popupContent += `
-          <b>📍 Xã:</b> ${props.tenxa}<br/>
-          <b>🆔 Mã xã:</b> ${props.maxa}<br/>
-          <b>🏞️ Huyện:</b> ${props.tenhuyen}<br/>
-          <b>📐 Diện tích:</b> ${props.dientichtunhien} m²
-        `;
+                        <b>📍 Xã:</b> ${props.tenxa}<br/>
+                        <b>🆔 Mã xã:</b> ${props.maxa}<br/>
+                        <b>🏞️ Huyện:</b> ${props.tenhuyen}<br/>
+                        <b>📐 Diện tích:</b> ${props.dientichtunhien}m²
+                    `;
                     break;
-                case "DiemDoCao":
+                case "diemdocao":
                     popupContent += `<b>📏 Độ cao:</b> ${props.docao_m} m`;
                     break;
                 case "GiaoThong_line":
                     popupContent += `
-          <b>🚧 Tên đường:</b> ${props.tenduong}<br/>
-          <b>📏 Chiều dài:</b> ${props.chieudai} m
-        `;
+                        <b>🚧 Tên đường:</b> ${props.tenDuong}<br/>
+                        <b>📏 Chiều dài:</b> ${props.chieuDai} m
+                    `;
                     break;
                 case "GiaoThong_polygon":
                     popupContent += `
-          <b>🚧 Tên đường:</b> ${props.tenduong}<br/>
-          <b>↔️ Rộng:</b> ${props.dorong} m<br/>
-          <b>↕️ Dài:</b> ${props.chieudai} m<br/>
-          <b>🧱 Kết cấu:</b> ${props.ketcau}<br/>
-          <b>🛠️ Tình trạng:</b> ${props.tinhtrang}
-        `;
+                        <b>🚧 Tên đường:</b> ${props.TenDuong}<br/>
+                        <b>↔️ Rộng:</b> ${props.DoRong} m<br/>
+                        <b>↕️ Dài:</b> ${props.ChieuDai} m<br/>
+                        <b>🧱 Kết cấu:</b> ${props.KetCau}<br/>
+                        <b>🛠️ Tình trạng:</b> ${props.TinhTrang}<br/>
+                        <b>Cấp quản lý:</b> ${props.CapQuanLy}
+                    `;
                     break;
                 case "ThuyHe_line":
                     popupContent += `
-          <b>🌊 Tên sông/kênh:</b> ${props.ten}<br/>
-          <b>🔼 Điểm đầu:</b> ${props.diemdau}<br/>
-          <b>🔽 Điểm cuối:</b> ${props.diemcuoi}<br/>
-          <b>📏 Dài:</b> ${props.chieudai} m
-        `;
+                        <b>🌊 Tên sông/kênh:</b> ${props.ten}<br/>
+                        <b>🔼 Điểm đầu:</b> ${props.diemdau}<br/>
+                        <b>🔽 Điểm cuối:</b> ${props.diemcuoi}<br/>
+                        <b>📏 Dài:</b> ${props.chieudai}m
+                    `;
                     break;
                 case "ThuyHe_polygon":
                     popupContent += `
-          <b>🌊 Tên:</b> ${props.ten}<br/>
-          <b>📖 Loại:</b> ${props.phanloai}<br/>
-          <b>↔️ Rộng:</b> ${props.dorong} m<br/>
-          <b>↕️ Sâu:</b> ${props.dosau} m<br/>
-          <b>⚠️ Trạng thái:</b> ${props.trangthai}
-        `;
+                        <b>🌊 Tên:</b> ${props.ten}<br/>
+                        <b>⚠️ Trạng thái:</b> ${props.trangthai}<br/>
+                        <b>📖 Loại:</b> ${props.phanloai}<br/>
+                        <b>↔️ Rộng:</b> ${props.dorong} m<br/>
+                        <b>↕️ Sâu:</b> ${props.dosau} m
+                    `;
                     break;
                 case "HienTrangSDD_2020":
                     popupContent += `
-          <b>🌱 Loại đất:</b> ${props.loaidat}<br/>
-          <b>🔢 Ký hiệu:</b> ${props.kihieu}
-        `;
+                        <b>🌱 Loại đất:</b> ${props.loaidat}<br/>
+                        <b>🔢 Ký hiệu:</b> ${props.kihieu1}
+                    `;
                     break;
                 case "QuyHoachSDD_2030":
                     popupContent += `
-          <b>🏗️ Loại đất:</b> ${props.loaidat}<br/>
-          <b>📚 Phân loại:</b> ${props.phanloai}<br/>
-          <b>🔢 Ký hiệu:</b> ${props.kihieu}
-        `;
+                        <b>🏗️ Loại đất:</b> ${props.loaidat}<br/>
+                        <b>📚 Phân loại:</b> ${props.phanloai}<br/>
+                        <b>🔢 Ký hiệu:</b> ${props.kihieu1}
+                    `;
                     break;
                 default:
                     popupContent += `<i>Không có cấu hình hiển thị cho lớp này.</i>`;

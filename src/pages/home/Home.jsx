@@ -14,23 +14,19 @@ const userRoles = [
         color: "gray",
         features: [
             "Xem thông tin tổng quan hệ thống",
-            "Xem vị trí các trạm quan trắc",
-            "Truy cập thông tin cơ bản",
-        ],
-    },
-    {
-        title: "Người dùng đã đăng nhập",
-        icon: "👤",
-        color: "blue",
-        features: [
             "Tương tác đầy đủ với bản đồ WebGIS",
             "Xem chi tiết dữ liệu trạm khí tượng và xâm nhập mặn",
             "Phân tích dữ liệu: lọc theo ngày, xuất biểu đồ",
             "Tìm kiếm trạm theo tên và đơn vị hành chính",
             "Zoom đến khu vực/trạm quan tâm",
             "Xem thông tin nền: ranh giới, thủy văn, giao thông",
-            "Gửi đánh giá và chỉnh sửa thông tin cá nhân",
         ],
+    },
+    {
+        title: "Người dùng đã đăng nhập",
+        icon: "👤",
+        color: "blue",
+        features: ["Tất cả chức năng của người dùng chưa đăng nhập", "Gửi đánh giá", "Chỉnh sửa thông tin cá nhân"],
     },
     {
         title: "Quản trị viên",

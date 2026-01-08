@@ -23,11 +23,11 @@ const App = () => {
                     <Route path={ROUTES.home} element={<Home />} />
                     <Route path={ROUTES.verify_email} element={<VerifyEmail />} />
                     <Route path={ROUTES.login} element={<WrapperLogin />} />
+                    <Route path={ROUTES.map} element={<Map />} />
+                    <Route path={ROUTES.salinityReport} element={<SalinityReport />} />
                     <Route element={<ProtectedRoute />}>
                         <Route path={ROUTES.setting} element={<SettingUser />} />
                         <Route path={ROUTES.feedback} element={<Feedback />} />
-                        <Route path={ROUTES.map} element={<Map />} />
-                        <Route path={ROUTES.salinityReport} element={<SalinityReport />} />
                         <Route element={<RoleBasedRoute requiredRole={1} />}>
                             <Route path={ROUTES.users} element={<UserManagement />} />
                             <Route path={ROUTES.salinity} element={<SalinityManagement />} />

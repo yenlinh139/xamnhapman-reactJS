@@ -162,7 +162,7 @@ const SalinityBarChart = ({ data, height }) => {
                             borderRadius: 2,
                         }}
                     ></div>
-                    <span>Rủi ro cấp 2 (các điểm khác 1-4‰)</span>
+                    <span>Rủi ro cấp 2 (độ mặn tại Nhà Bè trên 4‰, các trạm khác từ 1–4‰)</span>
                 </div>
                 <div className="d-flex align-items-center gap-1">
                     <div
