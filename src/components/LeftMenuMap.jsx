@@ -2,7 +2,9 @@ import React, { useEffect, useState, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import { ROUTES } from "@common/constants";
 import imageLogo from "@assets/logo.png";
-import { mapLayers } from "@pages/map/dataLayers";
+import { mapLayers, irrigationLayers } from "@pages/map/dataLayers";
+import IoTStationModal from "./IoTStationModal";
+import { fetchIoTStations, fetchIoTData, formatIoTDataForDisplay } from "./map/mapDataServices";
 
 function LeftMenuMap({
     sidebarOpen,
@@ -12,15 +14,21 @@ function LeftMenuMap({
     setSelectedLocation,
     setHighlightedFeature,
     highlightedFeature,
+    setIotData,
 }) {
     const [state, setState] = useState({
         openMenuIndex: null,
         enabledLayers: [],
         activeTab: "Data",
         isLoadingSearchResults: true,
+        openSalinityDropdown: false,
+        openIrrigationDropdown: false,
+        openIrrigationSubIndex: null,
     });
     const [districtList, setDistrictList] = useState([]);
     const [selectedDistrict, setSelectedDistrict] = useState(null);
+    const [iotModalOpen, setIotModalOpen] = useState(false);
+    const [iotStationStats, setIotStationStats] = useState({ active: 0, total: 0, lastSync: null });
 
     const handleSalinityPointsToggle = (checked) => {
         setState((prevState) => ({
@@ -44,6 +52,153 @@ function LeftMenuMap({
         onLayerToggle("hydrometStations", checked);
     };
 
+    const handleIoTStationsToggle = (checked) => {
+        setState((prevState) => ({
+            ...prevState,
+            enabledLayers: checked
+                ? [...prevState.enabledLayers, "iotStations"]
+                : prevState.enabledLayers.filter((layer) => layer !== "iotStations"),
+        }));
+
+        onLayerToggle("iotStations", checked);
+    };
+
+    const toggleSalinityDropdown = () => {
+        setState((prevState) => ({
+            ...prevState,
+            openSalinityDropdown: !prevState.openSalinityDropdown,
+        }));
+    };
+
+    const toggleIrrigationDropdown = () => {
+        setState((prevState) => ({
+            ...prevState,
+            openIrrigationDropdown: !prevState.openIrrigationDropdown,
+        }));
+    };
+
+    const toggleIrrigationSubDropdown = (index) => {
+        setState((prevState) => ({
+            ...prevState,
+            openIrrigationSubIndex: prevState.openIrrigationSubIndex === index ? null : index,
+        }));
+    };
+
+    const handleIoTStationClick = () => {
+        setIotModalOpen(true);
+    };
+
+    // Hàm để lấy dữ liệu IoT mặc định (7 ngày gần nhất)
+    const handleIoTQuickView = async () => {
+        try {
+            // Hiển thị trạm IoT trên bản đồ trước
+            setState((prevState) => ({
+                ...prevState,
+                enabledLayers: [...prevState.enabledLayers.filter(l => l !== "iotStations"), "iotStations"]
+            }));
+            onLayerToggle("iotStations", true);
+
+            const stationsResponse = await fetchIoTStations();
+            if (stationsResponse.success && stationsResponse.data && stationsResponse.data.length > 0) {
+                // Cập nhật thống kê
+                const stats = calculateStationStats(stationsResponse.data);
+                setIotStationStats(stats);
+                
+                // Lấy trạm có nhiều dữ liệu nhất
+                const activeStation = stationsResponse.data
+                    .filter(station => station.total_records > 0 && station.serial_number)
+                    .sort((a, b) => parseInt(b.total_records) - parseInt(a.total_records))[0];
+
+                if (activeStation) {
+                    // Tự động lấy dữ liệu 7 ngày gần nhất
+                    const endDate = new Date().toISOString().split('T')[0];
+                    const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                    
+                    const result = await fetchIoTData(activeStation.serial_number, {
+                        startDate,
+                        endDate,
+                        limit: 1000
+                    });
+                    
+                    if (result.success && result.data && result.data.length > 0) {
+                        const formattedData = formatIoTDataForDisplay(result, activeStation);
+                        if (formattedData) {
+                            setIotData(formattedData);
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching IoT quick view:", error);
+        }
+    };
+
+    // Hàm tính toán thống kê trạm
+    const calculateStationStats = (stations) => {
+        const activeStations = stations.filter(station => 
+            station.total_records > 0 && 
+            station.serial_number &&
+            station.status === 'active'
+        ).length;
+        
+        const lastSyncTimes = stations
+            .filter(station => station.last_data_time)
+            .map(station => new Date(station.last_data_time))
+            .sort((a, b) => b - a);
+        
+        return {
+            active: activeStations,
+            total: stations.length,
+            lastSync: lastSyncTimes[0] || null
+        };
+    };
+
+    const handleIoTDataSubmit = async (stationInfo, startDate, endDate) => {
+        try {
+            // Sử dụng serial_number thay vì serial
+            const serialNumber = stationInfo.serial_number;
+            
+            if (!serialNumber) {
+                return {
+                    success: false,
+                    message: "Trạm chưa có serial number. Vui lòng chọn trạm khác."
+                };
+            }
+
+            // Gọi API mới với định dạng ngày yyyy-mm-dd
+            const result = await fetchIoTData(serialNumber, {
+                startDate: startDate, // startDate đã được format từ modal
+                endDate: endDate,     // endDate đã được format từ modal
+                limit: 1000          // Lấy nhiều dữ liệu hơn
+            });
+            
+            // Kiểm tra xem có dữ liệu thành công hay không
+            if (result.success && result.data && result.data.length > 0) {
+                const formattedData = formatIoTDataForDisplay(result, stationInfo);
+                if (formattedData) {
+                    setIotData(formattedData);
+                    // Trả về success để modal biết có thể đóng
+                    return {
+                        success: true,
+                        message: `Đã lấy thành công ${formattedData.summary.totalRecords} bản ghi từ trạm ${formattedData.stationName}. Dữ liệu sẽ hiển thị trong panel MapDetails.`
+                    };
+                }
+            }
+            
+            // Không có dữ liệu
+            return {
+                success: false,
+                message: result.message || "Không có dữ liệu trong khoảng thời gian đã chọn"
+            };
+        } catch (error) {
+            console.error("Error handling IoT data:", error);
+            return {
+                success: false,
+                message: "Có lỗi xảy ra khi lấy dữ liệu. Vui lòng thử lại."
+            };
+        }
+    };
+
     useEffect(() => {
         if (searchResults && searchResults.length > 0) {
             setState((prevState) => ({
@@ -58,6 +213,27 @@ function LeftMenuMap({
             }));
         }
     }, [searchResults]);
+
+    // Tự động tải thống kê trạm IoT khi component mount
+    useEffect(() => {
+        const loadIoTStationStats = async () => {
+            try {
+                const stationsResponse = await fetchIoTStations();
+                if (stationsResponse.success && stationsResponse.data) {
+                    const stats = calculateStationStats(stationsResponse.data);
+                    setIotStationStats(stats);
+                }
+            } catch (error) {
+                console.error("Error loading IoT station stats:", error);
+            }
+        };
+
+        loadIoTStationStats();
+        
+        // Tự động refresh stats mỗi 3 phút (để sync với backend)
+        const interval = setInterval(loadIoTStationStats, 3 * 60 * 1000);
+        return () => clearInterval(interval);
+    }, []);
 
     const toggleDropdown = (index) => {
         setState((prevState) => ({
@@ -183,25 +359,185 @@ function LeftMenuMap({
                             <h3 className="section-title">Dữ liệu chuyên đề</h3>
                         </div>
                         <div className="monitoring-layers">
-                            <div className="layer-item monitoring-layer">
-                                <div className="layer-toggle">
-                                    <input
-                                        type="checkbox"
-                                        id="layer-salinity-points"
-                                        className="layer-checkbox"
-                                        checked={state.enabledLayers.includes("salinityPoints")}
-                                        onChange={(e) => handleSalinityPointsToggle(e.target.checked)}
-                                    />
-                                    <label htmlFor="layer-salinity-points" className="layer-label">
-                                        <div className="layer-info">
-                                            <div className="layer-details">
-                                                <span className="layer-name">Điểm đo mặn</span>
+                            {/* Salinity Monitoring Dropdown */}
+                            <div className="category-item">
+                                <div
+                                    className={`category-header ${state.openSalinityDropdown ? "active" : ""}`}
+                                    onClick={toggleSalinityDropdown}
+                                >
+                                    <div className="category-info">
+                                        <i className="fa-solid fa-droplet category-icon"></i>
+                                        <span className="category-name">Quan trắc mặn</span>
+                                    </div>
+                                    <i
+                                        className={`fa-solid fa-chevron-right expand-icon ${
+                                            state.openSalinityDropdown ? "rotated" : ""
+                                        }`}
+                                    ></i>
+                                </div>
+
+                                {state.openSalinityDropdown && (
+                                    <div className="category-layers">
+                                        {/* Điểm đo mặn */}
+                                        <div className="layer-item">
+                                            <div className="layer-toggle">
+                                                <input
+                                                    type="checkbox"
+                                                    id="layer-salinity-points"
+                                                    className="layer-checkbox"
+                                                    checked={state.enabledLayers.includes("salinityPoints")}
+                                                    onChange={(e) => handleSalinityPointsToggle(e.target.checked)}
+                                                />
+                                                <label htmlFor="layer-salinity-points" className="layer-label">
+                                                    <span className="layer-name">Điểm đo mặn</span>
+                                                </label>
                                             </div>
                                         </div>
-                                    </label>
-                                </div>
+
+                                        {/* Trạm IoT - Enhanced UI */}
+                                        <div className="iot-station-container">
+                                            {/* Station Status Info */}
+                                            <div className="iot-status-bar">
+                                                <div className="status-item">
+                                                    <span className="status-dot active"></span>
+                                                    <span className="status-text">{iotStationStats.active}/{iotStationStats.total} trạm hoạt động</span>
+                                                </div>
+                                                {iotStationStats.lastSync && (
+                                                    <div className="status-item">
+                                                        <i className="fa-solid fa-clock"></i>
+                                                        <span className="status-text">
+                                                            Sync: {new Date(iotStationStats.lastSync).toLocaleTimeString('vi-VN', { 
+                                                                hour: '2-digit', 
+                                                                minute: '2-digit' 
+                                                            })}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Quick View Button */}
+                                            <div className="layer-item iot-quick-view">
+                                                <div className="iot-quick-button" onClick={handleIoTQuickView}>
+                                                    <div className="iot-icon-container">
+                                                        <i className="fa-solid fa-tower-broadcast iot-icon"></i>
+                                                        <div className="iot-signal-animation">
+                                                            <div className="signal-ring ring-1"></div>
+                                                            <div className="signal-ring ring-2"></div>
+                                                            <div className="signal-ring ring-3"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="iot-info">
+                                                        <span className="iot-title">Trạm IoT</span>
+                                                        <span className="iot-subtitle">Xem nhanh 7 ngày</span>
+                                                        <div className="iot-features">
+                                                            <span className="feature-badge">
+                                                                <i className="fa-solid fa-clock"></i>
+                                                                Real-time 5 phút
+                                                            </span>
+                                                            <span className="feature-badge">
+                                                                <i className="fa-solid fa-database"></i>
+                                                                Auto-sync 3h
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="iot-arrow">
+                                                        <i className="fa-solid fa-chevron-right"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Advanced Options Button */}
+                                            <div className="layer-item iot-advanced">
+                                                <button
+                                                    type="button"
+                                                    className="iot-advanced-button"
+                                                    onClick={handleIoTStationClick}
+                                                    title="Tùy chọn nâng cao - Chọn trạm và thời gian cụ thể"
+                                                >
+                                                    <i className="fa-solid fa-sliders"></i>
+                                                    <span>Tùy chọn nâng cao</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
+                            {/* Irrigation Works (Công trình thủy lợi) */}
+                            <div className="category-item">
+                                <div
+                                    className={`category-header ${state.openIrrigationDropdown ? "active" : ""}`}
+                                    onClick={toggleIrrigationDropdown}
+                                >
+                                    <div className="category-info">
+                                        <i className="fa-solid fa-building category-icon"></i>
+                                        <span className="category-name">Công trình thủy lợi</span>
+                                    </div>
+                                    <i
+                                        className={`fa-solid fa-chevron-right expand-icon ${
+                                            state.openIrrigationDropdown ? "rotated" : ""
+                                        }`}
+                                    ></i>
+                                </div>
+
+                                {state.openIrrigationDropdown && (
+                                    <div className="category-layers">
+                                        {irrigationLayers.items.map((menu, index) => {
+                                            const uniqueIndex = `irrigation-${index}`;
+                                            const isOpen = state.openIrrigationSubIndex === uniqueIndex;
+
+                                            return (
+                                                <div className="subcategory-item" key={uniqueIndex}>
+                                                    <div
+                                                        className={`subcategory-header ${isOpen ? "active" : ""}`}
+                                                        onClick={() => toggleIrrigationSubDropdown(uniqueIndex)}
+                                                    >
+                                                        <div className="subcategory-info">
+                                                            <i className={`${menu.icon} subcategory-icon`}></i>
+                                                            <span className="subcategory-name">{menu.name}</span>
+                                                        </div>
+                                                        <i
+                                                            className={`fa-solid fa-chevron-right expand-icon ${
+                                                                isOpen ? "rotated" : ""
+                                                            }`}
+                                                        ></i>
+                                                    </div>
+
+                                                    {isOpen && (
+                                                        <div className="subcategory-layers">
+                                                            {menu.layers.map((layer, idx) => (
+                                                                <div className="layer-item" key={`${uniqueIndex}-${idx}`}>
+                                                                    <div className="layer-toggle">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            id={`layer-${layer}`}
+                                                                            className="layer-checkbox"
+                                                                            checked={state.enabledLayers.includes(layer)}
+                                                                            onChange={(e) =>
+                                                                                handleLayerToggle(layer, e.target.checked)
+                                                                            }
+                                                                        />
+                                                                        <label
+                                                                            htmlFor={`layer-${layer}`}
+                                                                            className="layer-label"
+                                                                        >
+                                                                            <span className="layer-name">
+                                                                                {menu.nameItem?.[idx] || layer}
+                                                                            </span>
+                                                                        </label>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Hydromet Stations */}
                             <div className="layer-item monitoring-layer">
                                 <div className="layer-toggle">
                                     <input
@@ -477,6 +813,9 @@ function LeftMenuMap({
         state.activeTab,
         state.openMenuIndex,
         state.enabledLayers,
+        state.openSalinityDropdown,
+        state.openIrrigationDropdown,
+        state.openIrrigationSubIndex,
         searchResults,
         state.isLoadingSearchResults,
         districtList,
@@ -535,6 +874,13 @@ function LeftMenuMap({
                 {/* Tab Content */}
                 {renderTabContent}
             </div>
+
+            {/* IoT Station Modal */}
+            <IoTStationModal
+                isOpen={iotModalOpen}
+                onClose={() => setIotModalOpen(false)}
+                onSubmit={handleIoTDataSubmit}
+            />
         </>
     );
 }

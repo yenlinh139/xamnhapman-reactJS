@@ -1,7 +1,36 @@
 import L from "leaflet";
 
 export const layerStyles = {
-    salinityPoints: { type: "point", color: "#003366" },
+    salinityPoints: {
+        type: "point",
+        color: "#003366",
+        legend: `<div class="d-flex justify-content-center gap-3 mt-2 small">
+                            <div class="d-flex align-items-center gap-1">
+                                <div
+                                    style="width: 12px; height: 12px; background-color: #28a745; border-radius: 2px;">
+                                </div>
+                                <span>Bình thường</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-1">
+                                <div
+                                    style="width: 12px; height: 12px; background-color: #ffc107; border-radius: 2px;">
+                                </div>
+                                <span>Rủi ro cấp 1</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-1">
+                                <div
+                                    style="width: 12px; height: 12px; background-color: #fd7e14; border-radius: 2px;">
+                                </div>
+                                <span>Rủi ro cấp 2</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-1">
+                                <div
+                                    style="width: 12px; height: 12px; background-color: #dc3545; border-radius: 2px;">
+                                </div>
+                                <span>Rủi ro cấp 3</span>
+                            </div>
+                        </div>`,
+    },
     hydrometStations: { type: "point", color: "#990000" },
     DiaPhanHuyen: { type: "polygon", color: "#FF7D31" },
     DiaPhanXa: { type: "polygon", color: "#BEB297" },
@@ -97,9 +126,30 @@ export const layerStyles = {
             </div>
         `,
     },
-    diemdocao: { type: "raster", colors: ["#08306b", "#41ab5d", "#ffff00", "#fd8d3c", "#e31a1c"] },
+    diemdocao: {
+        type: "raster",
+        legend: `
+                        <div style="margin-left: 20px; margin-bottom: 10px; font-size: 1em;">
+                            <div><span style="display:inline-block;width:12px;height:12px;background:#08306b;margin-right:5px;"></span>-20 – 0 m</div>
+                            <div><span style="display:inline-block;width:12px;height:12px;background:#41ab5d;margin-right:5px;"></span>1 – 5 m</div>
+                            <div><span style="display:inline-block;width:12px;height:12px;background:#ffff00;margin-right:5px;"></span>6 – 10 m</div>
+                            <div><span style="display:inline-block;width:12px;height:12px;background:#fd8d3c;margin-right:5px;"></span>11 – 15 m</div>
+                            <div><span style="display:inline-block;width:12px;height:12px;background:#e31a1c;margin-right:5px;"></span>16 – 35 m</div>
+                        </div>
+                    `,
+    },
     GiaoThong_line: { type: "line", color: "#C43C39" },
     GiaoThong_polygon: { type: "polygon", color: "#E5B636" },
+    // Công trình thủy lợi - Hiện trạng 2023
+    CTTL_2023_Cong: { type: "point", color: "#2563eb" },
+    CTTL_2023_DeBao_BoBao: { type: "line", color: "#dc2626" },
+    CTTL_2023_KenhMuong: { type: "line", color: "#059669" },
+    CTTL_2023_TramBom: { type: "point", color: "#7c3aed" },
+    // Công trình thủy lợi - Quy hoạch 2030
+    CTTL_2030_Vung_HeThong: { type: "line", color: "#0891b2" },
+    CTTL_2030_NongThonMoi: { type: "line", color: "#65a30d" },
+    CTTL_2030_NoiDong: { type: "line", color: "#ca8a04" },
+    CTTL_2030_VungThuyLoi: { type: "polygon", color: "#0369a1" },
 };
 
 export const legendNames = {
@@ -114,6 +164,16 @@ export const legendNames = {
     diemdocao: "Độ cao (m)",
     GiaoThong_line: "Giao thông 1 nét",
     GiaoThong_polygon: "Giao thông 2 nét",
+    // Công trình thủy lợi - Hiện trạng 2023
+    CTTL_2023_Cong: "Cống",
+    CTTL_2023_DeBao_BoBao: "Đê bao, bờ bao",
+    CTTL_2023_KenhMuong: "Kênh mương",
+    CTTL_2023_TramBom: "Trạm bơm",
+    // Công trình thủy lợi - Quy hoạch 2030
+    CTTL_2030_Vung_HeThong: "Công trình thủy lợi vùng, hệ thống",
+    CTTL_2030_NongThonMoi: "Công trình nông thôn mới",
+    CTTL_2030_NoiDong: "Công trình thủy lợi nhỏ, nội đồng",
+    CTTL_2030_VungThuyLoi: "Vùng thủy lợi",
 };
 
 export const createBaseMaps = () => {

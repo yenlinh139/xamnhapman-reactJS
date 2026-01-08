@@ -1,127 +1,56 @@
 import React, { useEffect, useState } from "react";
-import axiosInstance from "@config/axios-config";
-import SalinityBarChart from "@pages/map/SalinityBarChart";
 import html2canvas from "html2canvas";
-import { getDisplayStationName, getFilenameSafeStationName } from "@common/stationMapping";
-import { getSingleStationClassification } from "@common/salinityClassification";
+import IoTBarChart from "./IoTBarChart";
 
-const ExportPreviewTable = ({ data, kiHieu }) => {
-    const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
-
-    const sortedData = React.useMemo(() => {
-        if (!sortConfig.key) return data;
-
-        const sorted = [...data].sort((a, b) => {
-            let aValue = a[sortConfig.key];
-            let bValue = b[sortConfig.key];
-
-            if (sortConfig.key === "date") {
-                aValue = new Date(aValue);
-                bValue = new Date(bValue);
-            } else if (sortConfig.key === "salinity") {
-                aValue = Number(aValue);
-                bValue = Number(bValue);
-            }
-
-            if (aValue < bValue) {
-                return sortConfig.direction === "asc" ? -1 : 1;
-            }
-            if (aValue > bValue) {
-                return sortConfig.direction === "asc" ? 1 : -1;
-            }
-            return 0;
-        });
-
-        return sorted;
-    }, [data, sortConfig]);
-
-    const handleSort = (key) => {
-        let direction = "asc";
-        if (sortConfig.key === key && sortConfig.direction === "asc") {
-            direction = "desc";
-        }
-        setSortConfig({ key, direction });
-    };
-
-    const getSortIcon = (columnKey) => {
-        if (sortConfig.key !== columnKey) {
-            return <i className="fa-solid fa-sort text-muted ms-1" style={{ fontSize: "0.75rem" }}></i>;
-        }
-        return sortConfig.direction === "asc" ? (
-            <i className="fa-solid fa-sort-up text-primary ms-1" style={{ fontSize: "0.75rem" }}></i>
-        ) : (
-            <i className="fa-solid fa-sort-down text-primary ms-1" style={{ fontSize: "0.75rem" }}></i>
-        );
-    };
+// Component bảng số liệu IoT với 4 cột cảm biến
+const IoTExportPreviewTable = ({ data }) => {
+    // Gom nhóm data theo Date, mỗi dòng là 1 thời điểm
+    const grouped = {};
+    data.forEach((item) => {
+        const time = item.Date;
+        if (!grouped[time]) grouped[time] = { Date: time };
+        if (item.SensorType === "Salt") grouped[time].Salt = item.Value;
+        if (item.SensorType === "Distance") grouped[time].Distance = item.Value;
+        if (item.SensorType === "Daily Rainfall") grouped[time].DailyRainfall = item.Value;
+        if (item.SensorType === "Temp") grouped[time].Temp = item.Value;
+    });
+    // Sắp xếp theo thời gian tăng dần
+    const rows = Object.values(grouped).sort((a, b) => new Date(a.Date) - new Date(b.Date));
 
     return (
-        <div className="table-responsive mb-3" style={{ maxHeight: 300 }}>
-            <table className="table table-bordered table-sm table-striped">
+        <div className="table-responsive mb-3" style={{ maxHeight: 400 }}>
+            <table className="table table-bordered table-sm table-striped align-middle">
                 <thead className="table-light">
                     <tr>
-                        <th style={{ width: "60px" }}>#</th>
-                        <th
-                            style={{ cursor: "pointer", userSelect: "none" }}
-                            onClick={() => handleSort("date")}
-                        >
-                            <div className="d-flex align-items-center justify-content-between">
-                                <span>Ngày</span>
-                                {getSortIcon("date")}
-                            </div>
-                        </th>
-                        <th
-                            style={{ cursor: "pointer", userSelect: "none" }}
-                            onClick={() => handleSort("salinity")}
-                        >
-                            <div className="d-flex align-items-center justify-content-between">
-                                <span>Độ mặn (‰)</span>
-                                {getSortIcon("salinity")}
-                            </div>
-                        </th>
+                        <th style={{ width: 60 }}>#</th>
+                        <th>Thời gian</th>
+                        <th>Độ mặn (g/L)</th>
+                        <th>Mực nước (cm)</th>
+                        <th>Lượng mưa hàng ngày (mm)</th>
+                        <th>Nhiệt độ không khí (°C)</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {sortedData.map((item, idx) => {
-                        const riskClassification = getSingleStationClassification(item.salinity, kiHieu);
-                        const riskColorMap = {
-                            normal: "#28a745", // Green - Bình thường
-                            warning: "#ffc107", // Yellow - Rủi ro cấp 1
-                            "high-warning": "#ff8c00", // Orange - Rủi ro cấp 2
-                            critical: "#dc3545", // Red - Rủi ro cấp 3
-                            "no-data": "#6c757d", // Gray - Khuyết số liệu
-                        };
-
-                        return (
-                            <tr key={idx}>
-                                <td>{idx + 1}</td>
-                                <td>{new Date(item.date).toLocaleDateString("vi-VN")}</td>
-                                <td 
-                                    className="text-end fw-bold"
-                                    style={{
-                                        backgroundColor: riskColorMap[riskClassification.class] || "#6c757d",
-                                        color: "white",
-                                    }}
-                                >
-                                    {Number(item.salinity).toFixed(2)}
-                                </td>
-                            </tr>
-                        );
-                    })}
+                    {rows.map((row, idx) => (
+                        <tr key={row.Date}>
+                            <td>{idx + 1}</td>
+                            <td>{new Date(row.Date).toLocaleString("vi-VN")}</td>
+                            <td className="text-end">{row.Salt !== undefined ? Number(row.Salt).toFixed(2) : ""}</td>
+                            <td className="text-end">{row.Distance !== undefined ? Number(row.Distance).toFixed(2) : ""}</td>
+                            <td className="text-end">{row.DailyRainfall !== undefined ? Number(row.DailyRainfall).toFixed(2) : ""}</td>
+                            <td className="text-end">{row.Temp !== undefined ? Number(row.Temp).toFixed(2) : ""}</td>
+                        </tr>
+                    ))}
                 </tbody>
             </table>
         </div>
     );
 };
 
-const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {    
+const IoTChartFull = ({ show, iotData, onClose }) => {
     // Check if user is logged in
     const isLoggedIn = localStorage.getItem("access_token");
     
-    // Get display name for the station using utility function
-    const displayStationName = getDisplayStationName(tenDiem, kiHieu);
-    const filenameSafeName = getFilenameSafeStationName(displayStationName);
-
-    const [data, setData] = useState([]);
     const [exportRange, setExportRange] = useState({
         startDate: "",
         endDate: "",
@@ -129,28 +58,21 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
     const [filteredData, setFilteredData] = useState([]);
 
     useEffect(() => {
-        if (show && salinityData) {
-            // Lọc bỏ các ngày có giá trị NULL
-            const validSalinityData = salinityData.filter(
-                (item) => item.salinity !== null && item.salinity !== "NULL" && !isNaN(item.salinity),
+        if (show && iotData?.dataPoints) {
+            const validData = iotData.dataPoints.filter(
+                (item) => item.Value !== null && item.Value !== "NULL" && !isNaN(item.Value)
             );
 
-            setData(validSalinityData);
-            if (validSalinityData.length > 0) {
+            if (validData.length > 0) {
                 setExportRange({
-                    startDate: validSalinityData[0].date.split("T")[0],
-                    endDate: validSalinityData[validSalinityData.length - 1].date.split("T")[0],
+                    startDate: validData[0].Date.split(" ")[0],
+                    endDate: validData[validData.length - 1].Date.split(" ")[0],
                 });
             }
         } else {
-            setData([]);
             setExportRange({ startDate: "", endDate: "" });
         }
-    }, [show, salinityData]);
-
-    useEffect(() => {
-        if (!show) setData([]);
-    }, [show]);
+    }, [show, iotData]);
 
     const handleDateRangeChange = (e) => {
         const { name, value } = e.target;
@@ -163,55 +85,12 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
         const startDate = new Date(name === "startDate" ? value : exportRange.startDate);
         const endDate = new Date(name === "endDate" ? value : exportRange.endDate);
 
-        if (startDate && endDate && startDate <= endDate) {
-            const filtered = data.filter((item) => {
-                const itemDate = new Date(item.date);
+        if (startDate && endDate && startDate <= endDate && iotData?.dataPoints) {
+            const filtered = iotData.dataPoints.filter((item) => {
+                const itemDate = new Date(item.Date);
                 return itemDate >= startDate && itemDate <= endDate;
             });
             setFilteredData(filtered);
-        }
-    };
-
-    const handleExportExcel = async () => {
-        if (!isLoggedIn) {
-            alert("Bạn cần đăng nhập để xuất dữ liệu Excel");
-            return;
-        }
-        
-        try {
-            if (!exportRange.startDate || !exportRange.endDate) {
-                alert("Vui lòng chọn khoảng thời gian để xuất dữ liệu");
-                return;
-            }
-
-            const dataToExport = filteredData.length > 0 ? filteredData : data;
-            const exportData = {
-                kiHieu,
-                tenDiem,
-                startDate: exportRange.startDate,
-                endDate: exportRange.endDate,
-                data: dataToExport,
-            };
-
-            const res = await axiosInstance.post("/salinity-export", exportData, {
-                responseType: "blob",
-            });
-
-            const blob = new Blob([res.data], {
-                type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            });
-
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            const fileName = `do_man_${filenameSafeName}_${exportRange.startDate}_${exportRange.endDate}.xlsx`;
-            link.setAttribute("download", fileName);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-        } catch (error) {
-            console.error("❌ Xuất Excel lỗi:", error);
-            alert("Không thể xuất dữ liệu từ máy chủ.");
         }
     };
 
@@ -225,34 +104,26 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
             const chartContainer = document.createElement("div");
             chartContainer.style.backgroundColor = "white";
             chartContainer.style.padding = "20px";
-
-            // Set width cho container
-            chartContainer.style.width = "800px"; // Đặt chiều rộng cố định
+            chartContainer.style.width = "800px";
             chartContainer.style.margin = "0 auto";
 
-            // Tạo và thêm phần tiêu đề
+            // Tạo tiêu đề
             const titleDiv = document.createElement("div");
             titleDiv.style.width = "100%";
             titleDiv.style.textAlign = "center";
             titleDiv.style.marginBottom = "20px";
             titleDiv.innerHTML = `
-                <h5 style="font-weight: bold; margin-bottom: 8px; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    🧂 Diễn biến độ mặn - ${displayStationName}
+                <h5 style="font-weight: bold; margin-bottom: 8px; font-size: 18px;">
+                    📡 Dữ liệu IoT - ${iotData?.stationName}
                 </h5>
-                ${
-                    startDate && endDate
-                        ? `
-                    <div style="color: #6c757d; font-size: 14px">
-                        📅 Từ <strong>${startDate}</strong> đến <strong>${endDate}</strong>
-                    </div>
-                `
-                        : ""
-                }
+                <div style="color: #6c757d; font-size: 14px">
+                    📅 Từ <strong>${exportRange.startDate}</strong> đến <strong>${exportRange.endDate}</strong>
+                </div>
             `;
             chartContainer.appendChild(titleDiv);
 
             // Sao chép phần biểu đồ
-            const chartElement = document.getElementById("salinity-chart");
+            const chartElement = document.getElementById("iot-chart");
             if (!chartElement) {
                 alert("Không thể tìm thấy biểu đồ để tải xuống");
                 return;
@@ -260,22 +131,19 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
             const chartClone = chartElement.cloneNode(true);
             chartContainer.appendChild(chartClone);
 
-            // Thêm container tạm thời vào document
             document.body.appendChild(chartContainer);
 
-            // Chuyển thành canvas và tải xuống
             const canvas = await html2canvas(chartContainer, {
                 backgroundColor: "#ffffff",
-                scale: 2, // Tăng độ phân giải
+                scale: 2,
             });
 
-            // Xóa container tạm
             document.body.removeChild(chartContainer);
 
             const url = canvas.toDataURL("image/png");
             const link = document.createElement("a");
             link.href = url;
-            link.download = `bieu_do_do_man_${filenameSafeName}_${new Date().getTime()}.png`;
+            link.download = `bieu_do_iot_${iotData?.serialNumber}_${new Date().getTime()}.png`;
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -285,10 +153,11 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
         }
     };
 
-    // Dữ liệu đã được lọc bỏ các giá trị NULL từ useEffect
-    const startDate = data?.length > 0 ? new Date(data[0].date).toLocaleDateString("vi-VN") : null;
-    const endDate =
-        data?.length > 0 ? new Date(data[data.length - 1].date).toLocaleDateString("vi-VN") : null;
+    if (!iotData) return null;
+
+    const data = iotData.dataPoints || [];
+    const startDate = data?.length > 0 ? new Date(data[0].Date).toLocaleDateString("vi-VN") : null;
+    const endDate = data?.length > 0 ? new Date(data[data.length - 1].Date).toLocaleDateString("vi-VN") : null;
 
     return (
         <div
@@ -304,8 +173,11 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                     <div className="modal-header border-0 pb-0">
                         <div className="w-100 text-center">
                             <h5 className="modal-title mb-1 fw-bold">
-                                🧂 Diễn biến độ mặn - {displayStationName}
+                                📡 Dữ liệu IoT - {iotData.stationName}
                             </h5>
+                            <div className="text-muted small">
+                                Serial: <strong>{iotData.serialNumber}</strong>
+                            </div>
                             {startDate && endDate && (
                                 <div className="text-muted small">
                                     Từ <strong>{startDate}</strong> đến <strong>{endDate}</strong>
@@ -324,9 +196,9 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                             <li className="nav-item">
                                 <button
                                     className="nav-link active"
-                                    id="chart-tab"
+                                    id="iot-chart-tab"
                                     data-bs-toggle="tab"
-                                    data-bs-target="#chart"
+                                    data-bs-target="#iot-chart-content"
                                     type="button"
                                 >
                                     Biểu đồ
@@ -335,9 +207,9 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                             <li className="nav-item">
                                 <button
                                     className="nav-link"
-                                    id="export-tab"
+                                    id="iot-export-tab"
                                     data-bs-toggle="tab"
-                                    data-bs-target="#export"
+                                    data-bs-target="#iot-export-content"
                                     type="button"
                                 >
                                     Số liệu
@@ -346,16 +218,18 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                         </ul>
 
                         <div className="tab-content">
-                            <div className="tab-pane fade show active" id="chart">
+                            <div className="tab-pane fade show active" id="iot-chart-content">
                                 {data.length > 0 ? (
                                     <>
-                                        <div id="salinity-chart">
-                                            <SalinityBarChart data={data} height={450} />
+                                        <div id="iot-chart" className="chart-container">
+                                            <IoTBarChart data={data} height={500} />
+                                            <div className="text-center text-muted small mt-2">
+                                                Tổng cộng: {data.length} điểm dữ liệu
+                                            </div>
                                         </div>
                                         <div className="mt-3 d-flex justify-content-between align-items-center">
                                             <div className="text-muted small">
-                                                Hiển thị: <strong>{data.length}</strong> ngày có dữ liệu hợp
-                                                lệ
+                                                Hiển thị: <strong>{data.length}</strong> điểm dữ liệu
                                             </div>
                                             <button 
                                                 className={`btn ${isLoggedIn ? 'btn-primary' : 'btn-secondary'}`} 
@@ -372,7 +246,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                 )}
                             </div>
 
-                            <div className="tab-pane fade" id="export">
+                            <div className="tab-pane fade" id="iot-export-content">
                                 {data.length > 0 ? (
                                     <>
                                         {/* Risk Level Legend */}
@@ -397,7 +271,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                                     >
                                                         Rủi ro cấp 1
                                                     </span>
-                                                    <span className="text-muted">(Nhà Bè: 1-4‰)</span>
+                                                    <span className="text-muted">(1-2‰)</span>
                                                 </div>
                                                 <div className="col-6 col-md-3">
                                                     <span
@@ -406,9 +280,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                                     >
                                                         Rủi ro cấp 2
                                                     </span>
-                                                    <span className="text-muted">
-                                                        (Nhà Bè {"> 4‰"}, khác 1-4‰)
-                                                    </span>
+                                                    <span className="text-muted">(2-4‰)</span>
                                                 </div>
                                                 <div className="col-6 col-md-3">
                                                     <span
@@ -417,7 +289,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                                     >
                                                         Rủi ro cấp 3
                                                     </span>
-                                                    <span className="text-muted">(Các điểm {"> 4‰"})</span>
+                                                    <span className="text-muted">({"> 4‰"})</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -450,9 +322,8 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                             </div>
                                         </div>
 
-                                        <ExportPreviewTable
+                                        <IoTExportPreviewTable
                                             data={filteredData.length > 0 ? filteredData : data}
-                                            kiHieu={kiHieu}
                                         />
 
                                         <div className="d-flex gap-2 justify-content-between align-items-center">
@@ -461,14 +332,6 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                                     ? `Hiển thị ${filteredData.length} bản ghi`
                                                     : `Tổng số ${data.length} bản ghi`}
                                             </div>
-                                            <button
-                                                className={`btn ${isLoggedIn ? 'btn-success' : 'btn-secondary'}`}
-                                                onClick={handleExportExcel}
-                                                disabled={!exportRange.startDate || !exportRange.endDate || !isLoggedIn}
-                                                title={!isLoggedIn ? "Bạn cần đăng nhập để xuất dữ liệu Excel" : ""}
-                                            >
-                                                📥 {isLoggedIn ? "Tải Excel" : "Đăng nhập để tải"}
-                                            </button>
                                         </div>
                                     </>
                                 ) : (
@@ -483,4 +346,4 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
     );
 };
 
-export default SaltChartFull;
+export default IoTChartFull;

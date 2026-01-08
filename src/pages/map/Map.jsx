@@ -18,6 +18,7 @@ const Map = () => {
     const [searchText, setSearchText] = useState("");
     const [selectedLocation, setSelectedLocation] = useState(null);
     const [highlightedFeature, setHighlightedFeature] = useState(null);
+    const [iotData, setIotData] = useState(null);
 
     const handleLogout = () => {
         dispatch(logout());
@@ -115,6 +116,7 @@ const Map = () => {
                             </NavLink>
 
                             {/* User Dropdown */}
+                            {userInfo?.name ? 
                             <div className="user-dropdown">
                                 <button
                                     className="user-button"
@@ -125,8 +127,7 @@ const Map = () => {
                                         <i className="fa-solid fa-user"></i>
                                     </div>
                                     <div className="user-info">
-                                        <span className="user-name">{userInfo?.name || "Người dùng"}</span>
-                                        <span className="user-role">Quản trị viên</span>
+                                        <span className="user-name">{userInfo?.name}</span>
                                     </div>
                                     <i className="fa-solid fa-chevron-down dropdown-arrow"></i>
                                 </button>
@@ -148,7 +149,9 @@ const Map = () => {
                                         </button>
                                     </li>
                                 </ul>
-                            </div>
+                                </div>
+                                : null
+                            }
                         </nav>
 
                         {/* Mobile Menu Toggle */}
@@ -225,6 +228,7 @@ const Map = () => {
                     setSelectedLocation={setSelectedLocation}
                     setHighlightedFeature={setHighlightedFeature}
                     highlightedFeature={highlightedFeature}
+                    setIotData={setIotData}
                 />
                 <div className="mapbox-container">
                     <MapboxMap
@@ -232,6 +236,7 @@ const Map = () => {
                         selectedLocation={selectedLocation}
                         highlightedFeature={highlightedFeature}
                         setHighlightedFeature={setHighlightedFeature}
+                        iotData={iotData}
                     />
                 </div>
             </div>

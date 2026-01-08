@@ -33,6 +33,24 @@ export const mapLayers = {
     ],
 };
 
+export const irrigationLayers = {
+    title: "CÔNG TRÌNH THỦY LỢI",
+    items: [
+        {
+            icon: "fa-solid fa-calendar-check",
+            name: "Hiện trạng 2023",
+            layers: ["CTTL_2023_Cong", "CTTL_2023_DeBao_BoBao", "CTTL_2023_KenhMuong", "CTTL_2023_TramBom"],
+            nameItem: ["Cống", "Đê bao, bờ bao", "Kênh mương", "Trạm bơm"],
+        },
+        {
+            icon: "fa-solid fa-calendar-days",
+            name: "Quy hoạch 2030",
+            layers: ["CTTL_2030_Vung_HeThong", "CTTL_2030_NongThonMoi", "CTTL_2030_NoiDong", "CTTL_2030_VungThuyLoi"],
+            nameItem: ["Công trình thủy lợi vùng, hệ thống", "Công trình nông thôn mới", "Công trình thủy lợi nhỏ, nội đồng", "Vùng thủy lợi"],
+        },
+    ],
+};
+
 export const nameToCodeSalt = {
     CauRachTra: "CRT",
     CauThuThiem: "CTT",

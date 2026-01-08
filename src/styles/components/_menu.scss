@@ -904,3 +904,1004 @@
         display: block;
     }
 }
+
+/* ===============================
+   IoT Station Modal & Button Styles
+   =============================== */
+
+.layer-button {
+    width: 100%;
+    padding: 8px 12px;
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    color: #374151;
+    transition: all 0.3s ease;
+
+    &:hover {
+        background: #f8f9fa;
+        border-color: var(--hoverPrimary);
+        color: var(--hoverPrimary);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    i {
+        margin-right: 8px;
+        font-size: 14px;
+        color: inherit;
+    }
+
+    .layer-name {
+        font-weight: 500;
+    }
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content-full {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    width: 95%;
+    height: 90vh;
+    overflow: hidden;
+    animation: slideUp 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.iot-modal {
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: white;
+
+        .modal-title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+
+            i {
+                margin-right: 8px;
+                font-size: 20px;
+            }
+        }
+
+        .modal-close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+
+            &:hover {
+                background: rgba(255, 255, 255, 0.2);
+            }
+        }
+    }
+
+    .modal-body {
+        padding: 24px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #374151;
+
+        i {
+            margin-right: 6px;
+            color: #6b7280;
+        }
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        background: #ffffff;
+
+        &:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        &:hover {
+            border-color: #9ca3af;
+        }
+    }
+
+    .modal-footer {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        padding: 20px 24px;
+        background: #f9fafb;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        &.btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+
+            &:hover:not(:disabled) {
+                background: #e5e7eb;
+                border-color: #9ca3af;
+            }
+        }
+
+        &.btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+
+            &:hover:not(:disabled) {
+                background: linear-gradient(135deg, #1d4ed8, #1e40af);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            }
+        }
+    }
+}
+
+/* Full Modal Styles */
+.modal-header-full {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    flex-shrink: 0;
+
+    .modal-title-full {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+
+        i {
+            margin-right: 8px;
+            font-size: 22px;
+        }
+    }
+
+    .modal-close-btn-full {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 20px;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    }
+}
+
+.modal-tabs-full {
+    display: flex;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    flex-shrink: 0;
+
+    .tab-btn-full {
+        flex: 1;
+        padding: 12px 20px;
+        background: none;
+        border: none;
+        color: #6c757d;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &:hover {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        &.active {
+            background: #ffffff;
+            color: #3b82f6;
+            border-bottom: 2px solid #3b82f6;
+        }
+
+        i {
+            font-size: 14px;
+        }
+    }
+}
+
+.modal-body-full {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.chart-container-full {
+    height: 100%;
+}
+
+.info-card {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+
+    .info-label {
+        font-size: 12px;
+        color: #6c757d;
+        margin-bottom: 4px;
+    }
+
+    .info-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: #495057;
+    }
+}
+
+.chart-wrapper-full {
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+}
+
+.chart-legend {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+
+    h5 {
+        margin-bottom: 12px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .legend-items {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        font-size: 13px;
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            margin-right: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+    }
+}
+
+.data-table-container {
+    max-height: 60vh;
+    overflow-y: auto;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* IoT Details Panel Styles */
+.iot-details-panel {
+    position: fixed;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 400px;
+    max-height: 80vh;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    z-index: 9999;
+    overflow: hidden;
+    animation: slideInRight 0.3s ease;
+
+    .panel-header {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: white;
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .panel-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+
+            &:hover {
+                background: rgba(255, 255, 255, 0.2);
+            }
+        }
+    }
+
+    .panel-body {
+        padding: 20px;
+        max-height: calc(80vh - 70px);
+        overflow-y: auto;
+
+        .station-info {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+
+            .info-row {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 8px;
+
+                &:last-child {
+                    margin-bottom: 0;
+                }
+
+                .label {
+                    font-weight: 500;
+                    color: #6c757d;
+                }
+
+                .value {
+                    font-weight: 600;
+                    color: #495057;
+                }
+            }
+        }
+
+        .chart-section {
+            margin-bottom: 16px;
+
+            h6 {
+                margin-bottom: 12px;
+                color: #495057;
+                font-weight: 600;
+            }
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+
+            .btn {
+                flex: 1;
+                padding: 8px 12px;
+                border-radius: 6px;
+                font-size: 13px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                border: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 4px;
+
+                &.btn-primary {
+                    background: #3b82f6;
+                    color: white;
+
+                    &:hover {
+                        background: #2563eb;
+                        transform: translateY(-1px);
+                    }
+                }
+
+                &.btn-outline {
+                    background: white;
+                    color: #3b82f6;
+                    border: 1px solid #3b82f6;
+
+                    &:hover {
+                        background: #3b82f6;
+                        color: white;
+                    }
+                }
+            }
+        }
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translate(100%, -50%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(0, -50%);
+    }
+}
+
+@media (max-width: 768px) {
+    .iot-details-panel {
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: auto;
+        bottom: 0;
+        transform: none;
+        width: 100%;
+        max-height: 70vh;
+        border-radius: 12px 12px 0 0;
+        animation: slideInUp 0.3s ease;
+    }
+
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(100%);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .modal-overlay {
+        z-index: 11000;
+    }
+
+    .modal-content-full {
+        width: 98%;
+        height: 95vh;
+    }
+}
+
+/* ===============================
+   IoT Data Visualization Styles
+   =============================== */
+
+.iot-chart-container {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+    .chart-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 16px;
+        text-align: center;
+    }
+
+    .chart-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+
+        .info-item {
+            background: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 6px;
+            text-align: center;
+
+            .label {
+                font-size: 11px;
+                color: #6c757d;
+                margin-bottom: 2px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .value {
+                font-size: 13px;
+                font-weight: 600;
+                color: #495057;
+            }
+        }
+    }
+}
+
+.iot-risk-legend {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 12px;
+
+    .legend-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 8px;
+        text-align: center;
+    }
+
+    .legend-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 11px;
+            gap: 6px;
+
+            .color-box {
+                width: 12px;
+                height: 12px;
+                border-radius: 2px;
+                border: 1px solid rgba(0, 0, 0, 0.1);
+
+                &.risk-1 {
+                    background-color: #22c55e;
+                }
+
+                &.risk-2 {
+                    background-color: #fbbf24;
+                }
+
+                &.risk-3 {
+                    background-color: #f97316;
+                }
+
+                &.risk-4 {
+                    background-color: #ef4444;
+                }
+            }
+
+            .risk-text {
+                color: #6b7280;
+                font-weight: 500;
+            }
+        }
+    }
+}
+
+.iot-data-table {
+    background: #ffffff;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    overflow: hidden;
+
+    .table-header {
+        background: #f8f9fa;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        .table-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin: 0;
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 8px;
+
+            .btn-icon {
+                background: none;
+                border: 1px solid #d1d5db;
+                border-radius: 4px;
+                padding: 4px 8px;
+                cursor: pointer;
+                color: #6b7280;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                font-size: 12px;
+
+                &:hover {
+                    background: #f3f4f6;
+                    color: #374151;
+                    border-color: #9ca3af;
+                }
+
+                i {
+                    font-size: 12px;
+                }
+            }
+        }
+    }
+
+    .table-wrapper {
+        max-height: 400px;
+        overflow-y: auto;
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+
+            th {
+                background: #f9fafb;
+                padding: 8px 12px;
+                text-align: left;
+                font-size: 12px;
+                font-weight: 600;
+                color: #374151;
+                border-bottom: 1px solid #e5e7eb;
+                position: sticky;
+                top: 0;
+                z-index: 1;
+            }
+
+            td {
+                padding: 8px 12px;
+                font-size: 12px;
+                color: #6b7280;
+                border-bottom: 1px solid #f3f4f6;
+
+                &.risk-cell {
+                    font-weight: 600;
+
+                    &.risk-1 {
+                        color: #22c55e;
+                    }
+
+                    &.risk-2 {
+                        color: #f59e0b;
+                    }
+
+                    &.risk-3 {
+                        color: #f97316;
+                    }
+
+                    &.risk-4 {
+                        color: #ef4444;
+                    }
+                }
+            }
+
+            tr:hover {
+                background: #f9fafb;
+            }
+        }
+    }
+}
+
+/* Loading States */
+.iot-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    text-align: center;
+
+    .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #f3f4f6;
+        border-top: 3px solid #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 16px;
+    }
+
+    .loading-text {
+        color: #6b7280;
+        font-size: 14px;
+        font-weight: 500;
+    }
+}
+
+.iot-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    text-align: center;
+
+    .error-icon {
+        width: 48px;
+        height: 48px;
+        background: #fef2f2;
+        color: #ef4444;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        margin-bottom: 16px;
+    }
+
+    .error-text {
+        color: #ef4444;
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 16px;
+    }
+
+    .retry-btn {
+        background: #3b82f6;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+
+        &:hover {
+            background: #2563eb;
+        }
+    }
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Enhanced Responsive Design */
+@media (max-width: 576px) {
+    .iot-modal {
+        .modal-body {
+            padding: 16px;
+        }
+
+        .form-control {
+            padding: 10px 12px;
+            font-size: 13px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+    }
+
+    .modal-content-full {
+        width: 100%;
+        height: 100vh;
+        border-radius: 0;
+    }
+
+    .iot-chart-container {
+        margin: 8px 0;
+        padding: 12px;
+
+        .chart-info {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+    }
+
+    .iot-data-table {
+        .table-wrapper {
+            max-height: 300px;
+        }
+
+        th,
+        td {
+            padding: 6px 8px;
+            font-size: 11px;
+        }
+    }
+}
+
+@media (max-width: 480px) {
+    .legend-grid {
+        grid-template-columns: 1fr !important;
+        gap: 4px;
+    }
+
+    .iot-chart-container .chart-info {
+        grid-template-columns: 1fr;
+    }
+
+    .table-header {
+        padding: 8px 12px;
+
+        .table-title {
+            font-size: 13px;
+        }
+
+        .table-actions {
+            .btn-icon {
+                padding: 3px 6px;
+                font-size: 11px;
+            }
+        }
+    }
+}
+
+/* ===============================
+   Subcategory Styles for Irrigation Works
+   =============================== */
+
+.subcategory-item {
+    margin-bottom: 4px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+}
+
+.subcategory-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+
+    &:hover {
+        background: #e9ecef;
+    }
+
+    &.active {
+        background: #d1ecf1;
+        border-bottom: 1px solid #bee5eb;
+
+        .expand-icon {
+            color: #17a2b8;
+        }
+    }
+}
+
+.subcategory-info {
+    display: flex;
+    align-items: center;
+}
+
+.subcategory-icon {
+    font-size: 14px;
+    color: #6b7280;
+    margin-right: 8px;
+    width: 18px;
+    text-align: center;
+}
+
+.subcategory-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #495057;
+}
+
+.subcategory-layers {
+    background: #ffffff;
+    border-top: 1px solid #e9ecef;
+    padding: 4px 8px;
+
+    .layer-item {
+        margin: 4px 0;
+        background: #ffffff;
+        border: 1px solid #f1f3f4;
+        border-radius: 4px;
+
+        .layer-label {
+            padding: 6px 10px;
+            margin: 0;
+
+            .layer-name {
+                font-size: 12px;
+                color: #495057;
+            }
+        }
+
+        &:hover {
+            .layer-label {
+                background: #f8f9fa;
+                border-color: #dee2e6;
+            }
+        }
+
+        .layer-checkbox:checked + .layer-label {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-color: #2196f3;
+
+            .layer-name {
+                color: #1976d2;
+                font-weight: 600;
+            }
+        }
+    }
+}

@@ -4,6 +4,35 @@ import { NodeGlobalsPolyfillPlugin } from "@esbuild-plugins/node-globals-polyfil
 
 export default defineConfig({
     plugins: [react()],
+    server: {
+        proxy: {
+            '/api/iot': {
+                target: 'https://thegreenlab.xyz',
+                changeOrigin: true,
+                secure: false, // Bypass SSL verification
+                rewrite: (path) => path.replace(/^\/api\/iot/, '/Datums/DataByDateJson'),
+                headers: {
+                    'Authorization': 'Basic ' + Buffer.from('nguyenduyliem@hcmuaf.edu.vn:DHNL@2345').toString('base64')
+                },
+                configure: (proxy, _options) => {
+                    proxy.on('proxyReq', (proxyReq, req, _res) => {
+                        // Add basic auth header
+                        const auth = Buffer.from('nguyenduyliem@hcmuaf.edu.vn:DHNL@2345').toString('base64');
+                        proxyReq.setHeader('Authorization', `Basic ${auth}`);
+                        console.log('Proxy request URL:', req.url);
+                        console.log('Proxy auth header:', `Basic ${auth}`);
+                        console.log('Decoded credentials:', Buffer.from(auth, 'base64').toString());
+                    });
+                    proxy.on('proxyRes', (proxyRes, req, res) => {
+                        console.log('Proxy response status:', proxyRes.statusCode);
+                        if (proxyRes.statusCode === 401) {
+                            console.log('401 Unauthorized - Check credentials');
+                        }
+                    });
+                }
+            }
+        }
+    },
     optimizeDeps: {
         esbuildOptions: {
             define: {
@@ -27,6 +56,7 @@ export default defineConfig({
             "@assets": "/src/assets",
             "@common": "/src/common",
             "@config": "/src/config",
+            "@services": "/src/services",
             "@reducers": "/src/stores/reducers",
             "@actions": "/src/stores/actions",
         },

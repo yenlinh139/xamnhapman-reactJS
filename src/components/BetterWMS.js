@@ -87,6 +87,16 @@ L.TileLayer.BetterWMS = L.TileLayer.WMS.extend({
                 diemdocao: "Mô hình độ cao số",
                 GiaoThong_line: "Giao thông 1 nét",
                 GiaoThong_polygon: "Giao thông 2 nét",
+                // Công trình thủy lợi - Hiện trạng 2023
+                CTTL_2023_Cong: "Cống",
+                CTTL_2023_DeBao_BoBao: "Đê bao, bờ bao",
+                CTTL_2023_KenhMuong: "Kênh mương",
+                CTTL_2023_TramBom: "Trạm bơm",
+                // Công trình thủy lợi - Quy hoạch 2030
+                CTTL_2030_Vung_HeThong: "Công trình thủy lợi vùng, hệ thống",
+                CTTL_2030_NongThonMoi: "Công trình nông thôn mới",
+                CTTL_2030_NoiDong: "Công trình thủy lợi nhỏ, nội đồng",
+                CTTL_2030_VungThuyLoi: "Vùng thủy lợi",
             };
             let popupContent = `
       <div style="font-family: 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; padding: 10px 16px;">
@@ -158,6 +168,119 @@ L.TileLayer.BetterWMS = L.TileLayer.WMS.extend({
                         <b>🏗️ Loại đất:</b> ${props.loaidat}<br/>
                         <b>📚 Phân loại:</b> ${props.phanloai}<br/>
                         <b>🔢 Ký hiệu:</b> ${props.kihieu1}
+                    `;
+                    break;
+                // Công trình thủy lợi - Hiện trạng 2023
+                case "CTTL_2023_Cong":
+                    popupContent += `
+                        <b>🏗️ Tên cống đập:</b> ${props.TenCongDap || 'N/A'}<br/>
+                        <b>📍 Lý trình:</b> ${props.LyTrinh || 'N/A'}<br/>
+                        <b>🏢 Cụm công trình:</b> ${props.CumCongTrinh || 'N/A'}<br/>
+                        <b>📋 Loại công trình:</b> ${props.LoaiCongTrinh || 'N/A'}<br/>
+                        <b>🔧 Hình thức:</b> ${props.HinhThuc || 'N/A'}<br/>
+                        <b>📏 Chiều dài:</b> ${props.ChieuDai || 'N/A'}<br/>
+                        <b>⭕ Đường kính:</b> ${props.DuongKinh || 'N/A'}<br/>
+                        <b>📐 Bề rộng:</b> ${props.BeRong || 'N/A'}<br/>
+                        <b>📏 Chiều cao:</b> ${props.ChieuCao || 'N/A'}<br/>
+                        <b>🚪 Số cửa:</b> ${props.SoCua || 'N/A'}<br/>
+                        <b>📊 Cao trình đáy cống:</b> ${props.CaoTrinhDayCong || 'N/A'}<br/>
+                        <b>📊 Cao trình đỉnh cống:</b> ${props.CaoTrinhDinhCong || 'N/A'}<br/>
+                        <b>⚙️ Hình thức vận hành:</b> ${props.HinhThucVanHanh || 'N/A'}<br/>
+                        <b>🎯 Mục tiêu nhiệm vụ:</b> ${props.MucTieuNhiemVu || 'N/A'}<br/>
+                        <b>🌾 Diện tích phục vụ:</b> ${props.DienTichPhucVu_ha || 'N/A'} ha<br/>
+                        <b>📅 Năm sử dụng:</b> ${props.NamSuDung || 'N/A'}<br/>
+                        <b>🏆 Cấp công trình:</b> ${props.CapCongTrinh || 'N/A'}<br/>
+                        <b>🌊 Hệ thống công trình thủy lợi:</b> ${props.HeThongCongTrinhThuyLoi || 'N/A'}<br/>
+                        <b>🏛️ Đơn vị quản lý:</b> ${props.DonViQuanLy || 'N/A'}<br/>
+                        <b>🔄 Năm cập nhật:</b> ${props.NamCapNhat || 'N/A'}
+                    `;
+                    break;
+                case "CTTL_2023_DeBao_BoBao":
+                    popupContent += `
+                        <b>🏗️ Tên:</b> ${props.Ten || 'N/A'}<br/>
+                        <b>📏 Chiều dài:</b> ${props.ChieuDai || 'N/A'}<br/>
+                        <b>📊 Cao trình đáy kênh:</b> ${props.CaoTrinhDayKenh || 'N/A'}<br/>
+                        <b>📐 Bề rộng kênh:</b> ${props.BeRongKenh || 'N/A'}<br/>
+                        <b>📐 Hệ số mái:</b> ${props.HeSoMai || 'N/A'}<br/>
+                        <b>📊 Cao trình bờ trái:</b> ${props.CaoTrinhBoTrai || 'N/A'}<br/>
+                        <b>📊 Cao trình bờ phải:</b> ${props.CaoTrinhBoPhai || 'N/A'}<br/>
+                        <b>📐 Bề rộng bờ trái:</b> ${props.BeRongBoTrai || 'N/A'}<br/>
+                        <b>📐 Bề rộng bờ phải:</b> ${props.BeRongBoPhai || 'N/A'}<br/>
+                        <b>🛡️ Hành lang bảo vệ:</b> ${props.HanhLangBaoVe || 'N/A'}<br/>
+                        <b>🏆 Cấp công trình:</b> ${props.CapCongTrinh || 'N/A'}<br/>
+                        <b>🏗️ Kết cấu công trình:</b> ${props.KetCauCongTrinh || 'N/A'}<br/>
+                        <b>🎯 Mục tiêu nhiệm vụ:</b> ${props.MucTieuNhiemVu || 'N/A'}<br/>
+                        <b>🌾 Diện tích phục vụ:</b> ${props.DienTichPhucVu || 'N/A'}<br/>
+                        <b>📅 Năm sử dụng:</b> ${props.NamSuDung || 'N/A'}<br/>
+                        <b>🌊 Hệ thống công trình thủy lợi:</b> ${props.HeThongCongTrinhThuyLoi || 'N/A'}<br/>
+                        <b>🏛️ Đơn vị quản lý:</b> ${props.DonViQuanLy || 'N/A'}<br/>
+                        <b>🔄 Năm cập nhật:</b> ${props.NamCapNhat || 'N/A'}<br/>
+                        <b>📏 Chiều dài shape:</b> ${props.SHAPE_Length || 'N/A'}
+                    `;
+                    break;
+                case "CTTL_2023_KenhMuong":
+                    popupContent += `
+                        <b>🌊 Tên kênh mương:</b> ${props.TenKenhMuong || 'N/A'}<br/>
+                        <b>📏 Chiều dài:</b> ${props.ChieuDai || 'N/A'}<br/>
+                        <b>📊 Cao trình đáy kênh:</b> ${props.CaoTrinhDayKenh || 'N/A'}<br/>
+                        <b>📐 Bề rộng kênh:</b> ${props.BeRongKenh || 'N/A'}<br/>
+                        <b>📐 Hệ số mái:</b> ${props.HeSoMai || 'N/A'}<br/>
+                        <b>📊 Cao trình bờ trái:</b> ${props.CaoTrinhBoTrai || 'N/A'}<br/>
+                        <b>📊 Cao trình bờ phải:</b> ${props.CaoTrinhBoPhai || 'N/A'}<br/>
+                        <b>📐 Bề rộng bờ trái:</b> ${props.BeRongBoTrai || 'N/A'}<br/>
+                        <b>📐 Bề rộng bờ phải:</b> ${props.BeRongBoPhai || 'N/A'}<br/>
+                        <b>🛡️ Hành lang bảo vệ:</b> ${props.HanhLangBaoVe || 'N/A'}<br/>
+                        <b>🏆 Cấp công trình:</b> ${props.CapCongTrinh || 'N/A'}<br/>
+                        <b>🏗️ Kết cấu công trình:</b> ${props.KetCauCongTrinh || 'N/A'}<br/>
+                        <b>🎯 Mục tiêu nhiệm vụ:</b> ${props.MucTieuNhiemVu || 'N/A'}<br/>
+                        <b>🌾 Diện tích phục vụ:</b> ${props.DienTichPhucVu || 'N/A'}<br/>
+                        <b>📅 Năm sử dụng:</b> ${props.NamSuDung || 'N/A'}<br/>
+                        <b>🌊 Hệ thống công trình thủy lợi:</b> ${props.HeThongCongTrinhThuyLoi || 'N/A'}<br/>
+                        <b>🏛️ Đơn vị quản lý:</b> ${props.DonViQuanLy || 'N/A'}<br/>
+                        <b>🔄 Năm cập nhật:</b> ${props.NamCapNhat || 'N/A'}<br/>
+                        <b>📏 Chiều dài shape:</b> ${props.SHAPE_Length || 'N/A'}
+                    `;
+                    break;
+                case "CTTL_2023_TramBom":
+                    popupContent += `
+                        <b>🏗️ Tên trạm bơm:</b> ${props.TenTramBom || 'N/A'}<br/>
+                        <b>📋 Loại:</b> ${props.Loai || 'N/A'}<br/>
+                        <b>⚡ Công suất:</b> ${props.CongSuat || 'N/A'}<br/>
+                        <b>🎯 Mục tiêu nhiệm vụ:</b> ${props.MucTieuNhiemVu || 'N/A'}<br/>
+                        <b>🌾 Diện tích phục vụ:</b> ${props.DienTichPhucVu_ha || 'N/A'} ha<br/>
+                        <b>🌊 Hệ thống công trình thủy lợi:</b> ${props.HeThongCongTrinhThuyLoi || 'N/A'}<br/>
+                        <b>📅 Năm sử dụng:</b> ${props.NamSuDung || 'N/A'}<br/>
+                        <b>🏛️ Đơn vị quản lý:</b> ${props.DonViQuanLy || 'N/A'}
+                    `;
+                    break;
+                // Công trình thủy lợi - Quy hoạch 2030
+                case "CTTL_2030_Vung_HeThong":
+                    popupContent += `
+                        <b>🏗️ Tên:</b> ${props.Ten || 'N/A'}<br/>
+                        <b>🌊 Vùng thủy lợi:</b> ${props.VungThuyLoi || 'N/A'}<br/>
+                        <b>📏 Chiều dài shape:</b> ${props.Shape_Length || 'N/A'}
+                    `;
+                    break;
+                case "CTTL_2030_NongThonMoi":
+                    popupContent += `
+                        <b>🏗️ Tên:</b> ${props.Ten || 'N/A'}<br/>
+                        <b>🌊 Vùng thủy lợi:</b> ${props.VungThuyLoi || 'N/A'}<br/>
+                        <b>📏 Chiều dài shape:</b> ${props.Shape_Length || 'N/A'}
+                    `;
+                    break;
+                case "CTTL_2030_NoiDong":
+                    popupContent += `
+                        <b>🏗️ Tên:</b> ${props.Ten || 'N/A'}<br/>
+                        <b>🌊 Vùng thủy lợi:</b> ${props.VungThuyLoi || 'N/A'}<br/>
+                        <b>📏 Chiều dài shape:</b> ${props.Shape_Length || 'N/A'}
+                    `;
+                    break;
+                case "CTTL_2030_VungThuyLoi":
+                    popupContent += `
+                        <b>🌊 Vùng thủy lợi:</b> ${props.VungThuyLoi || 'N/A'}<br/>
+                        <b>📝 Mô tả:</b> ${props.MoTa || 'N/A'}<br/>
+                        <b>📏 Chiều dài shape:</b> ${props.Shape_Length || 'N/A'}<br/>
+                        <b>📐 Diện tích shape:</b> ${props.Shape_Area || 'N/A'}
                     `;
                     break;
                 default:

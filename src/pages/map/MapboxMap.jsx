@@ -12,28 +12,33 @@ import { ToastCommon } from "@components/ToastCommon.jsx";
 import { TOAST } from "@common/constants.js";
 import SaltChartFull from "@pages/map/SaltChartFull";
 import HydrometChartFull from "@pages/map/HydrometChartFull";
+import IoTChartFull from "@pages/map/IoTChartFull";
 import MapDetails from "@pages/map/MapDetails";
 import { initializeMap } from "@components/map/mapInitialization";
 import { getSalinityTooltipClass, renderSalinityPoints } from "@components/map/SalinityMarkers";
 import { renderHydrometStations } from "@components/map/HydrometMarkers";
-import { updateLegendVisibility } from "@components/map/mapStyles";
 import { handleLocationChange, handleFeatureHighlight } from "@components/map/mapUtils";
 import { handleLayerLabelToggle, handleZoomChange, clearAllLabels } from "@components/map/mapLabels";
-
 import {
     fetchSalinityStationPositions,
     fetchHydrometeorologyStationPositions,
 } from "@components/map/mapDataServices";
 import { getSalinityIcon, getHydrometIcon } from "@components/map/mapMarkers";
-import { prefixUnitMap } from "@components/map/mapStyles.js";
+import { 
+    prefixUnitMap, 
+    layerStyles, 
+    legendNames, 
+    updateLegendVisibility 
+} from "@components/map/mapStyles";
 
-const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => {
+const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, iotData }) => {
     const mapContainer = useRef(null);
     const [map, setMap] = useState(null);
     const overlayLayers = useRef({});
     const [selectedPoint, setSelectedPoint] = useState(null);
     const [showFullChart, setShowFullChart] = useState(false);
     const [showHydrometChart, setShowHydrometChart] = useState(false);
+    const [showIoTChart, setShowIoTChart] = useState(false);
     const [salinityData, setSalinityData] = useState([]);
     const [selectedStation, setSelectedStation] = useState(null);
     const [hydrometData, setHydrometData] = useState([]);
@@ -44,6 +49,47 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
         setSelectedPoint(null);
         setSelectedStation(null);
     };
+
+    // Helper function to create WMS layer with consistent configuration
+    const createWMSLayer = (layerName, options = {}) => {
+        const defaultOptions = {
+            layers: `xamnhapman_tphcm:${layerName}`,
+            transparent: true,
+            format: "image/png",
+            version: "1.1.1",
+            info_format: "text/html",
+            attribution: "GeoServer",
+            ...options
+        };
+
+        return L.tileLayer.betterWms(
+            "http://localhost:8080/geoserver/xamnhapman_tphcm/wms",
+            defaultOptions
+        );
+    };
+
+    // Helper function to get layer configuration from mapStyles
+    const getLayerConfig = (layerName) => {
+        const layerStyle = layerStyles[layerName];
+        const layerDisplayName = legendNames[layerName] || layerName;
+        
+        return {
+            name: layerDisplayName,
+            type: layerStyle?.type || "wms",
+            legend: layerStyle?.legend || undefined
+        };
+    };
+
+    // Auto show MapDetails when IoT data is available
+    useEffect(() => {
+        if (iotData && iotData.dataPoints && iotData.dataPoints.length > 0) {
+            setSelectedPoint({
+                tenDiem: iotData.stationName,
+                kiHieu: iotData.serialNumber,
+                type: 'iot'
+            });
+        }
+    }, [iotData]);
 
     // Add global function for popup button action
     useEffect(() => {
@@ -197,52 +243,24 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
         const hasSalinityPoints = selectedLayers.includes("salinityPoints");
         const hasHydrometStations = selectedLayers.includes("hydrometStations");
 
-        // Add selected layers without mutual exclusivity
+        // Add selected layers with optimized configuration
         selectedLayers.forEach((layerName) => {
+            // Handle special marker layers
             if (layerName === "salinityPoints") {
                 renderSalinityPoints(map, setSalinityData, setSelectedPoint);
-                // Add to overlay layers for legend visibility with color legend
                 overlayLayers.current[layerName] = {
-                    name: "Điểm đo mặn",
-                    type: "marker",
-                    legend: `
-                        <div class="d-flex justify-content-center gap-3 mt-2 small">
-                            <div class="d-flex align-items-center gap-1">
-                                <div
-                                    style="width: 12px; height: 12px; background-color: #28a745; border-radius: 2px;">
-                                </div>
-                                <span>Bình thường</span>
-                            </div>
-                            <div class="d-flex align-items-center gap-1">
-                                <div
-                                    style="width: 12px; height: 12px; background-color: #ffc107; border-radius: 2px;">
-                                </div>
-                                <span>Rủi ro cấp 1</span>
-                            </div>
-                            <div class="d-flex align-items-center gap-1">
-                                <div
-                                    style="width: 12px; height: 12px; background-color: #fd7e14; border-radius: 2px;">
-                                </div>
-                                <span>Rủi ro cấp 2</span>
-                            </div>
-                            <div class="d-flex align-items-center gap-1">
-                                <div
-                                    style="width: 12px; height: 12px; background-color: #dc3545; border-radius: 2px;">
-                                </div>
-                                <span>Rủi ro cấp 3</span>
-                            </div>
-                        </div>
-                    `,
+                    ...getLayerConfig(layerName),
+                    type: "marker"
                 };
             } else if (layerName === "hydrometStations") {
                 renderHydrometStations(map, setHydrometData, setSelectedStation);
-                // Add to overlay layers for legend visibility
                 overlayLayers.current[layerName] = {
-                    name: "Trạm khí tượng thủy văn",
-                    type: "marker",
+                    ...getLayerConfig(layerName),
+                    type: "marker"
                 };
-            } else if (layerName === "diemdocao") {
-                // Handle diemdocao as raster layer with special WMS handling
+            } 
+            // Handle special raster layer (diemdocao)
+            else if (layerName === "diemdocao") {
                 const rasterLayer = L.tileLayer.wms("http://localhost:8080/geoserver/xamnhapman_tphcm/wms", {
                     layers: `xamnhapman_tphcm:${layerName}`,
                     transparent: true,
@@ -253,124 +271,19 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
 
                 rasterLayer.addTo(map);
                 overlayLayers.current[layerName] = {
-                    layer: rasterLayer, // Store actual layer instance
-                    name: "Độ cao (m)",
-                    type: "raster",
-                    legend: `
-                        <div style="margin-left: 20px; margin-bottom: 10px; font-size: 1em;">
-                            <div><span style="display:inline-block;width:12px;height:12px;background:#08306b;margin-right:5px;"></span>-20 – 0 m</div>
-                            <div><span style="display:inline-block;width:12px;height:12px;background:#41ab5d;margin-right:5px;"></span>1 – 5 m</div>
-                            <div><span style="display:inline-block;width:12px;height:12px;background:#ffff00;margin-right:5px;"></span>6 – 10 m</div>
-                            <div><span style="display:inline-block;width:12px;height:12px;background:#fd8d3c;margin-right:5px;"></span>11 – 15 m</div>
-                            <div><span style="display:inline-block;width:12px;height:12px;background:#e31a1c;margin-right:5px;"></span>16 – 35 m</div>
-                        </div>
-                    `,
+                    layer: rasterLayer,
+                    ...getLayerConfig(layerName)
                 };
-            } else if (layerName === "QuyHoachSDD_2030") {
-                // Handle QuyHoachSDD_2030 with special legend from mapStyles
-                const wmsLayer = L.tileLayer.betterWms(
-                    "http://localhost:8080/geoserver/xamnhapman_tphcm/wms",
-                    {
-                        layers: `xamnhapman_tphcm:${layerName}`,
-                        transparent: true,
-                        format: "image/png",
-                        version: "1.1.1",
-                        info_format: "text/html",
-                        attribution: "GeoServer",
-                    },
-                );
-
+            } 
+            // Handle all other WMS layers uniformly
+            else {
+                const wmsLayer = createWMSLayer(layerName);
                 wmsLayer.addTo(map);
                 
-                // Import layer styles for QuyHoachSDD_2030 legend
-                import('@components/map/mapStyles').then(({ layerStyles }) => {
-                    const layerStyle = layerStyles[layerName];
-                    overlayLayers.current[layerName] = {
-                        layer: wmsLayer, // Store actual layer instance
-                        name: "Quy hoạch sử dụng đất 2030",
-                        type: "polygon",
-                        legend: layerStyle?.legend || undefined
-                    };
-                    // Update legend after adding layer with legend info
-                    updateLegendVisibility(overlayLayers.current);
-                }).catch(() => {
-                    // Fallback if import fails
-                    overlayLayers.current[layerName] = {
-                        layer: wmsLayer,
-                        name: "Quy hoạch sử dụng đất 2030",
-                        type: "polygon"
-                    };
-                });
-            } else if (layerName === "HienTrangSDD_2020") {
-                // Handle HienTrangSDD_2020 with special legend from mapStyles
-                const wmsLayer = L.tileLayer.betterWms(
-                    "http://localhost:8080/geoserver/xamnhapman_tphcm/wms",
-                    {
-                        layers: `xamnhapman_tphcm:${layerName}`,
-                        transparent: true,
-                        format: "image/png",
-                        version: "1.1.1",
-                        info_format: "text/html",
-                        attribution: "GeoServer",
-                    },
-                );
-
-                wmsLayer.addTo(map);
-                
-                // Import layer styles for HienTrangSDD_2020 legend
-                import('@components/map/mapStyles').then(({ layerStyles }) => {
-                    const layerStyle = layerStyles[layerName];
-                    overlayLayers.current[layerName] = {
-                        layer: wmsLayer, // Store actual layer instance
-                        name: "Hiện trạng sử dụng đất 2020",
-                        type: "polygon",
-                        legend: layerStyle?.legend || undefined
-                    };
-                    // Update legend after adding layer with legend info
-                    updateLegendVisibility(overlayLayers.current);
-                }).catch(() => {
-                    // Fallback if import fails
-                    overlayLayers.current[layerName] = {
-                        layer: wmsLayer,
-                        name: "Hiện trạng sử dụng đất 2020",
-                        type: "polygon"
-                    };
-                });
-            } else {
-                // Handle WMS layers from GeoServer
-                const wmsLayer = L.tileLayer.betterWms(
-                    "http://localhost:8080/geoserver/xamnhapman_tphcm/wms",
-                    {
-                        layers: `xamnhapman_tphcm:${layerName}`,
-                        transparent: true,
-                        format: "image/png",
-                        version: "1.1.1", // quan trọng
-                        info_format: "text/html", // để hiển thị bảng đẹp
-                        attribution: "GeoServer",
-                    },
-                );
-
-                wmsLayer.addTo(map);
-                
-                // Import layer styles for legend
-                import('@components/map/mapStyles').then(({ layerStyles }) => {
-                    const layerStyle = layerStyles[layerName];
-                    overlayLayers.current[layerName] = {
-                        layer: wmsLayer, // Store actual layer instance
-                        name: layerName,
-                        type: "wms",
-                        legend: layerStyle?.legend || undefined
-                    };
-                    // Update legend after adding layer with legend info
-                    updateLegendVisibility(overlayLayers.current);
-                }).catch(() => {
-                    // Fallback if import fails
-                    overlayLayers.current[layerName] = {
-                        layer: wmsLayer,
-                        name: layerName,
-                        type: "wms"
-                    };
-                });
+                overlayLayers.current[layerName] = {
+                    layer: wmsLayer,
+                    ...getLayerConfig(layerName)
+                };
             }
         });
 
@@ -383,7 +296,10 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
 
             // Process each selected layer for label display
             for (const layerName of selectedLayers) {
-                if (layerName === "DiaPhanHuyen" || layerName === "DiaPhanXa") {
+                const layerStyle = layerStyles[layerName];
+                if (layerStyle?.type === "administrative" || 
+                    layerName === "DiaPhanHuyen" || 
+                    layerName === "DiaPhanXa") {
                     await handleLayerLabelToggle(map, layerName, true);
                 }
             }
@@ -1382,7 +1298,7 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
 
         return () => clearTimeout(timeoutId);
     }, [map]);
-
+console.log(`iotData.summary`, iotData?.summary);
     return (
         <>
             <div ref={mapContainer} id="mapContainer"></div>
@@ -1390,9 +1306,12 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
             <MapDetails
                 salinityData={salinityData}
                 selectedPoint={selectedPoint}
+                selectedStation={selectedStation}
                 hydrometData={hydrometData}
+                iotData={iotData}
                 onOpenFullChart={() => setShowFullChart(true)}
                 onOpenHydrometChart={() => setShowHydrometChart(true)}
+                onOpenIoTChart={() => setShowIoTChart(true)}
                 onClose={handleCloseDetails}
             />
 
@@ -1410,6 +1329,12 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature }) => 
                 TenTam={selectedStation?.thongTin?.TenTam || selectedPoint?.tenDiem}
                 hydrometData={hydrometData}
                 onClose={() => setShowHydrometChart(false)}
+            />
+
+            <IoTChartFull
+                show={showIoTChart}
+                iotData={iotData}
+                onClose={() => setShowIoTChart(false)}
             />
         </>
     );
