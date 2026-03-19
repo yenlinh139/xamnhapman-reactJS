@@ -6,6 +6,8 @@ import RoleBasedRoute from "@components/RoleBasedRoute";
 import Home from "@pages/home/Home";
 import WrapperLogin from "@pages/login/WrapperLogin";
 import "@styles/main.scss";
+import "@styles/admin/AdminDataExport.scss";
+import "@styles/components/AreaStationsPanel.scss";
 import VerifyEmail from "@components/VerifyEmail";
 import { HelmetProvider } from "react-helmet-async";
 import Map from "@pages/map/Map";
@@ -14,6 +16,7 @@ import UserManagement from "@pages/users/UserManagement";
 import SalinityManagement from "@pages/salinity/SalinityManagement";
 import SalinityReport from "@pages/salinity/SalinityReport";
 import Feedback from "@pages/feedback/Feedback";
+import AdminDataExport from "@pages/admin/AdminDataExport";
 
 const App = () => {
     return (
@@ -23,14 +26,15 @@ const App = () => {
                     <Route path={ROUTES.home} element={<Home />} />
                     <Route path={ROUTES.verify_email} element={<VerifyEmail />} />
                     <Route path={ROUTES.login} element={<WrapperLogin />} />
+                    <Route path={ROUTES.map} element={<Map />} />
+                    <Route path={ROUTES.salinityReport} element={<SalinityReport />} />
                     <Route element={<ProtectedRoute />}>
                         <Route path={ROUTES.setting} element={<SettingUser />} />
                         <Route path={ROUTES.feedback} element={<Feedback />} />
-                        <Route path={ROUTES.map} element={<Map />} />
-                        <Route path={ROUTES.salinityReport} element={<SalinityReport />} />
                         <Route element={<RoleBasedRoute requiredRole={1} />}>
                             <Route path={ROUTES.users} element={<UserManagement />} />
                             <Route path={ROUTES.salinity} element={<SalinityManagement />} />
+                            <Route path={ROUTES.adminExport} element={<AdminDataExport />} />
                         </Route>
                     </Route>
                 </Routes>

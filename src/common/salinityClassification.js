@@ -49,7 +49,7 @@ export const getSingleStationClassification = (value, stationCode = null) => {
             return {
                 level: "warning",
                 class: "warning",
-                description: "Rủi ro cấp 1 (độ mặn tại Nhà Bè 1-4‰)",
+                description: "Rủi ro cấp 1 (độ mặn tại Nhà Bè từ 1–4‰)",
                 shortText: "Rủi ro cấp 1",
             };
         } else {
@@ -57,7 +57,7 @@ export const getSingleStationClassification = (value, stationCode = null) => {
             return {
                 level: "high-warning",
                 class: "high-warning",
-                description: "Rủi ro cấp 2 (độ mặn 1-4‰)",
+                description: "Rủi ro cấp 2 (độ mặn tại Nhà Bè trên 4‰, các trạm khác từ 1–4‰)",
                 shortText: "Rủi ro cấp 2",
             };
         }
@@ -77,7 +77,7 @@ export const getSingleStationClassification = (value, stationCode = null) => {
             return {
                 level: "critical",
                 class: "critical",
-                description: "Rủi ro cấp 3 (độ mặn > 4‰)",
+                description: "Rủi ro cấp 3 (độ mặn trên 4‰)",
                 shortText: "Rủi ro cấp 3",
             };
         }

@@ -12,7 +12,7 @@ function Header() {
     const { userInfo } = useSelector((state) => state.authStore);
 
     // Kiểm tra xem user có quyền truy cập các tab không (role !== 0)
-    const hasAccess = userInfo && userInfo.role !== 0;
+    const hasAccess = userInfo && userInfo.role == 1;
 
     // Kiểm tra xem user đã đăng nhập chưa
     const isLoggedIn = localStorage.getItem("access_token");
@@ -78,48 +78,63 @@ function Header() {
                     </ul>
                 </div>
             </div>
-            {isLoggedIn && (
-                <header className="headerMenu">
-                    <div className="container d-flex align-items-center justify-content-between">
-                        {/* Logo */}
-                        <div className="logo">
-                            <NavLink to="/">
-                                <img src={imageLogo} alt="Xâm nhập mặn TP. Hồ Chí Minh" />
-                            </NavLink>
-                        </div>
-
-                        {/* Menu */}
-                        <nav className="nav-menu">
-                            <ul className="d-flex list-unstyled m-0">
-                                <li className="text-center">
-                                    <NavLink to={ROUTES.map}>BẢN ĐỒ</NavLink>
-                                </li>
-                                {hasAccess && (
-                                    <li className="text-center">
-                                        <NavLink to={ROUTES.salinity}>ĐỘ MẶN</NavLink>
-                                    </li>
-                                )}
-                                <li className="text-center">
-                                    <NavLink to={ROUTES.salinityReport}>BÁO CÁO</NavLink>
-                                </li>
-                                {hasAccess && (
-                                    <li className="text-center">
-                                        <NavLink to={ROUTES.users}>NGƯỜI DÙNG</NavLink>
-                                    </li>
-                                )}
-                                <li className="text-center">
-                                    <NavLink to={ROUTES.feedback}>GÓP Ý</NavLink>
-                                </li>
-                                <li className="text-center">
-                                    <button onClick={handleLogout} className="nav-logout-btn">
-                                        ĐĂNG XUẤT
-                                    </button>
-                                </li>
-                            </ul>
-                        </nav>
+            <header className="headerMenu">
+                <div className="container d-flex align-items-center justify-content-between">
+                    {/* Logo */}
+                    <div className="logo">
+                        <NavLink to="/">
+                            <img src={imageLogo} alt="Xâm nhập mặn TP. Hồ Chí Minh" />
+                        </NavLink>
                     </div>
-                </header>
-            )}
+
+                    {/* Menu */}
+                    <nav className="nav-menu">
+                        <ul className="d-flex list-unstyled m-0">
+                            {!hasAccess && (
+                                <li className="text-center">
+                                    <NavLink to={ROUTES.home}>TRANG CHỦ</NavLink>
+                                </li>
+                            )}
+                            <li className="text-center">
+                                <NavLink to={ROUTES.map}>BẢN ĐỒ</NavLink>
+                            </li>
+                            <li className="text-center">
+                                <NavLink to={ROUTES.salinityReport}>BÁO CÁO ĐỘ MẶN</NavLink>
+                            </li>
+                            {hasAccess && (
+                                <li className="text-center">
+                                    <NavLink to={ROUTES.salinity}>QUẢN LÝ ĐỘ MẶN</NavLink>
+                                </li>
+                            )}
+                            {hasAccess && (
+                                <li className="text-center">
+                                    <NavLink to={ROUTES.users}>QUẢN LÝ NGƯỜI DÙNG</NavLink>
+                                </li>
+                            )}
+                            {hasAccess && (
+                                <li className="text-center">
+                                    <NavLink to={ROUTES.adminExport}>XUẤT DỮ LIỆU</NavLink>
+                                </li>
+                            )}
+                            {isLoggedIn && (
+                                <>
+                                    {!hasAccess && (
+                                        <li className="text-center">
+                                            <NavLink to={ROUTES.feedback}>GÓP Ý</NavLink>
+                                        </li>
+                                    )}
+
+                                    <li className="text-center">
+                                        <button onClick={handleLogout} className="nav-logout-btn">
+                                            ĐĂNG XUẤT
+                                        </button>
+                                    </li>
+                                </>
+                            )}
+                        </ul>
+                    </nav>
+                </div>
+            </header>
         </>
     );
 }

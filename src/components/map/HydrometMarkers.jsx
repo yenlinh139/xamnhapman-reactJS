@@ -4,6 +4,38 @@ import { dmsToDecimal } from "@components/convertDMSToDecimal";
 import { fetchHydrometStations, fetchHydrometData } from "@components/map/mapDataServices";
 import { prefixUnitMap } from "@components/map/mapStyles";
 
+const getStationCode = (station) => {
+    return String(station?.KiHieu || station?.kiHieu || station?.maTram || "").trim();
+};
+
+const getStationName = (station) => {
+    return String(
+        station?.TenTram || station?.TenTam || station?.tenTram || station?.tenTam || station?.name || "",
+    ).trim();
+};
+
+const normalizeHydrometStation = (station = {}) => {
+    const stationCode = getStationCode(station);
+    const stationName = getStationName(station) || stationCode || "Không xác định";
+
+    return {
+        ...station,
+        KiHieu: stationCode,
+        TenTram: stationName,
+        TenTam: station.TenTam || stationName,
+        ViDo: station.ViDo || station.viDo || station.latitude || station.lat || null,
+        KinhDo: station.KinhDo || station.kinhDo || station.longitude || station.lng || null,
+        PhanLoai: station.PhanLoai || station.phanLoai || "Không xác định",
+        TinhTrang: station.TinhTrang || station.tinhTrang || station.TrangThai || station.status || "Không xác định",
+    };
+};
+
+const escapePopupActionValue = (value) => {
+    return String(value || "")
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'");
+};
+
 const getHydrometIcon = () => {
     return L.divIcon({
         className: "custom-hydromet-icon",
@@ -14,16 +46,92 @@ const getHydrometIcon = () => {
     });
 };
 
+// Basic popup for stations without data - MOVED TO TOP
+const createBasicPopup = (station, message = "Chưa có dữ liệu") => {
+    const normalizedStation = normalizeHydrometStation(station);
+    const stationCodeForClick = escapePopupActionValue(normalizedStation.KiHieu);
+    const stationNameForClick = escapePopupActionValue(normalizedStation.TenTram);
+
+    return `
+    <div class="modern-popup hydromet-popup basic">
+      <div class="popup-header">
+        <div class="popup-icon">🌤️</div>
+        <div class="popup-title">
+                    <h4 class="popup-name">${normalizedStation.TenTram}</h4>
+          <span class="popup-type">Trạm khí tượng thủy văn</span>
+        </div>
+        <div class="popup-status status-no-data">
+          ${message}
+        </div>
+      </div>
+      
+      <div class="popup-content">
+        <div class="popup-details">
+          <div class="detail-grid">
+            <div class="detail-item">
+              <div class="detail-content">
+                <strong class="detail-label"><i class="detail-icon">🏷️</i> Phân loại:</strong>
+                                <span class="detail-value">${normalizedStation.PhanLoai}</span>
+              </div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-content">
+                                <strong class="detail-label"><i class="detail-icon">🛠️</i> Tình trạng:</strong>
+                                <span class="detail-value">${normalizedStation.TinhTrang}</span>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-content">
+                <strong class="detail-label"><i class="detail-icon">📍</i> Ký hiệu:</strong>
+                                <span class="detail-value">${normalizedStation.KiHieu || "N/A"}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+                <div class="popup-actions">
+                    <button class="action-btn primary" onclick="window.openHydrometDetails('${stationCodeForClick}', '${stationNameForClick}')">
+                        <i class="btn-icon">📈</i>
+                        Xem dữ liệu chi tiết
+                    </button>
+                </div>
+      </div>
+    </div>
+  `;
+};
+
 // Enhanced popup creation with multiple parameter support
 export const createHydrometPopup = (station, hydrometeorologyData) => {
-    // Parse the latest data
-    const latestData =
-        hydrometeorologyData && hydrometeorologyData.length > 0
-            ? hydrometeorologyData[hydrometeorologyData.length - 1]
-            : null;
+    const normalizedStation = normalizeHydrometStation(station);
+    const stationCodeForClick = escapePopupActionValue(normalizedStation.KiHieu);
+    const stationNameForClick = escapePopupActionValue(normalizedStation.TenTram);
 
-    if (!latestData) {
-        return createBasicPopup(station, "Chưa có dữ liệu");
+    // Better data validation
+    let latestData = null;
+    
+    if (hydrometeorologyData) {
+        // Handle both array response and object with data property
+        const dataArray = Array.isArray(hydrometeorologyData) 
+            ? hydrometeorologyData 
+            : (hydrometeorologyData.data || []);
+        
+        if (dataArray && dataArray.length > 0) {
+            latestData = dataArray[dataArray.length - 1];
+        }
+    }
+
+    // Check if we have actual measurement data
+    const hasValidData = latestData && Object.keys(latestData).some(key => {
+        return (key.startsWith('R_') || key.startsWith('T') || key.startsWith('H')) && 
+               latestData[key] !== null && 
+               latestData[key] !== undefined && 
+               latestData[key] !== "NULL" && 
+               latestData[key] !== "";
+    });
+
+    if (!hasValidData) {
+        console.log(`No valid data for station ${normalizedStation.KiHieu}, using basic popup`);
+        return createBasicPopup(normalizedStation, "Chưa có dữ liệu đo đạc");
     }
 
     // Extract and categorize parameters
@@ -54,7 +162,7 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
     <div class="modern-popup hydromet-popup enhanced">
       <div class="popup-header">
         <div class="popup-title">
-          <h4 class="popup-name">${station.TenTam || station.TenTram}</h4>
+                    <h4 class="popup-name">${normalizedStation.TenTram}</h4>
           <span class="popup-type">Trạm khí tượng thủy văn</span>
         </div>
       </div>
@@ -77,28 +185,28 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
             <div class="detail-item">
               <div class="detail-content">
                 <strong class="detail-label"><i class="detail-icon">🏷️</i> Phân loại:</strong>
-                <span class="detail-value">${station.PhanLoai || "Không xác định"}</span>
+                                <span class="detail-value">${normalizedStation.PhanLoai}</span>
               </div>
             </div>
             
             <div class="detail-item">
               <div class="detail-content">
-                <strong class="detail-label"><i class="detail-icon">⏰</i> Thời gian:</strong>
-                <span class="detail-value">${station.ThoiGian || "Không xác định"}</span>
+                                <strong class="detail-label"><i class="detail-icon">🛠️</i> Tình trạng:</strong>
+                                <span class="detail-value">${normalizedStation.TinhTrang}</span>
               </div>
             </div>
             
             <div class="detail-item">
               <div class="detail-content">
-                <strong class="detail-label"><i class="detail-icon">📊</i> Tần suất:</strong>
-                <span class="detail-value">${station.TanSuat || "Không xác định"}</span>
+                                <strong class="detail-label"><i class="detail-icon">📍</i> Ký hiệu:</strong>
+                                <span class="detail-value">${normalizedStation.KiHieu || "N/A"}</span>
               </div>
             </div>
           </div>
         </div>
         
         <div class="popup-actions">
-          <button class="action-btn primary" onclick="window.openHydrometDetails('${station.KiHieu}')">
+                    <button class="action-btn primary" onclick="window.openHydrometDetails('${stationCodeForClick}', '${stationNameForClick}')">
             <i class="btn-icon">📈</i>
             Xem biểu đồ chi tiết
           </button>
@@ -322,7 +430,7 @@ const getParameterLabel = (paramKey) => {
         R_MDC: "Mạc Đĩnh Chi",
         R_NB: "Nhà Bè", // Rainfall from NB_KT station
         R_PVC: "Phạm Văn Cội",
-        R_TTH: "Tam Thôn Hiệp",
+        R_TTH: "Tam Thôn Hiệp", // Primary rainfall station for TTH
         R_TD: "Thủ Đức",
         R_TSH: "Tân Sơn Hòa",
         Ttb_TSH: "Nhiệt độ không khí trung bình", // Temperature from TSH station
@@ -341,53 +449,53 @@ const getParameterLabel = (paramKey) => {
     return labelMap[paramKey] || paramKey;
 };
 
-// Basic popup for stations without data
-const createBasicPopup = (station, message) => {
-    return `
-    <div class="modern-popup hydromet-popup basic">
-      <div class="popup-header">
-        <div class="popup-icon">🌤️</div>
-        <div class="popup-title">
-          <h4 class="popup-name">${station.TenTam || station.TenTram}</h4>
-          <span class="popup-type">Trạm khí tượng thủy văn</span>
-        </div>
-        <div class="popup-status status-no-data">
-          ${message}
-        </div>
-      </div>
-      
-      <div class="popup-content">
-        <div class="popup-details">
-          <div class="detail-grid">
-            <div class="detail-item">
-              <div class="detail-content">
-                <strong class="detail-label"><i class="detail-icon">🏷️</i> Phân loại:</strong>
-                <span class="detail-value">${station.PhanLoai || "Không xác định"}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-};
-
 // Enhanced rendering function with improved data processing
 export const renderHydrometStations = async (mapInstance, setHydrometData, setSelectedStation) => {
     try {
         const stations = await fetchHydrometStations();
         const latLngs = [];
 
-        for (const station of stations) {
+        for (const rawStation of stations || []) {
+            const station = normalizeHydrometStation(rawStation);
+
+            if (!station.KiHieu) {
+                console.warn("⚠️ Bỏ qua trạm KTTV thiếu KiHieu:", rawStation);
+                continue;
+            }
+
             const lat = dmsToDecimal(station.ViDo);
             const lng = dmsToDecimal(station.KinhDo);
 
-            if (lat == "NULL" || lng == null || isNaN(lat) || isNaN(lng)) {
+            if (lat === null || lng === null || Number.isNaN(lat) || Number.isNaN(lng)) {
                 console.warn(`⚠️ Không thể chuyển tọa độ tại trạm ${station.TenTram}`);
                 continue;
             }
 
-            const hydrometeorologyData = await fetchHydrometData(station.KiHieu);
+            // Fetch station data with better error handling
+            let hydrometeorologyData = null;
+            try {
+                const fetchResult = await fetchHydrometData(station.KiHieu);
+                
+                // Handle both array response and object with data property
+                if (fetchResult) {
+                    if (Array.isArray(fetchResult)) {
+                        hydrometeorologyData = fetchResult;
+                    } else if (fetchResult.data && Array.isArray(fetchResult.data)) {
+                        hydrometeorologyData = fetchResult.data;
+                    }
+                }
+                
+                console.log(`Station ${station.KiHieu} data:`, {
+                    hasData: !!hydrometeorologyData,
+                    dataLength: hydrometeorologyData ? hydrometeorologyData.length : 0,
+                    sampleData: hydrometeorologyData && hydrometeorologyData.length > 0 
+                        ? Object.keys(hydrometeorologyData[0]) 
+                        : 'No keys'
+                });
+            } catch (error) {
+                console.warn(`Error fetching data for station ${station.KiHieu}:`, error);
+                hydrometeorologyData = null;
+            }
 
             let stationData = {
                 rainfall: 0,
@@ -398,47 +506,69 @@ export const renderHydrometStations = async (mapInstance, setHydrometData, setSe
 
             if (hydrometeorologyData && hydrometeorologyData.length > 0) {
                 const latestRecord = hydrometeorologyData[hydrometeorologyData.length - 1];
+                
+                // Validate that we have actual measurement data
+                const hasMeasurementData = Object.keys(latestRecord).some(key => {
+                    return (key.startsWith('R_') || key.startsWith('T') || key.startsWith('H')) && 
+                           latestRecord[key] !== null && 
+                           latestRecord[key] !== undefined && 
+                           latestRecord[key] !== "NULL" && 
+                           latestRecord[key] !== "";
+                });
 
-                // Extract rainfall data (sum all R_ parameters)
-                const rainfallKeys = Object.keys(latestRecord).filter((key) => key.startsWith("R_"));
-                stationData.rainfall = rainfallKeys.reduce((sum, key) => {
-                    const value = parseFloat(latestRecord[key]) || 0;
-                    return sum + value;
-                }, 0);
+                if (hasMeasurementData) {
+                    stationData.hasData = true;
 
-                // Extract temperature data (prioritize average, then max, then min)
-                const tempKeys = Object.keys(latestRecord).filter((key) => key.startsWith("T"));
-                const tempAvgKey = tempKeys.find((key) => key.includes("tb"));
-                const tempMaxKey = tempKeys.find((key) => key.includes("x"));
-                const tempMinKey = tempKeys.find((key) => key.includes("m"));
+                    // Extract rainfall data - prioritize R_TTH then sum all R_ parameters
+                    const rainfallKeys = Object.keys(latestRecord).filter((key) => key.startsWith("R_"));
+                    
+                    // Check for R_TTH specifically first
+                    if (latestRecord.R_TTH !== null && latestRecord.R_TTH !== undefined && latestRecord.R_TTH !== "NULL") {
+                        stationData.rainfall = parseFloat(latestRecord.R_TTH) || 0;
+                    } else {
+                        // Fallback: sum all available rainfall data
+                        stationData.rainfall = rainfallKeys.reduce((sum, key) => {
+                            const value = parseFloat(latestRecord[key]) || 0;
+                            return sum + value;
+                        }, 0);
+                    }
 
-                if (tempAvgKey) {
-                    stationData.temperature = parseFloat(latestRecord[tempAvgKey]) || 0;
-                } else if (tempMaxKey) {
-                    stationData.temperature = parseFloat(latestRecord[tempMaxKey]) || 0;
-                } else if (tempMinKey) {
-                    stationData.temperature = parseFloat(latestRecord[tempMinKey]) || 0;
+                    // Extract temperature data (prioritize average, then max, then min)
+                    const tempKeys = Object.keys(latestRecord).filter((key) => key.startsWith("T"));
+                    const tempAvgKey = tempKeys.find((key) => key.includes("tb"));
+                    const tempMaxKey = tempKeys.find((key) => key.includes("x"));
+                    const tempMinKey = tempKeys.find((key) => key.includes("m"));
+
+                    if (tempAvgKey) {
+                        stationData.temperature = parseFloat(latestRecord[tempAvgKey]) || 0;
+                    } else if (tempMaxKey) {
+                        stationData.temperature = parseFloat(latestRecord[tempMaxKey]) || 0;
+                    } else if (tempMinKey) {
+                        stationData.temperature = parseFloat(latestRecord[tempMinKey]) || 0;
+                    }
+
+                    // Extract humidity data (prioritize average)
+                    const humidityKeys = Object.keys(latestRecord).filter((key) => key.startsWith("H"));
+                    const humidityAvgKey = humidityKeys.find((key) => key.includes("tb"));
+                    const humidityMaxKey = humidityKeys.find((key) => key.includes("x"));
+                    const humidityMinKey = humidityKeys.find((key) => key.includes("m"));
+
+                    if (humidityAvgKey) {
+                        stationData.humidity = parseFloat(latestRecord[humidityAvgKey]) || 0;
+                    } else if (humidityMaxKey) {
+                        stationData.humidity = parseFloat(latestRecord[humidityMaxKey]) || 0;
+                    } else if (humidityMinKey) {
+                        stationData.humidity = parseFloat(latestRecord[humidityMinKey]) || 0;
+                    }
+                } else {
+                    console.log(`Station ${station.KiHieu} has data but no valid measurements`);
                 }
-
-                // Extract humidity data (prioritize average)
-                const humidityKeys = Object.keys(latestRecord).filter((key) => key.startsWith("H"));
-                const humidityAvgKey = humidityKeys.find((key) => key.includes("tb"));
-                const humidityMaxKey = humidityKeys.find((key) => key.includes("x"));
-                const humidityMinKey = humidityKeys.find((key) => key.includes("m"));
-
-                if (humidityAvgKey) {
-                    stationData.humidity = parseFloat(latestRecord[humidityAvgKey]) || 0;
-                } else if (humidityMaxKey) {
-                    stationData.humidity = parseFloat(latestRecord[humidityMaxKey]) || 0;
-                } else if (humidityMinKey) {
-                    stationData.humidity = parseFloat(latestRecord[humidityMinKey]) || 0;
-                }
-
-                stationData.hasData = true;
+            } else {
+                console.log(`Station ${station.KiHieu} has no data at all`);
             }
 
             // Create enhanced icon based on all parameters
-            const icon = getHydrometIcon(stationData);
+            const icon = getHydrometIcon();
 
             const marker = L.marker([lat, lng], {
                 icon,
@@ -447,20 +577,22 @@ export const renderHydrometStations = async (mapInstance, setHydrometData, setSe
 
             latLngs.push([lat, lng]);
 
-            // Enhanced tooltip with primary info
+            // Enhanced tooltip with status info
             const tooltipText = stationData.hasData
-                ? `${station.TenTam} - ${
+                ? `${station.TenTram || station.TenTam} - ${
                       stationData.rainfall > 0
                           ? `Mưa: ${stationData.rainfall.toFixed(1)}mm`
-                          : `${stationData.temperature.toFixed(1)}°C`
+                          : stationData.temperature > 0
+                          ? `${stationData.temperature.toFixed(1)}°C`
+                          : "Có dữ liệu"
                   }`
-                : station.TenTam;
+                : `${station.TenTram || station.TenTam} - Chưa có dữ liệu`;
 
             marker.bindTooltip(tooltipText, {
                 permanent: true,
                 direction: "top",
                 offset: [0, -15],
-                className: "custom-tooltip enhanced-tooltip",
+                className: `custom-tooltip enhanced-tooltip ${stationData.hasData ? 'has-data' : 'no-data'}`,
             });
 
             marker.on("click", () => {
@@ -483,6 +615,12 @@ export const renderHydrometStations = async (mapInstance, setHydrometData, setSe
 
                     // Create enhanced popup with all parameters
                     const popupHTML = createHydrometPopup(station, hydrometeorologyData);
+                    
+                    console.log(`Creating popup for station ${station.KiHieu}:`, {
+                        hasData: stationData.hasData,
+                        station: station.TenTram,
+                        popupType: stationData.hasData ? 'enhanced' : 'basic'
+                    });
 
                     marker.bindPopup(popupHTML, {
                         maxWidth: 400,

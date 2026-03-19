@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import MapboxMap from "@pages/map/MapboxMap";
 import LeftMenuMap from "@components/LeftMenuMap";
+import AreaSelector from "@components/map/AreaSelector";
 import { Helmet } from "react-helmet-async";
 import axiosInstance from "@config/axios-config";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "@stores/actions/authActions";
 import { NavLink, useNavigate } from "react-router-dom";
 import { ROUTES } from "@common/constants";
+import "@styles/components/AreaStationsPanel.scss";
 
 const Map = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -18,6 +20,25 @@ const Map = () => {
     const [searchText, setSearchText] = useState("");
     const [selectedLocation, setSelectedLocation] = useState(null);
     const [highlightedFeature, setHighlightedFeature] = useState(null);
+    const [iotData, setIotData] = useState(null);
+    const [activeTab, setActiveTab] = useState("Data"); // Thêm state quản lý tab
+    const [leafletMapInstance, setLeafletMapInstance] = useState(null);
+    const mapInstanceRef = useRef(null);
+
+    const handleMapReady = useCallback((instance) => {
+        setLeafletMapInstance(instance);
+    }, []);
+
+    const handleAreaSelect = (areaInfo) => {
+        console.log('Map.jsx - Selected area:', areaInfo);
+        console.log('Map.jsx - mapInstanceRef current:', mapInstanceRef.current);
+        console.log('Map.jsx - mapInstance from ref:', mapInstanceRef.current?.getMap());
+        // Additional handling if needed
+        if (areaInfo.area && areaInfo.type) {
+            // You can add custom handling here, like showing info popup
+            console.log(`Đã chọn ${areaInfo.type}: ${areaInfo.area.name || areaInfo.area.TenTram || areaInfo.area.TenTam}`);
+        }
+    };
 
     const handleLogout = () => {
         dispatch(logout());
@@ -32,9 +53,23 @@ const Map = () => {
                 `${import.meta.env.VITE_BASE_URL}/search/${encodeURIComponent(searchText)}`,
             );
 
-            setSearchResults(response.data);
+            // Backend trả về mảng kết quả trực tiếp hoặc object chứa results
+            const searchData = Array.isArray(response.data) ? response.data : (response.data.results || []);
+            setSearchResults(searchData);
+
+            // Log để debug
+            console.log(`🔍 Tìm kiếm "${searchText}":`, searchData.length, 'kết quả');
+            
         } catch (err) {
-            console.log("Đã có lỗi xảy ra khi tìm kiếm.", err);
+            console.error("Lỗi tìm kiếm:", err);
+            setSearchResults([]);
+            
+            // Có thể thêm toast notification ở đây nếu cần
+            if (err.response?.status === 400) {
+                console.warn("Từ khóa tìm kiếm không hợp lệ");
+            } else if (err.response?.status === 500) {
+                console.error("Lỗi server khi tìm kiếm");
+            }
         }
     };
 
@@ -115,6 +150,7 @@ const Map = () => {
                             </NavLink>
 
                             {/* User Dropdown */}
+                            {userInfo?.name ? 
                             <div className="user-dropdown">
                                 <button
                                     className="user-button"
@@ -125,8 +161,7 @@ const Map = () => {
                                         <i className="fa-solid fa-user"></i>
                                     </div>
                                     <div className="user-info">
-                                        <span className="user-name">{userInfo?.name || "Người dùng"}</span>
-                                        <span className="user-role">Quản trị viên</span>
+                                        <span className="user-name">{userInfo?.name}</span>
                                     </div>
                                     <i className="fa-solid fa-chevron-down dropdown-arrow"></i>
                                 </button>
@@ -148,7 +183,9 @@ const Map = () => {
                                         </button>
                                     </li>
                                 </ul>
-                            </div>
+                                </div>
+                                : null
+                            }
                         </nav>
 
                         {/* Mobile Menu Toggle */}
@@ -225,13 +262,24 @@ const Map = () => {
                     setSelectedLocation={setSelectedLocation}
                     setHighlightedFeature={setHighlightedFeature}
                     highlightedFeature={highlightedFeature}
+                    setIotData={setIotData}
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
                 />
                 <div className="mapbox-container">
                     <MapboxMap
+                        ref={mapInstanceRef}
+                        onMapReady={handleMapReady}
                         selectedLayers={selectedLayers}
                         selectedLocation={selectedLocation}
                         highlightedFeature={highlightedFeature}
                         setHighlightedFeature={setHighlightedFeature}
+                        iotData={iotData}
+                    />
+                    <AreaSelector 
+                        mapInstance={leafletMapInstance}
+                        onAreaSelect={handleAreaSelect}
+                        className="map-area-selector"
                     />
                 </div>
             </div>

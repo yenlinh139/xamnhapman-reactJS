@@ -27,7 +27,6 @@ export const handleFeatureHighlight = (
     highlightedMarkerRef,
 ) => {
     if (!map) {
-        console.warn("⛔ Map chưa khởi tạo");
         return;
     }
 

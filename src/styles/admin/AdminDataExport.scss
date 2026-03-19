@@ -1,0 +1,265 @@
+/* Admin Data Export Styles */
+.admin-data-export {
+    background-color: #f8f9fa;
+    min-height: 100vh;
+    padding: 2rem 0;
+
+    .card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px 12px 0 0;
+            padding: 1.5rem;
+
+            .card-title {
+                font-size: 1.5rem;
+                font-weight: 600;
+                margin: 0;
+            }
+        }
+
+        .card-body {
+            padding: 2rem;
+        }
+    }
+
+    h6 {
+        color: #2c3e50;
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    /* Data Type Selection */
+    .data-type-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+
+        .data-type-card {
+            padding: 1rem;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+
+            &:hover {
+                border-color: #667eea;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+            }
+
+            &.active {
+                border-color: #667eea;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+            }
+
+            i {
+                display: block;
+                font-size: 1.5rem;
+                margin-bottom: 0.5rem;
+            }
+
+            span {
+                font-weight: 500;
+                font-size: 0.9rem;
+            }
+        }
+    }
+
+    /* Export Format Selection */
+    .export-format-list {
+        .export-format-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+
+            &:hover {
+                border-color: #667eea;
+                background-color: #f8f9ff;
+            }
+
+            &.active {
+                border-color: #667eea;
+                background-color: #667eea;
+                color: white;
+            }
+
+            i {
+                margin-right: 0.75rem;
+                width: 20px;
+                text-align: center;
+            }
+
+            span {
+                font-weight: 500;
+            }
+        }
+    }
+
+    /* Date Range */
+    .date-range {
+        .form-label {
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control {
+            border-radius: 6px;
+            border: 1px solid #ced4da;
+            padding: 0.75rem;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+
+            &:focus {
+                border-color: #667eea;
+                box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            }
+        }
+    }
+
+    /* Station Selection */
+    .station-selection {
+        .stations-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 1rem;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            background-color: #fafafa;
+
+            .station-item {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 1rem;
+                background: white;
+                border: 1px solid #e9ecef;
+                border-radius: 6px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+
+                &:hover {
+                    border-color: #667eea;
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                }
+
+                &.selected {
+                    border-color: #28a745;
+                    background-color: #f8fff9;
+                }
+
+                .station-info {
+                    flex: 1;
+
+                    strong {
+                        font-size: 0.9rem;
+                        color: #2c3e50;
+                    }
+
+                    small {
+                        font-size: 0.8rem;
+                        margin-top: 0.25rem;
+                    }
+                }
+
+                i.fa-check-circle {
+                    font-size: 1.2rem;
+                }
+            }
+        }
+    }
+
+    /* Action Buttons */
+    .btn {
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+
+        &.btn-outline-primary {
+            color: #667eea;
+            border-color: #667eea;
+
+            &:hover {
+                background-color: #667eea;
+                border-color: #667eea;
+            }
+        }
+
+        &.btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+
+            &:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+            }
+
+            &:disabled {
+                transform: none;
+                box-shadow: none;
+                opacity: 0.6;
+            }
+        }
+    }
+
+    /* Loading spinner */
+    .spinner-border-sm {
+        width: 1rem;
+        height: 1rem;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        padding: 1rem 0;
+
+        .card-body {
+            padding: 1rem;
+        }
+
+        .data-type-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .stations-grid {
+            grid-template-columns: 1fr;
+            max-height: 300px;
+        }
+
+        .station-item {
+            padding: 0.75rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .btn-lg {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+        }
+
+        .card-header {
+            padding: 1rem;
+
+            .card-title {
+                font-size: 1.25rem;
+            }
+        }
+    }
+}

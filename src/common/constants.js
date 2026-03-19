@@ -15,4 +15,5 @@ export const ROUTES = {
     map: "/ban-do",
     about: "/gioi-thieu",
     verify_email: "/verify-email/:userId",
+    adminExport: "/quan-tri/xuat-du-lieu",
 };

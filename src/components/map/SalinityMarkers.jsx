@@ -22,8 +22,23 @@ export const getSalinityTooltipClass = (salinity, stationCode = null) => {
 };
 
 export const createSalinityPopup = (point, latestSalinity, latestDate, trend, previousDate) => {
-    const formattedSalinity = `${(+latestSalinity).toFixed(2)}`;
-    const salinityValue = +latestSalinity;
+  const numericSalinity = Number(latestSalinity);
+  const hasValidSalinity =
+    latestSalinity !== null && latestSalinity !== undefined && Number.isFinite(numericSalinity);
+  const salinityValue = hasValidSalinity ? numericSalinity : null;
+  const formattedSalinity = hasValidSalinity ? salinityValue.toFixed(2) : "N/A";
+  const descriptionText = point.MoTa || point.PhanLoai || "Không có mô tả";
+
+  const latDecimal = convertDMSToDecimal(point?.ViDo);
+  const lngDecimal = convertDMSToDecimal(point?.KinhDo);
+  const latDisplay = Number.isFinite(latDecimal)
+    ? latDecimal.toFixed(6)
+    : point.ViDo || "Không xác định";
+  const lngDisplay = Number.isFinite(lngDecimal)
+    ? lngDecimal.toFixed(6)
+    : point.KinhDo || "Không xác định";
+  const stationCodeForClick = String(point.KiHieu || "").replace(/'/g, "\\'");
+  const stationNameForClick = String(point.TenDiem || "").replace(/'/g, "\\'");
 
     // Get station code from point data
     const stationCode = point.KiHieu;
@@ -67,7 +82,7 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
           <span class="value-number" style="color: ${statusColor}">
             ${formattedSalinity} ‰
           </span>
-          <span class="value-date">${latestDate}</span>
+          <span class="value-date">${latestDate || "Chưa có thời gian quan trắc"}</span>
         </div>
         
         ${
@@ -92,25 +107,39 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
           <div class="detail-grid">
             <div class="detail-item">
               <div class="detail-content py-2">
-                <strong class="detail-label"><i class="detail-icon">🏷️</i> Phân loại: </strong>
-                <span class="detail-value">${point.PhanLoai}</span>
+                <strong class="detail-label"><i class="detail-icon">🆔</i> Mã trạm: </strong>
+                <span class="detail-value">${point.KiHieu || "Không xác định"}</span>
               </div>
             </div>
             
             <div class="detail-item">
               <div class="detail-content py-2">
-                <strong class="detail-label font-weight"><i class="detail-icon">⏰</i> Thời gian: </strong>
-                <span class="detail-value">${point.ThoiGian}</span>
+                <strong class="detail-label font-weight"><i class="detail-icon">📝</i> Mô tả: </strong>
+                <span class="detail-value">${descriptionText}</span>
               </div>
             </div>
             
             <div class="detail-item">
               <div class="detail-content py-2">
-                <strong class="detail-label"><i class="detail-icon">📊</i> Tần suất đo: </strong>
-                <span class="detail-value">${point.TanSuat}</span>
+                <strong class="detail-label"><i class="detail-icon">🌐</i> Kinh độ: </strong>
+                <span class="detail-value">${lngDisplay}</span>
+              </div>
+            </div>
+
+            <div class="detail-item">
+              <div class="detail-content py-2">
+                <strong class="detail-label"><i class="detail-icon">📍</i> Vĩ độ: </strong>
+                <span class="detail-value">${latDisplay}</span>
               </div>
             </div>
           </div>
+        </div>
+
+        <div class="popup-actions">
+          <button class="action-btn primary" onclick="window.openChartDetails('${stationCodeForClick}', '${stationNameForClick}')">
+            <i class="btn-icon">📈</i>
+            Xem dữ liệu chi tiết
+          </button>
         </div>
       </div>
     </div>
@@ -140,16 +169,14 @@ export const renderSalinityPoints = async (mapInstance, setSalinityData, setSele
 
             // Find latest and previous salinity values
             for (let i = data.length - 1; i >= 0; i--) {
-                if (
-                    data[i].salinity !== "NULL" &&
-                    data[i].salinity !== null &&
-                    data[i].salinity !== undefined
-                ) {
+              const value = Number(data[i].salinity);
+
+              if (Number.isFinite(value)) {
                     if (latestSalinity === null) {
-                        latestSalinity = data[i].salinity;
+                  latestSalinity = value;
                         latestDate = new Date(data[i].date).toLocaleDateString("vi-VN");
                     } else if (previousSalinity === null) {
-                        previousSalinity = data[i].salinity;
+                  previousSalinity = value;
                         previousDate = new Date(data[i].date).toLocaleDateString("vi-VN");
                         break;
                     }
@@ -170,8 +197,8 @@ export const renderSalinityPoints = async (mapInstance, setSalinityData, setSele
                 };
             }
 
-            const icon = getSalinityIcon(latestSalinity || 0, point.KiHieu);
-            const tooltipClass = getSalinityTooltipClass(latestSalinity || 0, point.KiHieu);
+            const icon = getSalinityIcon(latestSalinity, point.KiHieu);
+            const tooltipClass = getSalinityTooltipClass(latestSalinity, point.KiHieu);
 
             const marker = L.marker([lat, lng], {
                 icon,

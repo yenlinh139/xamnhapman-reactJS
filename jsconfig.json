@@ -10,6 +10,7 @@
       "@assets/*": ["src/assets/*"],
       "@common/*": ["src/common/*"],
       "@config/*": ["src/config/*"],
+      "@services/*": ["src/services/*"],
       "@reducers/*": ["src/stores/reducers/*"],
       "@actions/*": ["src/stores/actions/*"]
     }

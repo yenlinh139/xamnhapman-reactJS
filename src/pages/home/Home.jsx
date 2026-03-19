@@ -14,23 +14,19 @@ const userRoles = [
         color: "gray",
         features: [
             "Xem thông tin tổng quan hệ thống",
-            "Xem vị trí các trạm quan trắc",
-            "Truy cập thông tin cơ bản",
-        ],
-    },
-    {
-        title: "Người dùng đã đăng nhập",
-        icon: "👤",
-        color: "blue",
-        features: [
             "Tương tác đầy đủ với bản đồ WebGIS",
             "Xem chi tiết dữ liệu trạm khí tượng và xâm nhập mặn",
             "Phân tích dữ liệu: lọc theo ngày, xuất biểu đồ",
             "Tìm kiếm trạm theo tên và đơn vị hành chính",
             "Zoom đến khu vực/trạm quan tâm",
             "Xem thông tin nền: ranh giới, thủy văn, giao thông",
-            "Gửi đánh giá và chỉnh sửa thông tin cá nhân",
         ],
+    },
+    {
+        title: "Người dùng đã đăng nhập",
+        icon: "👤",
+        color: "blue",
+        features: ["Tất cả chức năng của người dùng chưa đăng nhập", "Gửi đánh giá", "Chỉnh sửa thông tin cá nhân"],
     },
     {
         title: "Quản trị viên",
@@ -118,7 +114,6 @@ const Home = () => {
             <section id="about-section" className="about-section">
                 <Banner
                     title="WEBGIS GIÁM SÁT VÀ CẢNH BÁO XÂM NHẬP MẶN TRÊN HỆ THỐNG SÔNG, KÊNH, RẠCH TẠI THÀNH PHỐ HỒ CHÍ MINH"
-                    description="Khóa luận tốt nghiệp được thực hiện bởi Nguyễn Võ Yến Linh dưới sự hướng dẫn của ThS. Nguyễn Duy Liêm."
                 />
 
                 {/* Introduction Section */}
@@ -154,7 +149,7 @@ const Home = () => {
                                     <div className="stat-card">
                                         <span className="stat-icon">📅</span>
                                         <h3>Thời gian</h3>
-                                        <p>2007 - 2025</p>
+                                        <p>2007 - 2026</p>
                                     </div>
                                     <div className="stat-card">
                                         <span className="stat-icon">🎯</span>

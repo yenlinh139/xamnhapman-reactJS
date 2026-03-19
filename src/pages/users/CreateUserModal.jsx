@@ -90,9 +90,7 @@ function CreateUserModal() {
                                 <label className="form-label">Họ và tên</label>
                                 <input
                                     type="text"
-                                    className={`form-control ${
-                                        errorMessages.name?.length > 0 && "is-invalid"
-                                    }`}
+                                    className={`form-control ${errorMessages.name?.length > 0 ? "is-invalid" : ""}`}
                                     ref={name}
                                 />
                                 <div className="invalid-feedback">{errorMessages.name}</div>
@@ -101,10 +99,9 @@ function CreateUserModal() {
                                 <label className="form-label">Email</label>
                                 <input
                                     type="text"
-                                    className={`form-control ${
-                                        errorMessages.email?.length > 0 && "is-invalid"
-                                    }`}
+                                    className={`form-control ${errorMessages.email?.length > 0 ? "is-invalid" : ""}`}
                                     ref={email}
+                                    autoComplete="email"
                                 />
                                 <span className="invalid-feedback">{errorMessages.email}</span>
                             </div>
@@ -112,11 +109,10 @@ function CreateUserModal() {
                                 <label className="form-label">Số điện thoại</label>
                                 <input
                                     type="tel"
-                                    className={`form-control ${
-                                        errorMessages.phone?.length > 0 && "is-invalid"
-                                    }`}
+                                    className={`form-control ${errorMessages.phone?.length > 0 ? "is-invalid" : ""}`}
                                     ref={phone}
                                     placeholder="Nhập số điện thoại"
+                                    autoComplete="tel"
                                 />
                                 <span className="invalid-feedback">{errorMessages.phone}</span>
                             </div>
@@ -131,10 +127,9 @@ function CreateUserModal() {
                                 <label className="form-label">Mật khẩu</label>
                                 <input
                                     type="password"
-                                    className={`form-control ${
-                                        errorMessages.password?.length > 0 && "is-invalid"
-                                    }`}
+                                    className={`form-control ${errorMessages.password?.length > 0 ? "is-invalid" : ""}`}
                                     ref={password}
+                                    autoComplete="new-password"
                                 />
                                 <span className="invalid-feedback">{errorMessages.password}</span>
                             </div>
@@ -142,10 +137,9 @@ function CreateUserModal() {
                                 <label className="form-label">Xác nhận mật khẩu</label>
                                 <input
                                     type="password"
-                                    className={`form-control ${
-                                        errorMessages.confirmPassword?.length > 0 && "is-invalid"
-                                    }`}
+                                    className={`form-control ${errorMessages.confirmPassword?.length > 0 ? "is-invalid" : ""}`}
                                     ref={confirmPassword}
+                                    autoComplete="new-password"
                                 />
                                 <span className="invalid-feedback">{errorMessages.confirmPassword}</span>
                             </div>
