@@ -113,7 +113,7 @@ const ExportPreviewTable = ({ data, kiHieu }) => {
     );
 };
 
-const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {    
+const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
     // Check if user is logged in
     const isLoggedIn = localStorage.getItem("access_token");
     

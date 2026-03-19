@@ -1,0 +1,255 @@
+/* Area Selector Styles */
+.area-selector-toggle {
+  position: fixed;
+  top: 100px;
+  right: 20px;
+  z-index: 1000;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+.area-selector-toggle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.area-selector-modal .modal-content {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.area-selector-modal .modal-header {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  border-bottom: none;
+  padding: 1.5rem;
+}
+
+.area-selector-modal .modal-header .btn-close {
+  filter: invert(1);
+  opacity: 0.8;
+}
+
+.area-selector-modal .modal-header .btn-close:hover {
+  opacity: 1;
+}
+
+.area-selector-modal .modal-title {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.area-selector-modal .nav-tabs {
+  border-bottom: 2px solid #dee2e6;
+}
+
+.area-selector-modal .nav-tabs .nav-link {
+  border: none;
+  border-radius: 0;
+  color: #6c757d;
+  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.area-selector-modal .nav-tabs .nav-link:hover {
+  color: #007bff;
+  background-color: transparent;
+  border-bottom: 2px solid #007bff;
+}
+
+.area-selector-modal .nav-tabs .nav-link.active {
+  color: #007bff;
+  background-color: transparent;
+  border-bottom: 2px solid #007bff;
+  font-weight: 600;
+}
+
+.area-selector-modal .list-group-item {
+  border: none;
+  border-bottom: 1px solid #eee;
+  padding: 1rem;
+  transition: all 0.2s ease;
+}
+
+.area-selector-modal .list-group-item:hover {
+  background-color: #f8f9fa;
+  transform: translateX(5px);
+}
+
+.area-selector-modal .list-group-item:last-child {
+  border-bottom: none;
+}
+
+.area-selector-modal .list-group-item h6 {
+  color: #2c3e50;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.area-selector-modal .badge {
+  font-size: 0.7rem;
+  padding: 0.3rem 0.6rem;
+}
+
+.area-selector-modal .spinner-border-sm {
+  width: 1rem;
+  height: 1rem;
+}
+
+.area-selector-modal .input-group-text {
+  background-color: #f8f9fa;
+  border-right: none;
+  color: #6c757d;
+}
+
+.area-selector-modal .form-control {
+  border-left: none;
+  padding-left: 0;
+}
+
+.area-selector-modal .form-control:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.area-selector-modal .modal-footer {
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  justify-content: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .area-selector-toggle {
+    position: fixed;
+    bottom: 80px;
+    right: 15px;
+    top: auto;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+  }
+  
+  .area-selector-modal .modal-dialog {
+    margin: 0.5rem;
+    max-width: calc(100vw - 1rem);
+  }
+  
+  .area-selector-modal .modal-body {
+    padding: 1rem;
+  }
+  
+  .area-selector-modal .modal-header {
+    padding: 1rem;
+  }
+  
+  .area-selector-modal .tab-content {
+    max-height: 300px;
+  }
+  
+  .area-selector-modal .list-group-item {
+    padding: 0.75rem;
+  }
+  
+  .area-selector-modal .nav-tabs .nav-link {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Animation */
+.area-selector-modal .modal {
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+.area-selector-modal .modal-content {
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Loading State */
+.area-selector-modal .loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: 8px;
+}
+
+/* Empty State */
+.area-selector-modal .empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #6c757d;
+}
+
+.area-selector-modal .empty-state i {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+/* Station Type Icons */
+.station-icon {
+  width: 24px;
+  height: 24px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.station-icon.hydromet {
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCA5TDEzLjA5IDE1Ljc0TDEyIDIyTDEwLjkxIDE1Ljc0TDQgOUwxMC45MSA4LjI2TDEyIDJaIiBzdHJva2U9IiMwMDdiZmYiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0iI2Y4ZjlmYSIvPgo8L3N2Zz4K');
+}
+
+.station-icon.iot {
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMyIgZmlsbD0iIzI4YTc0NSIvPgo8cGF0aCBkPSJNMTIgMXY2bTAtNnY2bTEyIDVoLTZtNiAwSDZtMTEgMTFWN202IDExdjZNNy4wNSA3LjA1bDQuMjQgNC4yNG0wIDAtNC4yNCA0LjI0bTQuMjQtNC4yNCA0LjI0LTQuMjRtLTQuMjQgNC4yNCA0LjI0IDQuMjQiIHN0cm9rZT0iIzI4YTc0NSIgc3Ryb2tlLXdpZHRoPSIyIi8+Cjwvc3ZnPgo=');
+}
+
+/* Area Type Icons */
+.area-icon {
+  width: 24px;
+  height: 24px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.area-icon.district {
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIgMjJIMjJWOEgxNkwxNCA2SDEwTDggOEgyVjIyWiIgZmlsbD0iI2ZmNjMzOSIgc3Ryb2tlPSIjZmY2MzM5IiBzdHJva2Utd2lkdGg9IjIiLz4KPC9zdmc+Cg==');
+}
+
+.area-icon.commune {
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTMgMjFIMjFWOUwxMiAyTDMgOVYyMVoiIGZpbGw9IiM2Yzc1N2QiIHN0cm9rZT0iIzZjNzU3ZCIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxyZWN0IHg9IjkiIHk9IjEyIiB3aWR0aD0iNiIgaGVpZ2h0PSI5IiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K');
+}

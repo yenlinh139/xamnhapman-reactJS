@@ -111,6 +111,11 @@ function Header() {
                                     <NavLink to={ROUTES.users}>QUẢN LÝ NGƯỜI DÙNG</NavLink>
                                 </li>
                             )}
+                            {hasAccess && (
+                                <li className="text-center">
+                                    <NavLink to={ROUTES.adminExport}>XUẤT DỮ LIỆU</NavLink>
+                                </li>
+                            )}
                             {isLoggedIn && (
                                 <>
                                     {!hasAccess && (

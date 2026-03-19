@@ -158,7 +158,7 @@ export const legendNames = {
     DiaPhanHuyen: "Địa phận huyện",
     DiaPhanXa: "Địa phận xã",
     ThuyHe_line: "Thủy hệ 1 nét",
-    ThuyHe_polygon: "Thủy hệ 2 nét",   
+    ThuyHe_polygon: "Thủy hệ 2 nét",
     HienTrangSDD_2020: "Hiện trạng sử dụng đất 2020",
     QuyHoachSDD_2030: "Quy hoạch sử dụng đất 2030",
     diemdocao: "Độ cao (m)",
@@ -174,6 +174,7 @@ export const legendNames = {
     CTTL_2030_NongThonMoi: "Công trình nông thôn mới",
     CTTL_2030_NoiDong: "Công trình thủy lợi nhỏ, nội đồng",
     CTTL_2030_VungThuyLoi: "Vùng thủy lợi",
+    iotStations: "Trạm IoT",
 };
 
 export const createBaseMaps = () => {

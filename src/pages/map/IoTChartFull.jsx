@@ -4,18 +4,12 @@ import IoTBarChart from "./IoTBarChart";
 
 // Component bảng số liệu IoT với 4 cột cảm biến
 const IoTExportPreviewTable = ({ data }) => {
-    // Gom nhóm data theo Date, mỗi dòng là 1 thời điểm
-    const grouped = {};
-    data.forEach((item) => {
-        const time = item.Date;
-        if (!grouped[time]) grouped[time] = { Date: time };
-        if (item.SensorType === "Salt") grouped[time].Salt = item.Value;
-        if (item.SensorType === "Distance") grouped[time].Distance = item.Value;
-        if (item.SensorType === "Daily Rainfall") grouped[time].DailyRainfall = item.Value;
-        if (item.SensorType === "Temp") grouped[time].Temp = item.Value;
-    });
-    // Sắp xếp theo thời gian tăng dần
-    const rows = Object.values(grouped).sort((a, b) => new Date(a.Date) - new Date(b.Date));
+    const safeData = Array.isArray(data) ? data : [];
+
+    // Data đã có đầy đủ thông tin sensor trong mỗi item, chỉ cần sắp xếp theo thời gian
+    const rows = safeData
+        .filter((item) => item?.Date || item?.date_time) // Lọc bỏ item không có thời gian
+        .sort((a, b) => new Date(a.Date || a.date_time) - new Date(b.Date || b.date_time));
 
     return (
         <div className="table-responsive mb-3" style={{ maxHeight: 400 }}>
@@ -24,21 +18,37 @@ const IoTExportPreviewTable = ({ data }) => {
                     <tr>
                         <th style={{ width: 60 }}>#</th>
                         <th>Thời gian</th>
-                        <th>Độ mặn (g/L)</th>
-                        <th>Mực nước (cm)</th>
+                        <th>Độ mặn (ppt)</th>
+                        <th>Mực nước (m)</th>
                         <th>Lượng mưa hàng ngày (mm)</th>
-                        <th>Nhiệt độ không khí (°C)</th>
+                        <th>Nhiệt độ (°C)</th>
                     </tr>
                 </thead>
                 <tbody>
                     {rows.map((row, idx) => (
-                        <tr key={row.Date}>
+                        <tr key={`${row.Date || row.date_time}-${idx}`}>
                             <td>{idx + 1}</td>
-                            <td>{new Date(row.Date).toLocaleString("vi-VN")}</td>
-                            <td className="text-end">{row.Salt !== undefined ? Number(row.Salt).toFixed(2) : ""}</td>
-                            <td className="text-end">{row.Distance !== undefined ? Number(row.Distance).toFixed(2) : ""}</td>
-                            <td className="text-end">{row.DailyRainfall !== undefined ? Number(row.DailyRainfall).toFixed(2) : ""}</td>
-                            <td className="text-end">{row.Temp !== undefined ? Number(row.Temp).toFixed(2) : ""}</td>
+                            <td>{new Date(row.Date || row.date_time).toLocaleString("vi-VN")}</td>
+                            <td className="text-end">
+                                {row.salt_value !== undefined && row.salt_value !== null
+                                    ? `${Number(row.salt_value).toFixed(4)}`
+                                    : "-"}
+                            </td>
+                            <td className="text-end">
+                                {row.distance_value !== undefined && row.distance_value !== null
+                                    ? `${Number(row.distance_value).toFixed(4)}`
+                                    : "-"}
+                            </td>
+                            <td className="text-end">
+                                {row.daily_rainfall_value !== undefined && row.daily_rainfall_value !== null
+                                    ? `${Number(row.daily_rainfall_value).toFixed(4)}`
+                                    : "-"}
+                            </td>
+                            <td className="text-end">
+                                {row.temp_value !== undefined && row.temp_value !== null
+                                    ? `${Number(row.temp_value).toFixed(1)}`
+                                    : "-"}
+                            </td>
                         </tr>
                     ))}
                 </tbody>
@@ -57,22 +67,39 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
     });
     const [filteredData, setFilteredData] = useState([]);
 
+    const rawDataPoints = iotData?.dataPoints?.length ? iotData.dataPoints : iotData?.data || [];
+    const dataPoints = Array.isArray(rawDataPoints) ? rawDataPoints : [];
+
     useEffect(() => {
-        if (show && iotData?.dataPoints) {
-            const validData = iotData.dataPoints.filter(
-                (item) => item.Value !== null && item.Value !== "NULL" && !isNaN(item.Value)
-            );
+        if (show && dataPoints.length > 0) {
+            const validData = dataPoints.filter((item) => {
+                const hasLegacyValue =
+                    item.Value !== undefined && item.Value !== null && item.Value !== "NULL";
+                const hasNewValue =
+                    item.salt_value !== undefined ||
+                    item.temp_value !== undefined ||
+                    item.distance_value !== undefined ||
+                    item.daily_rainfall_value !== undefined;
+
+                return hasLegacyValue || hasNewValue;
+            });
 
             if (validData.length > 0) {
+                const firstDateRaw = validData[validData.length - 1].Date || validData[validData.length - 1].date_time;
+                const lastDateRaw = validData[0].Date || validData[0].date_time;
+
+                const firstDate = firstDateRaw ? String(firstDateRaw).split(" ")[0] : "";
+                const lastDate = lastDateRaw ? String(lastDateRaw).split(" ")[0] : "";
+               
                 setExportRange({
-                    startDate: validData[0].Date.split(" ")[0],
-                    endDate: validData[validData.length - 1].Date.split(" ")[0],
+                    startDate: firstDate,
+                    endDate: lastDate,
                 });
             }
         } else {
             setExportRange({ startDate: "", endDate: "" });
         }
-    }, [show, iotData]);
+    }, [show, iotData, dataPoints]);
 
     const handleDateRangeChange = (e) => {
         const { name, value } = e.target;
@@ -85,9 +112,9 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
         const startDate = new Date(name === "startDate" ? value : exportRange.startDate);
         const endDate = new Date(name === "endDate" ? value : exportRange.endDate);
 
-        if (startDate && endDate && startDate <= endDate && iotData?.dataPoints) {
-            const filtered = iotData.dataPoints.filter((item) => {
-                const itemDate = new Date(item.Date);
+        if (startDate && endDate && startDate <= endDate && dataPoints.length > 0) {
+            const filtered = dataPoints.filter((item) => {
+                const itemDate = new Date(item.Date || item.date_time);
                 return itemDate >= startDate && itemDate <= endDate;
             });
             setFilteredData(filtered);
@@ -153,11 +180,18 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
         }
     };
 
-    if (!iotData) return null;
+    if (!show) return null;
 
-    const data = iotData.dataPoints || [];
-    const startDate = data?.length > 0 ? new Date(data[0].Date).toLocaleDateString("vi-VN") : null;
-    const endDate = data?.length > 0 ? new Date(data[data.length - 1].Date).toLocaleDateString("vi-VN") : null;
+    const data = dataPoints;
+    const stationName = iotData?.stationName || iotData?.stationInfo?.station_name || "Trạm IoT";
+    const serialNumber = iotData?.serialNumber || iotData?.stationInfo?.serial_number || "N/A";
+
+    const startDate = data?.length > 0
+        ? new Date(data[0].Date || data[0].date_time).toLocaleDateString("vi-VN")
+        : null;
+    const endDate = data?.length > 0
+        ? new Date(data[data.length - 1].Date || data[data.length - 1].date_time).toLocaleDateString("vi-VN")
+        : null;
 
     return (
         <div
@@ -167,16 +201,25 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
         >
             <div
                 className="modal-dialog modal-xl modal-dialog-centered"
-                style={{ maxWidth: "95%", width: "95%", height: "90vh" }}
+                style={{ maxWidth: "95%", width: "95%", height: "90vh", maxHeight: "90vh" }}
             >
-                <div className="modal-content" style={{ height: "100%", width: "100%" }}>
+                <div
+                    className="modal-content"
+                    style={{
+                        height: "100%",
+                        width: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                        overflow: "hidden",
+                    }}
+                >
                     <div className="modal-header border-0 pb-0">
                         <div className="w-100 text-center">
                             <h5 className="modal-title mb-1 fw-bold">
-                                📡 Dữ liệu IoT - {iotData.stationName}
+                                📡 Dữ liệu IoT - {stationName}
                             </h5>
                             <div className="text-muted small">
-                                Serial: <strong>{iotData.serialNumber}</strong>
+                                Serial: <strong>{serialNumber}</strong>
                             </div>
                             {startDate && endDate && (
                                 <div className="text-muted small">
@@ -191,8 +234,16 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                         ></button>
                     </div>
 
-                    <div className="modal-body">
-                        <ul className="nav nav-tabs mb-3" role="tablist">
+                    <div
+                        className="modal-body"
+                        style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            minHeight: 0,
+                            overflow: "hidden",
+                        }}
+                    >
+                        <ul className="nav nav-tabs mb-3" role="tablist" style={{ flexShrink: 0 }}>
                             <li className="nav-item">
                                 <button
                                     className="nav-link active"
@@ -217,17 +268,32 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                             </li>
                         </ul>
 
-                        <div className="tab-content">
-                            <div className="tab-pane fade show active" id="iot-chart-content">
+                        <div className="tab-content" style={{ flex: 1, minHeight: 0 }}>
+                            <div
+                                className="tab-pane fade show active h-100"
+                                id="iot-chart-content"
+                                style={{ overflow: "hidden" }}
+                            >
                                 {data.length > 0 ? (
-                                    <>
-                                        <div id="iot-chart" className="chart-container">
-                                            <IoTBarChart data={data} height={500} />
+                                    <div
+                                        className="h-100"
+                                        style={{
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            minHeight: 0,
+                                            overflow: "hidden",
+                                        }}
+                                    >
+                                        <div id="iot-chart" className="chart-container" style={{ flex: 1, minHeight: 0 }}>
+                                            <IoTBarChart data={data} height="100%" />
                                             <div className="text-center text-muted small mt-2">
                                                 Tổng cộng: {data.length} điểm dữ liệu
                                             </div>
                                         </div>
-                                        <div className="mt-3 d-flex justify-content-between align-items-center">
+                                        <div
+                                            className="mt-2 d-flex justify-content-between align-items-center"
+                                            style={{ flexShrink: 0 }}
+                                        >
                                             <div className="text-muted small">
                                                 Hiển thị: <strong>{data.length}</strong> điểm dữ liệu
                                             </div>
@@ -240,13 +306,17 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                                                 📸 {isLoggedIn ? "Tải ảnh biểu đồ" : "Đăng nhập để tải"}
                                             </button>
                                         </div>
-                                    </>
+                                    </div>
                                 ) : (
-                                    <p className="text-muted">Không có dữ liệu hợp lệ.</p>
+                                    <div className="h-100 d-flex align-items-center justify-content-center">
+                                        <p className="text-muted mb-0">
+                                            {iotData ? "Không có dữ liệu hợp lệ." : "Đang tải dữ liệu IoT..."}
+                                        </p>
+                                    </div>
                                 )}
                             </div>
 
-                            <div className="tab-pane fade" id="iot-export-content">
+                            <div className="tab-pane fade h-100" id="iot-export-content" style={{ overflow: "auto" }}>
                                 {data.length > 0 ? (
                                     <>
                                         {/* Risk Level Legend */}
@@ -262,7 +332,7 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                                                     >
                                                         Bình thường
                                                     </span>
-                                                    <span className="text-muted">{"(< 1‰)"}</span>
+                                                    <span className="text-muted">{"(< 1 ppt)"}</span>
                                                 </div>
                                                 <div className="col-6 col-md-3">
                                                     <span
@@ -271,7 +341,7 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                                                     >
                                                         Rủi ro cấp 1
                                                     </span>
-                                                    <span className="text-muted">(1-2‰)</span>
+                                                    <span className="text-muted">(1-4 ppt)</span>
                                                 </div>
                                                 <div className="col-6 col-md-3">
                                                     <span
@@ -280,7 +350,7 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                                                     >
                                                         Rủi ro cấp 2
                                                     </span>
-                                                    <span className="text-muted">(2-4‰)</span>
+                                                    <span className="text-muted">(4-8 ppt)</span>
                                                 </div>
                                                 <div className="col-6 col-md-3">
                                                     <span
@@ -289,7 +359,7 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                                                     >
                                                         Rủi ro cấp 3
                                                     </span>
-                                                    <span className="text-muted">({"> 4‰"})</span>
+                                                    <span className="text-muted">({"> 8 ppt"})</span>
                                                 </div>
                                             </div>
                                         </div>

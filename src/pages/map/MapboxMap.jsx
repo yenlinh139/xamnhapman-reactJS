@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, forwardRef, useImperativeHandle } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
@@ -13,13 +13,14 @@ import { TOAST } from "@common/constants.js";
 import SaltChartFull from "@pages/map/SaltChartFull";
 import HydrometChartFull from "@pages/map/HydrometChartFull";
 import IoTChartFull from "@pages/map/IoTChartFull";
-import MapDetails from "@pages/map/MapDetails";
 import { initializeMap } from "@components/map/mapInitialization";
 import { getSalinityTooltipClass, renderSalinityPoints } from "@components/map/SalinityMarkers";
 import { renderHydrometStations } from "@components/map/HydrometMarkers";
+import { renderIoTStations, removeIoTStations } from "@components/map/IoTMarkers";
 import { handleLocationChange, handleFeatureHighlight } from "@components/map/mapUtils";
 import { handleLayerLabelToggle, handleZoomChange, clearAllLabels } from "@components/map/mapLabels";
 import {
+    fetchSalinityData,
     fetchSalinityStationPositions,
     fetchHydrometeorologyStationPositions,
 } from "@components/map/mapDataServices";
@@ -31,7 +32,7 @@ import {
     updateLegendVisibility 
 } from "@components/map/mapStyles";
 
-const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, iotData }) => {
+const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFeature, iotData, onMapReady }, ref) => {
     const mapContainer = useRef(null);
     const [map, setMap] = useState(null);
     const overlayLayers = useRef({});
@@ -42,13 +43,34 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, iotDa
     const [salinityData, setSalinityData] = useState([]);
     const [selectedStation, setSelectedStation] = useState(null);
     const [hydrometData, setHydrometData] = useState([]);
+    const [internalIotData, setInternalIotData] = useState(null);
     const highlightedLayerRef = useRef(null);
     const highlightedMarkerRef = useRef(null);
 
-    const handleCloseDetails = () => {
-        setSelectedPoint(null);
-        setSelectedStation(null);
-    };
+    // Expose map instance through ref
+    const onMapReadyRef = useRef(onMapReady);
+
+    useEffect(() => {
+        onMapReadyRef.current = onMapReady;
+    }, [onMapReady]);
+    useImperativeHandle(ref, () => ({
+        getMap: () => map,
+        flyTo: (coords, zoom, options) => {
+            if (map) {
+                map.flyTo(coords, zoom, options);
+            }
+        },
+        fitBounds: (bounds, options) => {
+            if (map) {
+                map.fitBounds(bounds, options);
+            }
+        },
+        setView: (coords, zoom) => {
+            if (map) {
+                map.setView(coords, zoom);
+            }
+        }
+    }), [map]);
 
     // Helper function to create WMS layer with consistent configuration
     const createWMSLayer = (layerName, options = {}) => {
@@ -80,62 +102,115 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, iotDa
         };
     };
 
-    // Auto show MapDetails when IoT data is available
+    // Register global function for opening IoT chart from leaflet popup
     useEffect(() => {
-        if (iotData && iotData.dataPoints && iotData.dataPoints.length > 0) {
-            setSelectedPoint({
-                tenDiem: iotData.stationName,
-                kiHieu: iotData.serialNumber,
-                type: 'iot'
+        window.onOpenIoTChart = (iotInfo) => {
+            if (!iotInfo) return;
+
+            const rows = iotInfo.dataPoints || iotInfo.data || [];
+
+            // Keep IoT flow independent from MapDetails side panel.
+            setSelectedPoint(null);
+            setSelectedStation(null);
+
+            setInternalIotData({
+                stationInfo: iotInfo.stationInfo,
+                stationName: iotInfo.stationName,
+                serialNumber: iotInfo.serialNumber,
+                dataPoints: rows,
+                data: rows,
+                summary: iotInfo.summary,
             });
-        }
-    }, [iotData]);
+            setShowIoTChart(true);
+        };
+
+        return () => {
+            if (window.onOpenIoTChart) {
+                delete window.onOpenIoTChart;
+            }
+        };
+    }, []);
 
     // Add global function for popup button action
     useEffect(() => {
-        window.openChartDetails = (kiHieu) => {
-            // Find the selected point data
-            const selectedPointData = selectedPoint?.kiHieu === kiHieu ? selectedPoint : null;
+        window.openChartDetails = async (kiHieu, tenDiem) => {
+            if (!kiHieu) return;
 
-            if (selectedPointData && salinityData.length > 0) {
+            try {
+                const isCurrentPoint = selectedPoint?.kiHieu === kiHieu;
+                const hasCurrentData = Array.isArray(salinityData) && salinityData.length > 0;
+
+                if (!isCurrentPoint || !hasCurrentData) {
+                    const fetchedData = await fetchSalinityData(kiHieu);
+                    setSalinityData(Array.isArray(fetchedData) ? fetchedData : []);
+                }
+
+                setSelectedPoint((prev) => ({
+                    kiHieu,
+                    tenDiem: tenDiem || prev?.tenDiem || kiHieu,
+                    thongTin: prev?.thongTin || { KiHieu: kiHieu, TenDiem: tenDiem || kiHieu },
+                }));
+
                 setShowFullChart(true);
-            } else {
-                // If point data is not available, fetch it
-                const fetchPointData = async () => {
-                    try {
-                        // You might need to fetch the point data here if not already available
-                        // For now, just open the chart with available data
-                        setShowFullChart(true);
-                    } catch (error) {
-                        console.error("Error opening chart details:", error);
-                    }
-                };
-                fetchPointData();
+            } catch (error) {
+                console.error("Error opening chart details:", error);
+                ToastCommon({ message: "Không thể mở biểu đồ độ mặn", type: TOAST.ERROR });
             }
         };
 
-        window.openHydrometDetails = async (stationName) => {
+        window.openHydrometDetails = async (stationCode, stationName) => {
             try {
                 // Set the selected station info for the chart
-                if (stationName) {
+                if (stationCode || stationName) {
+                    const stationKey = stationCode || stationName;
+
                     // Try to find the station in the existing data
                     const existingStation = hydrometData.find(
-                        (data) => data.TenTam === stationName || data.maTram === stationName,
+                        (data) =>
+                            data.TenTram === stationName ||
+                            data.TenTam === stationName ||
+                            data.TenTram === stationKey ||
+                            data.TenTam === stationKey ||
+                            data.thongTin?.TenTram === stationName ||
+                            data.thongTin?.TenTam === stationName ||
+                            data.maTram === stationKey ||
+                            data.KiHieu === stationKey,
                     );
 
                     if (existingStation) {
                         setSelectedStation({
-                            maTram: existingStation.maTram || stationName,
-                            tenTram: existingStation.thongTin.TenTram || stationName,
-                            thongTin: existingStation.thongTin || {},
+                            maTram: existingStation.maTram || stationKey,
+                            tenTram:
+                                existingStation.thongTin?.TenTram ||
+                                existingStation.thongTin?.TenTam ||
+                                stationName ||
+                                stationKey,
+                            thongTin: {
+                                ...(existingStation.thongTin || {}),
+                                TenTram:
+                                    existingStation.thongTin?.TenTram ||
+                                    existingStation.thongTin?.TenTam ||
+                                    stationName ||
+                                    stationKey,
+                                TenTam:
+                                    existingStation.thongTin?.TenTam ||
+                                    existingStation.thongTin?.TenTram ||
+                                    stationName ||
+                                    stationKey,
+                                KiHieu: existingStation.KiHieu || stationCode || stationKey,
+                            },
                             data: hydrometData,
                         });
                     } else {
                         // Create a basic station object for the chart
                         setSelectedStation({
-                            maTram: stationName,
-                            tenTram: stationName,
-                            thongTin: {},
+                            maTram: stationKey,
+                            tenTram: stationName || stationKey,
+                            thongTin: {
+                                TenTram: stationName || stationKey,
+                                TenTam: stationName || stationKey,
+                                KiHieu: stationCode || stationKey,
+                            },
                             data: hydrometData,
                         });
                     }
@@ -158,7 +233,7 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, iotDa
                 delete window.openHydrometDetails;
             }
         };
-    }, [selectedPoint, salinityData, selectedStation, hydrometData]);
+    }, [selectedPoint, salinityData, hydrometData]);
 
     // Initialize map
     useEffect(() => {
@@ -166,6 +241,31 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, iotDa
 
         const { mapInstance } = initializeMap(mapContainer.current);
         setMap(mapInstance);
+        if (typeof onMapReadyRef.current === "function") {
+            onMapReadyRef.current(mapInstance);
+        }
+
+        
+
+        // Listen for location found and error events
+        mapInstance.on('locationfound', (e) => {
+            const { lat, lng } = e.latlng;
+            console.log('GPS Location found:', lat, lng);
+            
+            // Show success notification
+            ToastCommon({ 
+                message: `Đã định vị: ${lat.toFixed(6)}, ${lng.toFixed(6)}`, 
+                type: TOAST.SUCCESS 
+            });
+        });
+
+        mapInstance.on('locationerror', (e) => {
+            console.error('GPS Location error:', e);
+            ToastCommon({ 
+                message: `Lỗi định vị GPS: ${e.message}`, 
+                type: TOAST.ERROR 
+            });
+        });
 
         // Add a test function to window for debugging
         window.testHighlightFeature = () => {
@@ -199,6 +299,9 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, iotDa
             window.removeEventListener("resize", handleResize);
             delete window.testHighlightFeature;
             if (mapInstance) {
+                if (typeof onMapReadyRef.current === "function") {
+                    onMapReadyRef.current(null);
+                }
                 mapInstance.remove();
             }
         };
@@ -232,6 +335,8 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, iotDa
             if (
                 layer.options?.isSalinityPoint ||
                 layer.options?.isHydrometStation ||
+                layer.isIoTStation ||
+                layer.options?.isIoTStation ||
                 layer.options?.isDistrictLabel ||
                 layer.options?.isCommuneLabel
             ) {
@@ -258,7 +363,13 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, iotDa
                     ...getLayerConfig(layerName),
                     type: "marker"
                 };
-            } 
+            } else if (layerName === "iotStations") {
+                renderIoTStations(map, setInternalIotData);
+                overlayLayers.current[layerName] = {
+                    ...getLayerConfig(layerName),
+                    type: "marker"
+                };
+            }
             // Handle special raster layer (diemdocao)
             else if (layerName === "diemdocao") {
                 const rasterLayer = L.tileLayer.wms("http://localhost:8080/geoserver/xamnhapman_tphcm/wms", {
@@ -1298,22 +1409,9 @@ const MapboxMap = ({ selectedLayers, selectedLocation, highlightedFeature, iotDa
 
         return () => clearTimeout(timeoutId);
     }, [map]);
-console.log(`iotData.summary`, iotData?.summary);
     return (
         <>
             <div ref={mapContainer} id="mapContainer"></div>
-
-            <MapDetails
-                salinityData={salinityData}
-                selectedPoint={selectedPoint}
-                selectedStation={selectedStation}
-                hydrometData={hydrometData}
-                iotData={iotData}
-                onOpenFullChart={() => setShowFullChart(true)}
-                onOpenHydrometChart={() => setShowHydrometChart(true)}
-                onOpenIoTChart={() => setShowIoTChart(true)}
-                onClose={handleCloseDetails}
-            />
 
             <SaltChartFull
                 show={showFullChart}
@@ -1326,18 +1424,25 @@ console.log(`iotData.summary`, iotData?.summary);
             <HydrometChartFull
                 show={showHydrometChart}
                 kiHieu={selectedStation?.maTram || selectedPoint?.kiHieu}
-                TenTam={selectedStation?.thongTin?.TenTam || selectedPoint?.tenDiem}
+                TenTam={
+                    selectedStation?.thongTin?.TenTram ||
+                    selectedStation?.thongTin?.TenTam ||
+                    selectedStation?.tenTram ||
+                    selectedPoint?.tenDiem
+                }
                 hydrometData={hydrometData}
                 onClose={() => setShowHydrometChart(false)}
             />
 
             <IoTChartFull
                 show={showIoTChart}
-                iotData={iotData}
+                iotData={iotData || internalIotData}
                 onClose={() => setShowIoTChart(false)}
             />
         </>
     );
-};
+});
+
+MapboxMap.displayName = 'MapboxMap';
 
 export default MapboxMap;

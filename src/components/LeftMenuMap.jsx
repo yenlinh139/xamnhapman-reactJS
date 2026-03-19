@@ -15,6 +15,8 @@ function LeftMenuMap({
     setHighlightedFeature,
     highlightedFeature,
     setIotData,
+    activeTab,
+    setActiveTab,
 }) {
     const [state, setState] = useState({
         openMenuIndex: null,
@@ -90,7 +92,7 @@ function LeftMenuMap({
 
     // Hàm để lấy dữ liệu IoT mặc định (7 ngày gần nhất)
     const handleIoTQuickView = async () => {
-        try {
+        try {            
             // Hiển thị trạm IoT trên bản đồ trước
             setState((prevState) => ({
                 ...prevState,
@@ -98,7 +100,7 @@ function LeftMenuMap({
             }));
             onLayerToggle("iotStations", true);
 
-            const stationsResponse = await fetchIoTStations();
+            const stationsResponse = await fetchIoTStations();            
             if (stationsResponse.success && stationsResponse.data && stationsResponse.data.length > 0) {
                 // Cập nhật thống kê
                 const stats = calculateStationStats(stationsResponse.data);
@@ -109,10 +111,10 @@ function LeftMenuMap({
                     .filter(station => station.total_records > 0 && station.serial_number)
                     .sort((a, b) => parseInt(b.total_records) - parseInt(a.total_records))[0];
 
-                if (activeStation) {
+                if (activeStation) {                  
                     // Tự động lấy dữ liệu 7 ngày gần nhất
                     const endDate = new Date().toISOString().split('T')[0];
-                    const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                    const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];                 
                     
                     const result = await fetchIoTData(activeStation.serial_number, {
                         startDate,
@@ -122,14 +124,21 @@ function LeftMenuMap({
                     
                     if (result.success && result.data && result.data.length > 0) {
                         const formattedData = formatIoTDataForDisplay(result, activeStation);
+
                         if (formattedData) {
                             setIotData(formattedData);
                         }
+                    } else {
+                        console.warn('⚠️ No IoT data found for quick view');
                     }
+                } else {
+                    console.warn('⚠️ No active station found with data');
                 }
+            } else {
+                console.warn('⚠️ No IoT stations found');
             }
         } catch (error) {
-            console.error("Error fetching IoT quick view:", error);
+            console.error("❌ Error fetching IoT quick view:", error);
         }
     };
 
@@ -298,13 +307,34 @@ function LeftMenuMap({
                     setSelectedLocation({ lat, lng, zoom: 15 });
 
                     const feature = {
-                        id: result.id,
+                        id: result.KiHieu, // Use KiHieu as ID for salinity points
                         geometry: {
                             type: "Point",
                             coordinates: [lng, lat],
                         },
                         icon: "droplet",
                         name: result.TenDiem,
+                    };
+
+                    setHighlightedFeature(feature);
+                }
+                return;
+            }
+
+            if (result.type === "khi_tuong_thuy_van") {
+                const lat = result.ViDo;
+                const lng = result.KinhDo;
+                if (lat && lng) {
+                    setSelectedLocation({ lat, lng, zoom: 15 });
+
+                    const feature = {
+                        id: result.KiHieu, // Use KiHieu as ID for weather stations
+                        geometry: {
+                            type: "Point",
+                            coordinates: [lng, lat],
+                        },
+                        icon: "cloud-rain",
+                        name: result.TenTram,
                     };
 
                     setHighlightedFeature(feature);
@@ -324,9 +354,9 @@ function LeftMenuMap({
 
                 const feature = {
                     geometry: geojson,
-                    id: result.id,
+                    id: result.id || result.MaHuyen || result.MaXa,
                     icon: "marker",
-                    name: result.name || "Điểm",
+                    name: result.name || result.TenHuyen || result.TenXa || "Điểm",
                 };
 
                 setHighlightedFeature(feature);
@@ -337,8 +367,8 @@ function LeftMenuMap({
                 const feature = {
                     type: "Feature",
                     geometry: geojson,
-                    id: result.id,
-                    name: result.name || "Vùng",
+                    id: result.id || result.MaHuyen || result.MaXa,
+                    name: result.name || result.TenHuyen || result.TenXa || "Vùng",
                 };
 
                 setHighlightedFeature(feature);
@@ -386,9 +416,14 @@ function LeftMenuMap({
                                                     id="layer-salinity-points"
                                                     className="layer-checkbox"
                                                     checked={state.enabledLayers.includes("salinityPoints")}
-                                                    onChange={(e) => handleSalinityPointsToggle(e.target.checked)}
+                                                    onChange={(e) =>
+                                                        handleSalinityPointsToggle(e.target.checked)
+                                                    }
                                                 />
-                                                <label htmlFor="layer-salinity-points" className="layer-label">
+                                                <label
+                                                    htmlFor="layer-salinity-points"
+                                                    className="layer-label"
+                                                >
                                                     <span className="layer-name">Điểm đo mặn</span>
                                                 </label>
                                             </div>
@@ -400,63 +435,50 @@ function LeftMenuMap({
                                             <div className="iot-status-bar">
                                                 <div className="status-item">
                                                     <span className="status-dot active"></span>
-                                                    <span className="status-text">{iotStationStats.active}/{iotStationStats.total} trạm hoạt động</span>
+                                                    <span className="status-text">
+                                                        {iotStationStats.active}/{iotStationStats.total} trạm
+                                                        hoạt động
+                                                    </span>
                                                 </div>
                                                 {iotStationStats.lastSync && (
                                                     <div className="status-item">
                                                         <i className="fa-solid fa-clock"></i>
                                                         <span className="status-text">
-                                                            Sync: {new Date(iotStationStats.lastSync).toLocaleTimeString('vi-VN', { 
-                                                                hour: '2-digit', 
-                                                                minute: '2-digit' 
+                                                            Sync:{" "}
+                                                            {new Date(
+                                                                iotStationStats.lastSync,
+                                                            ).toLocaleTimeString("vi-VN", {
+                                                                hour: "2-digit",
+                                                                minute: "2-digit",
                                                             })}
                                                         </span>
                                                     </div>
                                                 )}
                                             </div>
 
-                                            {/* Quick View Button */}
-                                            <div className="layer-item iot-quick-view">
-                                                <div className="iot-quick-button" onClick={handleIoTQuickView}>
-                                                    <div className="iot-icon-container">
-                                                        <i className="fa-solid fa-tower-broadcast iot-icon"></i>
-                                                        <div className="iot-signal-animation">
-                                                            <div className="signal-ring ring-1"></div>
-                                                            <div className="signal-ring ring-2"></div>
-                                                            <div className="signal-ring ring-3"></div>
+                                            {/* Toggle để hiển thị trạm IoT trên map */}
+                                            <div className="layer-item monitoring-layer">
+                                                <div className="layer-toggle">
+                                                    <input
+                                                        type="checkbox"
+                                                        id="layer-iot-stations"
+                                                        className="layer-checkbox"
+                                                        checked={state.enabledLayers.includes("iotStations")}
+                                                        onChange={(e) =>
+                                                            handleIoTStationsToggle(e.target.checked)
+                                                        }
+                                                    />
+                                                    <label
+                                                        htmlFor="layer-iot-stations"
+                                                        className="layer-label"
+                                                    >
+                                                        <div className="layer-info">
+                                                            <div className="layer-details">
+                                                                <span className="layer-name">Trạm IoT</span>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <div className="iot-info">
-                                                        <span className="iot-title">Trạm IoT</span>
-                                                        <span className="iot-subtitle">Xem nhanh 7 ngày</span>
-                                                        <div className="iot-features">
-                                                            <span className="feature-badge">
-                                                                <i className="fa-solid fa-clock"></i>
-                                                                Real-time 5 phút
-                                                            </span>
-                                                            <span className="feature-badge">
-                                                                <i className="fa-solid fa-database"></i>
-                                                                Auto-sync 3h
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="iot-arrow">
-                                                        <i className="fa-solid fa-chevron-right"></i>
-                                                    </div>
+                                                    </label>
                                                 </div>
-                                            </div>
-
-                                            {/* Advanced Options Button */}
-                                            <div className="layer-item iot-advanced">
-                                                <button
-                                                    type="button"
-                                                    className="iot-advanced-button"
-                                                    onClick={handleIoTStationClick}
-                                                    title="Tùy chọn nâng cao - Chọn trạm và thời gian cụ thể"
-                                                >
-                                                    <i className="fa-solid fa-sliders"></i>
-                                                    <span>Tùy chọn nâng cao</span>
-                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -490,11 +512,17 @@ function LeftMenuMap({
                                                 <div className="subcategory-item" key={uniqueIndex}>
                                                     <div
                                                         className={`subcategory-header ${isOpen ? "active" : ""}`}
-                                                        onClick={() => toggleIrrigationSubDropdown(uniqueIndex)}
+                                                        onClick={() =>
+                                                            toggleIrrigationSubDropdown(uniqueIndex)
+                                                        }
                                                     >
                                                         <div className="subcategory-info">
-                                                            <i className={`${menu.icon} subcategory-icon`}></i>
-                                                            <span className="subcategory-name">{menu.name}</span>
+                                                            <i
+                                                                className={`${menu.icon} subcategory-icon`}
+                                                            ></i>
+                                                            <span className="subcategory-name">
+                                                                {menu.name}
+                                                            </span>
                                                         </div>
                                                         <i
                                                             className={`fa-solid fa-chevron-right expand-icon ${
@@ -506,15 +534,23 @@ function LeftMenuMap({
                                                     {isOpen && (
                                                         <div className="subcategory-layers">
                                                             {menu.layers.map((layer, idx) => (
-                                                                <div className="layer-item" key={`${uniqueIndex}-${idx}`}>
+                                                                <div
+                                                                    className="layer-item"
+                                                                    key={`${uniqueIndex}-${idx}`}
+                                                                >
                                                                     <div className="layer-toggle">
                                                                         <input
                                                                             type="checkbox"
                                                                             id={`layer-${layer}`}
                                                                             className="layer-checkbox"
-                                                                            checked={state.enabledLayers.includes(layer)}
+                                                                            checked={state.enabledLayers.includes(
+                                                                                layer,
+                                                                            )}
                                                                             onChange={(e) =>
-                                                                                handleLayerToggle(layer, e.target.checked)
+                                                                                handleLayerToggle(
+                                                                                    layer,
+                                                                                    e.target.checked,
+                                                                                )
                                                                             }
                                                                         />
                                                                         <label
@@ -522,7 +558,8 @@ function LeftMenuMap({
                                                                             className="layer-label"
                                                                         >
                                                                             <span className="layer-name">
-                                                                                {menu.nameItem?.[idx] || layer}
+                                                                                {menu.nameItem?.[idx] ||
+                                                                                    layer}
                                                                             </span>
                                                                         </label>
                                                                     </div>
@@ -618,15 +655,23 @@ function LeftMenuMap({
                                                 {isOpen && (
                                                     <div className="category-layers">
                                                         {menu.layers.map((layer, idx) => (
-                                                            <div className="layer-item" key={`${uniqueIndex}-${idx}`}>
+                                                            <div
+                                                                className="layer-item"
+                                                                key={`${uniqueIndex}-${idx}`}
+                                                            >
                                                                 <div className="layer-toggle">
                                                                     <input
                                                                         type="checkbox"
                                                                         id={`layer-${layer}`}
                                                                         className="layer-checkbox"
-                                                                        checked={state.enabledLayers.includes(layer)}
+                                                                        checked={state.enabledLayers.includes(
+                                                                            layer,
+                                                                        )}
                                                                         onChange={(e) =>
-                                                                            handleLayerToggle(layer, e.target.checked)
+                                                                            handleLayerToggle(
+                                                                                layer,
+                                                                                e.target.checked,
+                                                                            )
                                                                         }
                                                                     />
                                                                     <label
@@ -708,9 +753,9 @@ function LeftMenuMap({
                         <div className="search-results">
                             {searchResults.map((result, idx) => (
                                 <div
-                                    key={result.id || idx}
+                                    key={result.KiHieu || result.MaHuyen || result.MaXa || `search-result-${idx}`}
                                     className={`result-card ${
-                                        highlightedFeature?.id === result.id ? "selected" : ""
+                                        highlightedFeature?.id === (result.KiHieu || result.MaHuyen || result.MaXa) ? "selected" : ""
                                     }`}
                                     onClick={() => handleClick(result)}
                                 >
@@ -743,6 +788,34 @@ function LeftMenuMap({
                                                 <div className="detail-item">
                                                     <span className="detail-label">Tần suất:</span>
                                                     <span className="detail-value">{result.TanSuat}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : result.type === "khi_tuong_thuy_van" ? (
+                                        <div className="result-content weather-result">
+                                            <div className="result-header">
+                                                <div className="result-icon">
+                                                    <i className="fa-solid fa-cloud-rain"></i>
+                                                </div>
+                                                <div className="result-title">
+                                                    <h4 className="result-name">{result.TenTram}</h4>
+                                                    <span className="result-type">Trạm khí tượng thủy văn</span>
+                                                </div>
+                                            </div>
+                                            <div className="result-details">
+                                                <div className="detail-item">
+                                                    <span className="detail-label">Ký hiệu:</span>
+                                                    <span className="detail-value">{result.KiHieu}</span>
+                                                </div>
+                                                <div className="detail-item">
+                                                    <span className="detail-label">Loại trạm:</span>
+                                                    <span className="detail-value">{result.LoaiTram}</span>
+                                                </div>
+                                                <div className="detail-item">
+                                                    <span className="detail-label">Tọa độ:</span>
+                                                    <span className="detail-value">
+                                                        {result.ViDo}, {result.KinhDo}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
@@ -830,7 +903,6 @@ function LeftMenuMap({
                     className="overlay"
                     onClick={() => {
                         setSidebarOpen(true);
-                        // Force map resize after toggling sidebar
                         setTimeout(() => {
                             window.dispatchEvent(new Event("resize"));
                         }, 350);
@@ -850,9 +922,9 @@ function LeftMenuMap({
 
                 <div className="d-flex border-bottom text-center">
                     <button
-                        onClick={() => setState((prevState) => ({ ...prevState, activeTab: "Data" }))}
+                        onClick={() => setActiveTab("Data")}
                         className={`flex-fill py-2 fw-semibold text-uppercase text-sm border-0 bg-transparent ${
-                            state.activeTab === "Data"
+                            activeTab === "Data"
                                 ? "text-dark border-bottom border-2 border-warning"
                                 : "text-secondary"
                         }`}
@@ -860,9 +932,19 @@ function LeftMenuMap({
                         LỚP DỮ LIỆU
                     </button>
                     <button
-                        onClick={() => setState((prevState) => ({ ...prevState, activeTab: "search" }))}
+                        onClick={() => setActiveTab("Hydromet")}
                         className={`flex-fill py-2 fw-semibold text-uppercase text-sm border-0 bg-transparent ${
-                            state.activeTab === "search"
+                            activeTab === "Hydromet"
+                                ? "text-dark border-bottom border-2 border-warning"
+                                : "text-secondary"
+                        }`}
+                    >
+                        KHÍ TƯỢNG
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("search")}
+                        className={`flex-fill py-2 fw-semibold text-uppercase text-sm border-0 bg-transparent ${
+                            activeTab === "search"
                                 ? "text-dark border-bottom border-2 border-warning"
                                 : "text-secondary"
                         }`}

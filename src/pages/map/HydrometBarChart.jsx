@@ -15,19 +15,37 @@ const getParameterInfo = (data) => {
         }
     }
 
-    // Rainfall data (R parameter)
-    const rainfallKey = dataKeys.find(key => key.startsWith("R") && (key === "R" || key.includes("_")));
-    if (rainfallKey && data[rainfallKey] !== null && data[rainfallKey] !== undefined && data[rainfallKey] !== "NULL") {
-        const value = parseFloat(data[rainfallKey]);
-        if (!isNaN(value)) {
-            result.rainfall = {
-                key: rainfallKey,
-                value: value,
-                unit: "mm",
-                category: "rainfall",
-                label: "Lượng mưa",
-                color: "#0d6efd",
-            };
+    // Rainfall data (R parameters) - Handle specifically R_TTH and other R_ parameters
+    const rainfallKeys = dataKeys.filter(key => key.startsWith("R_") || key === "R");
+    
+    if (rainfallKeys.length > 0) {
+        // Priority: R_TTH > other R_ parameters > R
+        const priorityKeys = ["R_TTH", "R_TSH", "R_NB", "R_AP", "R_BC", "R"];
+        const rainfallKey = priorityKeys.find(key => rainfallKeys.includes(key)) || rainfallKeys[0];
+        
+        if (data[rainfallKey] !== null && data[rainfallKey] !== undefined && data[rainfallKey] !== "NULL") {
+            const value = parseFloat(data[rainfallKey]);
+            if (!isNaN(value)) {
+                // Get station name from key
+                const stationCode = rainfallKey.includes('_') ? rainfallKey.split('_')[1] : 'Unknown';
+                const stationNames = {
+                    'TTH': 'Tam Thôn Hiệp',
+                    'TSH': 'Tân Sơn Hòa', 
+                    'NB': 'Nhà Bè',
+                    'AP': 'An Phú',
+                    'BC': 'Bình Chánh'
+                };
+                const stationName = stationNames[stationCode] || stationCode;
+                
+                result.rainfall = {
+                    key: rainfallKey,
+                    value: value,
+                    unit: "mm",
+                    category: "rainfall",
+                    label: `Lượng mưa (${stationName})`,
+                    color: "#0d6efd",
+                };
+            }
         }
     }
 
@@ -146,6 +164,26 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const HydrometBarChart = ({ data, height = 600 }) => {    
+    console.log('HydrometBarChart received data:', {
+        dataLength: data ? data.length : 0,
+        height: height,
+        hasData: !!data,
+        sampleItem: data && data.length > 0 ? Object.keys(data[0]) : 'No sample'
+    });
+    
+    // Check if we have valid data
+    if (!data || data.length === 0) {
+        return (
+            <div className="text-center py-4" style={{ height: height }}>
+                <div className="text-muted">
+                    <i className="bi bi-bar-chart" style={{ fontSize: '2rem' }}></i>
+                    <h6 className="mt-2">Chưa có dữ liệu biểu đồ</h6>
+                    <p className="small mb-0">Vui lòng chọn một trạm có dữ liệu</p>
+                </div>
+            </div>
+        );
+    }
+    
     // Process data to extract both rainfall and temperature parameters
     const formattedData = data.map((item) => {
         const paramInfo = getParameterInfo(item);
@@ -171,14 +209,42 @@ const HydrometBarChart = ({ data, height = 600 }) => {
         return result;
     });
 
+    // Better loading and data validation
     const isLoading = !formattedData || formattedData.length === 0;
+    const hasValidData = formattedData.some(item => {
+        return (item.rainfall && item.rainfall > 0) || 
+               (item.ttb && item.ttb > 0) || 
+               (item.tx && item.tx > 0) || 
+               (item.tm && item.tm > 0);
+    });
+    
+    console.log('HydrometBarChart processed:', {
+        formattedDataLength: formattedData.length,
+        isLoading: isLoading,
+        hasValidData: hasValidData,
+        sampleFormatted: formattedData[0] || 'No formatted data'
+    });
 
     // Get unique years for X-axis
     const getDateValue = (item) => {
         const dateValue = item.dateValue;
         if (typeof dateValue === "string" && dateValue.includes("/")) {
-            const [day, month, year] = dateValue.split("/");
-            return new Date(year, month - 1, day);
+            const parts = dateValue.split("/");
+            const [first, second, year] = parts;
+            
+            // Handle both MM/DD/YYYY and DD/MM/YYYY formats
+            let month, day;
+            if (parseInt(first) <= 12 && parseInt(second) <= 31) {
+                // MM/DD/YYYY format (common from API)
+                month = parseInt(first) - 1; // JavaScript months are 0-based
+                day = parseInt(second);
+            } else {
+                // DD/MM/YYYY format
+                day = parseInt(first);
+                month = parseInt(second) - 1;
+            }
+            
+            return new Date(parseInt(year), month, day);
         }
         return new Date(dateValue);
     };
@@ -208,9 +274,24 @@ const HydrometBarChart = ({ data, height = 600 }) => {
                     </div>
                     <p className="mt-2">Đang tải dữ liệu khí tượng thủy văn...</p>
                 </div>
+            ) : !hasValidData ? (
+                <div className="text-center py-4" style={{ height: height }}>
+                    <div className="text-muted">
+                        <i className="bi bi-exclamation-circle" style={{ fontSize: '2rem' }}></i>
+                        <h6 className="mt-2">Không có dữ liệu hợp lệ</h6>
+                        <p className="small mb-0">Dữ liệu tồn tại nhưng không có giá trị đo được</p>
+                        <p className="small mb-0">({formattedData.length} bản ghi)</p>
+                    </div>
+                </div>
             ) : (
                 <ResponsiveContainer width="100%" height={height}>
-                    <ComposedChart data={formattedData} margin={{ top: 20, right: 50, bottom: 20, left: 50 }}>
+                    <ComposedChart 
+                        data={formattedData} 
+                        margin={height < 300 
+                            ? { top: 10, right: 30, bottom: 15, left: 30 }  // Mini chart margins
+                            : { top: 20, right: 50, bottom: 20, left: 50 }  // Full chart margins
+                        }
+                    >
                         <CartesianGrid strokeDasharray="3 3" stroke="#dee2e6" />
 
                         {/* X Axis */}
@@ -218,14 +299,16 @@ const HydrometBarChart = ({ data, height = 600 }) => {
                             dataKey="dateValue"
                             tickFormatter={(d) => {
                                 if (typeof d === "string" && d.includes("/")) {
-                                    const [day, month, year] = d.split("/");
+                                    const parts = d.split("/");
+                                    // Handle MM/DD/YYYY format
+                                    const year = parts[2] || parts[0];
                                     return year;
                                 }
                                 return new Date(d).getFullYear();
                             }}
                             ticks={ticksByYear}
-                            tick={{ fontSize: 16 }}
-                            height={60}
+                            tick={{ fontSize: height < 300 ? 12 : 16 }}
+                            height={height < 300 ? 40 : 60}
                         />
 
                         {/* Left Y Axis - Rainfall */}
@@ -234,16 +317,16 @@ const HydrometBarChart = ({ data, height = 600 }) => {
                             orientation="left"
                             domain={[0, Math.ceil(maxRainfall * 1.2)]}
                             tickFormatter={(value) => `${value}mm`}
-                            tick={{ fontSize: 16, fill: "#0d6efd" }}
-                            width={90}
-                            tickMargin={15}
+                            tick={{ fontSize: height < 300 ? 10 : 16, fill: "#0d6efd" }}
+                            width={height < 300 ? 50 : 90}
+                            tickMargin={height < 300 ? 5 : 15}
                             label={{
                                 value: "🌧️ Lượng mưa (mm)",
                                 angle: -90,
                                 position: "insideLeft",
                                 style: {
                                     textAnchor: "middle",
-                                    fontSize: "16px",
+                                    fontSize: height < 300 ? "12px" : "16px",
                                     fontWeight: "bold",
                                     fill: "#0d6efd",
                                 },
@@ -256,16 +339,16 @@ const HydrometBarChart = ({ data, height = 600 }) => {
                             orientation="right"
                             domain={[Math.floor(minTemp - 2), Math.ceil(maxTemp + 2)]}
                             tickFormatter={(value) => `${value}°C`}
-                            tick={{ fontSize: 16, fill: "#dc3545" }}
-                            width={90}
-                            tickMargin={15}
+                            tick={{ fontSize: height < 300 ? 10 : 16, fill: "#dc3545" }}
+                            width={height < 300 ? 50 : 90}
+                            tickMargin={height < 300 ? 5 : 15}
                             label={{
                                 value: "🌡️ Nhiệt độ (°C)",
                                 angle: 90,
                                 position: "insideRight",
                                 style: {
                                     textAnchor: "middle",
-                                    fontSize: "16px",
+                                    fontSize: height < 300 ? "12px" : "16px",
                                     fontWeight: "bold",
                                     fill: "#dc3545",
                                 },

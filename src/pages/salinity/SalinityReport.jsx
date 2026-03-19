@@ -132,7 +132,7 @@ const SalinityReport = () => {
     const { userInfo } = useSelector((state) => state.authStore);
     const [loading, setLoading] = useState(false);
     const [reportData, setReportData] = useState(null);
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+    const [selectedDate, setSelectedDate] = useState('2022-12-31'); // Set to last available data date
     const [generatingPDF, setGeneratingPDF] = useState(false);
     const [generatingFrontendPDF, setGeneratingFrontendPDF] = useState(false);
     const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
@@ -677,7 +677,7 @@ const SalinityReport = () => {
                                     className="form-control"
                                     value={selectedDate}
                                     onChange={handleDateChange}
-                                    max={new Date().toISOString().split("T")[0]}
+                                    max="2022-12-31" // Giới hạn đến data có sẵn
                                 />
                             </div>
                         </div>

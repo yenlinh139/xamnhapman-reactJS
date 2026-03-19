@@ -114,7 +114,6 @@ const Home = () => {
             <section id="about-section" className="about-section">
                 <Banner
                     title="WEBGIS GIÁM SÁT VÀ CẢNH BÁO XÂM NHẬP MẶN TRÊN HỆ THỐNG SÔNG, KÊNH, RẠCH TẠI THÀNH PHỐ HỒ CHÍ MINH"
-                    description="Khóa luận tốt nghiệp được thực hiện bởi Nguyễn Võ Yến Linh dưới sự hướng dẫn của ThS. Nguyễn Duy Liêm."
                 />
 
                 {/* Introduction Section */}
@@ -150,7 +149,7 @@ const Home = () => {
                                     <div className="stat-card">
                                         <span className="stat-icon">📅</span>
                                         <h3>Thời gian</h3>
-                                        <p>2007 - 2025</p>
+                                        <p>2007 - 2026</p>
                                     </div>
                                     <div className="stat-card">
                                         <span className="stat-icon">🎯</span>

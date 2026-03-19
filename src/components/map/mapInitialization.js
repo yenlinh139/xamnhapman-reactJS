@@ -1,6 +1,55 @@
 import L from "leaflet";
 import { createBaseMaps, createWMSLayer } from "@components/map/mapStyles";
 
+const formatDistance = (meters) => {
+  if (!Number.isFinite(meters)) return "0 m";
+  if (meters >= 1000) {
+    return `${(meters / 1000).toFixed(2)} km`;
+  }
+  return `${meters.toFixed(1)} m`;
+};
+
+const formatArea = (squareMeters) => {
+  if (!Number.isFinite(squareMeters)) return "0 m²";
+  if (squareMeters >= 1000000) {
+    return `${(squareMeters / 1000000).toFixed(2)} km²`;
+  }
+  return `${squareMeters.toFixed(0)} m²`;
+};
+
+const updateMeasurementTooltip = (layer) => {
+  if (!layer || typeof layer.getLatLngs !== "function") return;
+
+  // Polygon extends Polyline, so polygon must be checked first.
+  const isPolygon = layer instanceof L.Polygon;
+  const isPolyline = layer instanceof L.Polyline;
+  if (!isPolygon && !isPolyline) return;
+
+  let label = "";
+
+  if (isPolygon) {
+    const latlngs = layer.getLatLngs();
+    const ring = Array.isArray(latlngs[0]) ? latlngs[0] : latlngs;
+    const area = L.GeometryUtil.geodesicArea(ring);
+    label = `Diện tích: ${formatArea(area)}`;
+  } else {
+    const latlngs = layer.getLatLngs();
+    let distance = 0;
+
+    for (let i = 1; i < latlngs.length; i++) {
+      distance += latlngs[i - 1].distanceTo(latlngs[i]);
+    }
+
+    label = `Khoảng cách: ${formatDistance(distance)}`;
+  }
+
+  layer.bindTooltip(label, {
+    permanent: true,
+    direction: "center",
+    className: "leaflet-measure-tooltip",
+  });
+};
+
 export const createLegendControl = () => {
     const legendContainer = L.control({ position: "topright" });
 
@@ -117,10 +166,134 @@ export const initializeMap = (container) => {
         })
         .addTo(mapInstance);
 
+    // Add draw controls for measuring distance and area.
+    const drawnItems = new L.FeatureGroup();
+    mapInstance.addLayer(drawnItems);
+
+    if (L.Control?.Draw) {
+        if (L.drawLocal?.draw?.toolbar?.buttons) {
+            L.drawLocal.draw.toolbar.buttons.polyline = "Đo khoảng cách";
+            L.drawLocal.draw.toolbar.buttons.polygon = "Đo diện tích";
+        }
+        if (L.drawLocal?.edit?.toolbar?.buttons) {
+            L.drawLocal.edit.toolbar.buttons.edit = "Chỉnh sửa vùng đo";
+            L.drawLocal.edit.toolbar.buttons.remove = "Xóa vùng đo";
+        }
+
+      if (L.drawLocal?.draw?.toolbar?.actions) {
+        L.drawLocal.draw.toolbar.actions.title = "Hủy thao tác vẽ";
+        L.drawLocal.draw.toolbar.actions.text = "Hủy";
+      }
+      if (L.drawLocal?.edit?.toolbar?.actions) {
+        L.drawLocal.edit.toolbar.actions.save.title = "Lưu thay đổi";
+        L.drawLocal.edit.toolbar.actions.save.text = "Lưu";
+        L.drawLocal.edit.toolbar.actions.cancel.title = "Thoát chế độ chỉnh sửa/xóa";
+        L.drawLocal.edit.toolbar.actions.cancel.text = "Thoát";
+        L.drawLocal.edit.toolbar.actions.clearAll.title = "Xóa toàn bộ vùng đo";
+        L.drawLocal.edit.toolbar.actions.clearAll.text = "Xóa tất cả";
+      }
+
+      if (L.drawLocal?.edit?.handlers?.remove?.tooltip) {
+        L.drawLocal.edit.handlers.remove.tooltip.text = "Nhấn vào đối tượng để xóa";
+      }
+      if (L.drawLocal?.edit?.handlers?.edit?.tooltip) {
+        L.drawLocal.edit.handlers.edit.tooltip.text = "Kéo điểm để chỉnh sửa";
+        L.drawLocal.edit.handlers.edit.tooltip.subtext =
+          "Nhấn Lưu để áp dụng hoặc Thoát để hủy";
+      }
+
+        const drawControl = new L.Control.Draw({
+            position: "topleft",
+            draw: {
+                polyline: {
+                    shapeOptions: {
+                        color: "#0d6efd",
+                        weight: 3,
+                    },
+                    metric: true,
+                    feet: false,
+                    nautic: false,
+                    showLength: true,
+                    repeatMode: false,
+                },
+                polygon: {
+                    allowIntersection: false,
+                    showArea: true,
+                    metric: true,
+                    shapeOptions: {
+                        color: "#198754",
+                        weight: 2,
+                        fillOpacity: 0.2,
+                    },
+                    repeatMode: false,
+                },
+                rectangle: false,
+                circle: false,
+                marker: false,
+                circlemarker: false,
+            },
+            edit: {
+                featureGroup: drawnItems,
+                edit: {
+                    selectedPathOptions: {
+                        color: "#2563eb",
+                        dashArray: "8, 6",
+                        fillOpacity: 0.2,
+                        maintainColor: false,
+                    },
+                },
+                remove: {},
+            },
+        });
+        mapInstance.addControl(drawControl);
+
+        const exitDrawModes = () => {
+          // Disable any active draw/edit mode.
+          drawControl?._toolbars?.draw?.disable();
+          drawControl?._toolbars?.edit?.disable();
+        };
+
+        const onEscKey = (event) => {
+          if (event.key === "Escape") {
+            exitDrawModes();
+          }
+        };
+
+        document.addEventListener("keydown", onEscKey);
+        mapInstance.on("unload", () => {
+          document.removeEventListener("keydown", onEscKey);
+        });
+
+        mapInstance.on(L.Draw.Event.CREATED, (event) => {
+            const { layer } = event;
+            drawnItems.addLayer(layer);
+            updateMeasurementTooltip(layer);
+        });
+
+        mapInstance.on(L.Draw.Event.EDITED, (event) => {
+            event.layers.eachLayer((layer) => {
+                updateMeasurementTooltip(layer);
+            });
+        });
+    } else {
+        console.warn("Leaflet.Draw chưa được nạp, bỏ qua control đo đạc.");
+    }
+
     // Add zoom control
     L.control
         .zoom({
             position: "topleft",
+        })
+        .addTo(mapInstance);
+
+    // Add scale control.
+    L.control
+        .scale({
+            position: "bottomleft",
+            metric: true,
+            imperial: false,
+            maxWidth: 140,
+            updateWhenIdle: true,
         })
         .addTo(mapInstance);
 

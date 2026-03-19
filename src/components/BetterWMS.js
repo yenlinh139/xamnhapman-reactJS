@@ -69,6 +69,7 @@ L.TileLayer.BetterWMS = L.TileLayer.WMS.extend({
             const featureInfo = JSON.parse(content);
             const feature = featureInfo.features[0];
             const props = feature?.properties;
+            console.log("Feature properties:", props);
 
             if (!props) return;
 
@@ -108,17 +109,17 @@ L.TileLayer.BetterWMS = L.TileLayer.WMS.extend({
             switch (layerName) {
                 case "DiaPhanHuyen":
                     popupContent += `
-                        <b>📍 Huyện:</b> ${props.tenhuyen}<br/>
-                        <b>🆔 Mã huyện:</b> ${props.mahuyen}<br/>
-                        <b>📐 Diện tích:</b> ${props.dientichtunhien}m²
+                        <b>📍 Huyện:</b> ${props.tenHuyen}<br/>
+                        <b>🆔 Mã huyện:</b> ${props.maHuyen}<br/>
+                        <b>📐 Diện tích:</b> ${props.dienTichTuNhien}m²
                     `;
                     break;
                 case "DiaPhanXa":
                     popupContent += `
-                        <b>📍 Xã:</b> ${props.tenxa}<br/>
-                        <b>🆔 Mã xã:</b> ${props.maxa}<br/>
-                        <b>🏞️ Huyện:</b> ${props.tenhuyen}<br/>
-                        <b>📐 Diện tích:</b> ${props.dientichtunhien}m²
+                        <b>📍 Xã:</b> ${props.tenXa}<br/>
+                        <b>🆔 Mã xã:</b> ${props.maXa}<br/>
+                        <b>🏞️ Huyện:</b> ${props.tenHuyen}<br/>
+                        <b>📐 Diện tích:</b> ${props.dienTichTuNhien}m²
                     `;
                     break;
                 case "diemdocao":
@@ -151,10 +152,10 @@ L.TileLayer.BetterWMS = L.TileLayer.WMS.extend({
                 case "ThuyHe_polygon":
                     popupContent += `
                         <b>🌊 Tên:</b> ${props.ten}<br/>
-                        <b>⚠️ Trạng thái:</b> ${props.trangthai}<br/>
-                        <b>📖 Loại:</b> ${props.phanloai}<br/>
-                        <b>↔️ Rộng:</b> ${props.dorong} m<br/>
-                        <b>↕️ Sâu:</b> ${props.dosau} m
+                        <b>⚠️ Trạng thái:</b> ${props.trangThai}<br/>
+                        <b>📖 Loại:</b> ${props.phanLoai}<br/>
+                        <b>↔️ Rộng:</b> ${props.doRong} m<br/>
+                        <b>↕️ Sâu:</b> ${props.doSau} m
                     `;
                     break;
                 case "HienTrangSDD_2020":
