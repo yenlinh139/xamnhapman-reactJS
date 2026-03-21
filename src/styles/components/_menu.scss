@@ -740,6 +740,13 @@
     background: linear-gradient(135deg, #7c3aed, #5b21b6);
 }
 
+.weather-result .result-icon {
+     background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.iot-result .result-icon {
+     background: linear-gradient(135deg, #f59e0b, #d97706);
+}
 .result-title {
     flex: 1;
 }

@@ -79,7 +79,6 @@ L.TileLayer.BetterWMS = L.TileLayer.WMS.extend({
                 salinityPoints: "Điểm đo mặn",
                 hydrometStations: "Trạm khí tượng thủy văn",
                 DiaPhanHuyen: "Địa phận huyện",
-                DiaGioiHuyen: "Địa giới huyện",
                 DiaPhanXa: "Địa phận xã",
                 ThuyHe_line: "Thủy hệ 1 nét",
                 ThuyHe_polygon: "Thủy hệ 2 nét",
@@ -143,19 +142,19 @@ L.TileLayer.BetterWMS = L.TileLayer.WMS.extend({
                     break;
                 case "ThuyHe_line":
                     popupContent += `
-                        <b>🌊 Tên sông/kênh:</b> ${props.ten}<br/>
-                        <b>🔼 Điểm đầu:</b> ${props.diemdau}<br/>
-                        <b>🔽 Điểm cuối:</b> ${props.diemcuoi}<br/>
-                        <b>📏 Dài:</b> ${props.chieudai}m
+                        <b>🌊 Tên sông/kênh:</b> ${props.Ten}<br/>
+                        <b>🔼 Điểm đầu:</b> ${props.DiemDau}<br/>
+                        <b>🔽 Điểm cuối:</b> ${props.DiemCuoi}<br/>
+                        <b>📏 Dài:</b> ${props.ChieuDai}m
                     `;
                     break;
                 case "ThuyHe_polygon":
                     popupContent += `
-                        <b>🌊 Tên:</b> ${props.ten}<br/>
-                        <b>⚠️ Trạng thái:</b> ${props.trangThai}<br/>
-                        <b>📖 Loại:</b> ${props.phanLoai}<br/>
-                        <b>↔️ Rộng:</b> ${props.doRong} m<br/>
-                        <b>↕️ Sâu:</b> ${props.doSau} m
+                        <b>🌊 Tên:</b> ${props.Ten}<br/>
+                        <b>⚠️ Trạng thái:</b> ${props.TrangThai}<br/>
+                        <b>📖 Loại:</b> ${props.PhanLoai}<br/>
+                        <b>↔️ Rộng:</b> ${props.DoRong} m<br/>
+                        <b>↕️ Sâu:</b> ${props.DoSau} m
                     `;
                     break;
                 case "HienTrangSDD_2020":

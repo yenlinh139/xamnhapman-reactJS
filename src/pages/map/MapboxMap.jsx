@@ -85,7 +85,7 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
         };
 
         return L.tileLayer.betterWms(
-            "http://localhost:8080/geoserver/xamnhapman_tphcm/wms",
+            "https://xamnhapman.opengis.vn/m/gsrv/xamnhapman_tphcm/wms",
             defaultOptions
         );
     };
@@ -372,7 +372,7 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
             }
             // Handle special raster layer (diemdocao)
             else if (layerName === "diemdocao") {
-                const rasterLayer = L.tileLayer.wms("http://localhost:8080/geoserver/xamnhapman_tphcm/wms", {
+                const rasterLayer = L.tileLayer.wms("https://xamnhapman.opengis.vn/m/gsrv/xamnhapman_tphcm/wms", {
                     layers: `xamnhapman_tphcm:${layerName}`,
                     transparent: true,
                     format: "image/png",

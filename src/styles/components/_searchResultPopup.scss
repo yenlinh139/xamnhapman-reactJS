@@ -1,0 +1,245 @@
+/* ===============================
+   Search Result Popup Styles
+   =============================== */
+
+.search-result-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    animation: fadeIn 0.3s ease;
+
+    .search-result-popup {
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        width: 90%;
+        max-width: 450px;
+        position: relative;
+        animation: slideUp 0.3s ease;
+        max-height: 90vh;
+        overflow-y: auto;
+
+        .popup-close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #6b7280;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            z-index: 10;
+
+            &:hover {
+                background: #f3f4f6;
+                color: #111827;
+            }
+        }
+
+        .popup-content {
+            padding: 30px 25px;
+            padding-top: 40px;
+
+            .popup-header {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 20px;
+                border-bottom: 2px solid #f3f4f6;
+                padding-bottom: 15px;
+
+                .popup-icon {
+                    font-size: 32px;
+                    min-width: 40px;
+                    text-align: center;
+                }
+
+                .popup-title {
+                    font-size: 20px;
+                    font-weight: 700;
+                    margin: 0;
+                    color: #111827;
+                }
+            }
+
+            // Salinity Content
+            &.salinity-content {
+                .popup-icon {
+                    color: #3b82f6;
+                }
+
+                .popup-title {
+                    color: #3b82f6;
+                }
+            }
+
+            // KTTV Content
+            &.kttv-content {
+                .popup-icon {
+                    color: #10b981;
+                }
+
+                .popup-title {
+                    color: #10b981;
+                }
+            }
+
+            // IoT Content
+            &.iot-content {
+                .popup-icon {
+                    color: #f59e0b;
+                }
+
+                .popup-title {
+                    color: #f59e0b;
+                }
+            }
+        }
+
+        .popup-details {
+            .detail-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                gap: 10px;
+                padding: 12px 0;
+                border-bottom: 1px solid #f3f4f6;
+
+                &:last-child {
+                    border-bottom: none;
+                }
+
+                .detail-label {
+                    font-weight: 600;
+                    color: #6b7280;
+                    flex: 0 0 auto;
+                    min-width: 100px;
+                }
+
+                .detail-value {
+                    color: #111827;
+                    text-align: right;
+                    flex: 1;
+                    word-break: break-word;
+                }
+            }
+        }
+
+        .popup-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            gap: 15px;
+
+            i {
+                font-size: 32px;
+                color: #9ca3af;
+            }
+
+            p {
+                color: #6b7280;
+                font-size: 14px;
+                margin: 0;
+            }
+        }
+
+        .popup-error {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            gap: 15px;
+            background: #fef2f2;
+            border-radius: 8px;
+            border-left: 4px solid #ef4444;
+
+            i {
+                font-size: 32px;
+                color: #ef4444;
+            }
+
+            p {
+                color: #dc2626;
+                font-size: 14px;
+                margin: 0;
+                text-align: center;
+            }
+        }
+
+        .popup-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #f3f4f6;
+
+            .btn-chart {
+                flex: 1;
+                background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+                color: white;
+                border: none;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+
+                &:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 16px rgba(245, 158, 11, 0.4);
+                }
+
+                &:active {
+                    transform: translateY(0);
+                }
+
+                i {
+                    font-size: 16px;
+                }
+            }
+        }
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}

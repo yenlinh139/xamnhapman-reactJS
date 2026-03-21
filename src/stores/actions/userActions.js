@@ -9,26 +9,31 @@ export const getListUser = () => {
     return async (dispatch, getState) => {
         try {
             dispatch(showLoading());
-            const resp = await axiosInstance.get(import.meta.env.VITE_BASE_URL + "/user");
+            const resp = await axiosInstance.get("/user");
 
             if (resp) {
+                const users = Array.isArray(resp.data) ? resp.data : [];
                 dispatch({
                     type: SET_LIST_USER,
-                    payload: resp.data,
+                    payload: users,
                 });
 
-                const userByEmail = resp.data.find(
-                    (user) => user.email === getState().authStore.userInfo.email,
-                );
+                const currentEmail = getState().authStore?.userInfo?.email;
+                if (currentEmail) {
+                    const userByEmail = users.find((user) => user.email === currentEmail);
 
-                dispatch({
-                    type: SET_USER_INFO,
-                    payload: userByEmail,
-                });
+                    if (userByEmail) {
+                        dispatch({
+                            type: SET_USER_INFO,
+                            payload: userByEmail,
+                        });
+                    }
+                }
 
                 dispatch(hideLoading());
             }
         } catch (error) {
+            ToastCommon(TOAST.ERROR, error.response?.data?.message || error.message || "Không tải được danh sách người dùng");
             dispatch(hideLoading());
         }
     };
@@ -37,7 +42,7 @@ export const getListUser = () => {
 export const createUser = (params) => {
     return async (dispatch, getState) => {
         try {
-            const resp = await axiosInstance.post(import.meta.env.VITE_BASE_URL + "/user", params);
+            const resp = await axiosInstance.post("/user", params);
             if (resp) {
                 document.getElementById("close-create-user-btn").click();
                 ToastCommon(TOAST.SUCCESS, "Tạo người dùng thành công");
@@ -52,7 +57,7 @@ export const createUser = (params) => {
 export const deleteUser = (params) => {
     return async (dispatch, getState) => {
         try {
-            const resp = await axiosInstance.delete(import.meta.env.VITE_BASE_URL + "/user", {
+            const resp = await axiosInstance.delete("/user", {
                 data: params,
             });
             if (resp) {
@@ -68,7 +73,7 @@ export const deleteUser = (params) => {
 export const updateUser = (params) => {
     return async (dispatch, getState) => {
         try {
-            const res = await axiosInstance.put(import.meta.env.VITE_BASE_URL + "/user", params);
+            const res = await axiosInstance.put("/user", params);
 
             if (res) {
                 document.getElementById("close-edit-user-btn").click();
@@ -100,7 +105,7 @@ export const updateUserByUser = (params) => {
 
             let success = false;
 
-            const resUser = await axiosInstance.put(import.meta.env.VITE_BASE_URL + "/user", request);
+            const resUser = await axiosInstance.put("/user", request);
             if (resUser.status === 200) {
                 success = true;
             }
@@ -118,7 +123,7 @@ export const updateUserByUser = (params) => {
 export const changeRole = (params, navigate) => {
     return async (dispatch, getState) => {
         try {
-            const resp = await axiosInstance.put(import.meta.env.VITE_BASE_URL + "/user/changerole", {
+            const resp = await axiosInstance.put("/user/changerole", {
                 email: params.email,
                 role: params.role,
             });

@@ -1,8 +1,9 @@
 /* Area Selector Styles */
 .area-selector-toggle {
   position: fixed;
-  top: 100px;
-  right: 20px;
+  top: auto;
+  right: 88px;
+  bottom: 20px;
   z-index: 1000;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -129,7 +130,7 @@
 @media (max-width: 768px) {
   .area-selector-toggle {
     position: fixed;
-    bottom: 80px;
+    bottom: 96px;
     right: 15px;
     top: auto;
     font-size: 0.9rem;

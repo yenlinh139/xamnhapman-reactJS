@@ -2,9 +2,19 @@ import React, { useEffect, useState, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import { ROUTES } from "@common/constants";
 import imageLogo from "@assets/logo.png";
+import { getSingleStationClassification } from "@common/salinityClassification";
+import { convertDMSToDecimal, dmsToDecimal } from "@components/convertDMSToDecimal";
 import { mapLayers, irrigationLayers } from "@pages/map/dataLayers";
+import { createSalinityPopup } from "./map/SalinityMarkers";
+import { createHydrometPopup } from "./map/HydrometMarkers";
 import IoTStationModal from "./IoTStationModal";
-import { fetchIoTStations, fetchIoTData, formatIoTDataForDisplay } from "./map/mapDataServices";
+import {
+    fetchIoTStations,
+    fetchIoTData,
+    fetchSalinityData,
+    fetchHydrometData,
+    formatIoTDataForDisplay,
+} from "./map/mapDataServices";
 
 function LeftMenuMap({
     sidebarOpen,
@@ -21,7 +31,6 @@ function LeftMenuMap({
     const [state, setState] = useState({
         openMenuIndex: null,
         enabledLayers: [],
-        activeTab: "Data",
         isLoadingSearchResults: true,
         openSalinityDropdown: false,
         openIrrigationDropdown: false,
@@ -212,16 +221,16 @@ function LeftMenuMap({
         if (searchResults && searchResults.length > 0) {
             setState((prevState) => ({
                 ...prevState,
-                activeTab: "search",
                 isLoadingSearchResults: false,
             }));
+            setActiveTab("search");
         } else {
             setState((prevState) => ({
                 ...prevState,
                 isLoadingSearchResults: false,
             }));
         }
-    }, [searchResults]);
+    }, [searchResults, setActiveTab]);
 
     // Tự động tải thống kê trạm IoT khi component mount
     useEffect(() => {
@@ -298,46 +307,375 @@ function LeftMenuMap({
         return [southWest, northEast];
     };
 
-    const handleClick = (result) => {
-        try {
-            if (result.type === "diem_do_man") {
-                const lat = result.ViDo;
-                const lng = result.KinhDo;
-                if (lat && lng) {
-                    setSelectedLocation({ lat, lng, zoom: 15 });
+    const normalizeCoordinate = (value) => {
+        if (value === null || value === undefined) return null;
+        if (typeof value === "number") return value;
 
-                    const feature = {
-                        id: result.KiHieu, // Use KiHieu as ID for salinity points
+        const raw = String(value).trim();
+        if (!raw) return null;
+
+        const numeric = parseFloat(raw);
+        if (!Number.isNaN(numeric) && /^-?\d+(\.\d+)?$/.test(raw)) {
+            return numeric;
+        }
+
+        return convertDMSToDecimal(raw) ?? dmsToDecimal(raw);
+    };
+
+    const escapeHtml = (value) =>
+        String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+
+    const escapeJsString = (value) =>
+        String(value ?? "")
+            .replace(/\\/g, "\\\\")
+            .replace(/'/g, "\\'");
+
+    useEffect(() => {
+        if (!window.searchIoTPopupPayloads) {
+            window.searchIoTPopupPayloads = {};
+        }
+
+        window.openSearchIoTChart = (serialNumber) => {
+            const payload = window.searchIoTPopupPayloads?.[serialNumber];
+            if (!payload) {
+                console.warn("Không tìm thấy dữ liệu popup IoT cho serial:", serialNumber);
+                return;
+            }
+
+            if (typeof window.onOpenIoTChart === "function") {
+                window.onOpenIoTChart(payload);
+            }
+        };
+
+        return () => {
+            if (window.openSearchIoTChart) {
+                delete window.openSearchIoTChart;
+            }
+        };
+    }, []);
+
+    const formatPopupDate = (value) => {
+        if (!value) return "Chưa có dữ liệu";
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) {
+            return String(value);
+        }
+        return parsed.toLocaleString("vi-VN", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+    };
+
+    const buildSalinityTrend = (data = []) => {
+        let latestSalinity = null;
+        let previousSalinity = null;
+        let latestDate = null;
+        let previousDate = null;
+        let trend = null;
+
+        for (let index = data.length - 1; index >= 0; index -= 1) {
+            const value = Number(data[index]?.salinity);
+            if (!Number.isFinite(value)) continue;
+
+            if (latestSalinity === null) {
+                latestSalinity = value;
+                latestDate = new Date(data[index].date).toLocaleDateString("vi-VN");
+                continue;
+            }
+
+            if (previousSalinity === null) {
+                previousSalinity = value;
+                previousDate = new Date(data[index].date).toLocaleDateString("vi-VN");
+                break;
+            }
+        }
+
+        if (latestSalinity !== null && previousSalinity !== null) {
+            const diff = latestSalinity - previousSalinity;
+            trend = {
+                text:
+                    diff > 0
+                        ? `Tăng ${diff.toFixed(2)} ‰ so với `
+                        : diff < 0
+                            ? `Giảm ${Math.abs(diff).toFixed(2)} ‰ so với`
+                            : "Không thay đổi so với",
+                color: diff > 0 ? "#dc3545" : diff < 0 ? "#198754" : "#6c757d",
+                icon: diff > 0 ? "▲" : diff < 0 ? "▼" : "■",
+            };
+        }
+
+        return {
+            latestSalinity,
+            latestDate,
+            previousDate,
+            trend,
+        };
+    };
+
+    const buildIoTSearchPopupHtml = (result, options = {}) => {
+        const {
+            loading = false,
+            error = null,
+            hasChart = false,
+            latestSaltValue = null,
+            latestSaltUnit = "‰",
+            lastDataTime = null,
+            totalRecords = 0,
+        } = options;
+
+        const baseCode = String(result.StationCode || "").replace(/_IoT$/i, "");
+        const classification = getSingleStationClassification(latestSaltValue, baseCode);
+        const riskMap = {
+            normal: { className: "status-normal", color: "#28a745" },
+            warning: { className: "status-warning", color: "#ffc107" },
+            "high-warning": { className: "status-high-warning", color: "#fd7e14" },
+            critical: { className: "status-critical", color: "#dc3545" },
+            "no-data": { className: "status-no-data", color: "#6c757d" },
+        };
+        const riskInfo = riskMap[classification.class] || riskMap["no-data"];
+
+        const actionHtml = hasChart
+            ? `<div class="popup-actions">
+                    <button class="btn-view-data" onclick="window.openSearchIoTChart('${escapeJsString(result.SerialNumber)}')">
+                        <i class="fa-solid fa-chart-line"></i>
+                        Xem biểu đồ
+                    </button>
+               </div>`
+            : "";
+
+        const contentHtml = loading
+            ? `<div class="popup-loading"><i class="fa-solid fa-spinner fa-spin"></i><p>Đang tải dữ liệu...</p></div>`
+            : error
+                ? `<div class="popup-error"><i class="fa-solid fa-circle-exclamation"></i><p>${escapeHtml(error)}</p></div>`
+                : `
+                    <div class="popup-main-value">
+                        <span class="value-label">Độ mặn hiện tại</span>
+                        <span class="value-number" style="color: ${riskInfo.color}">
+                            ${latestSaltValue !== null && latestSaltValue !== undefined ? `${Number(latestSaltValue).toFixed(2)} ${escapeHtml(latestSaltUnit)}` : "--"}
+                        </span>
+                        <span class="value-date">${escapeHtml(formatPopupDate(lastDataTime))}</span>
+                    </div>
+                    <div class="popup-details">
+                        <div class="detail-item"><div class="detail-content py-2"><strong class="detail-label">Mã serial: </strong><span class="detail-value">${escapeHtml(result.SerialNumber)}</span></div></div>
+                        <div class="detail-item"><div class="detail-content py-2"><strong class="detail-label">Mã trạm: </strong><span class="detail-value">${escapeHtml(result.StationCode)}</span></div></div>
+                        <div class="detail-item"><div class="detail-content py-2"><strong class="detail-label">Cảnh báo: </strong><span class="detail-value" style="color: ${riskInfo.color}; font-weight: 600;">${escapeHtml(classification.shortText)}</span></div></div>
+                        <div class="detail-item"><div class="detail-content py-2"><strong class="detail-label">Tọa độ: </strong><span class="detail-value">${escapeHtml(result.ViDo)}, ${escapeHtml(result.KinhDo)}</span></div></div>
+                        <div class="detail-item"><div class="detail-content py-2"><strong class="detail-label">Tần suất: </strong><span class="detail-value">${escapeHtml(result.TanSuat)}</span></div></div>
+                        <div class="detail-item"><div class="detail-content py-2"><strong class="detail-label">Tổng bản ghi: </strong><span class="detail-value">${Number(totalRecords || 0).toLocaleString()}</span></div></div>
+                   </div>`;
+
+        return `
+            <div class="modern-popup iot-popup">
+                <div class="popup-header">
+                    <div class="popup-icon">📡</div>
+                    <div class="popup-title">
+                        <h4 class="popup-name">${escapeHtml(result.StationName)}</h4>
+                        <span class="popup-type">Trạm IoT</span>
+                    </div>
+                    <div class="popup-status ${riskInfo.className}">${escapeHtml(classification.shortText)}</div>
+                </div>
+                <div class="popup-content">
+                    ${contentHtml}
+                    ${actionHtml}
+                </div>
+            </div>
+        `;
+    };
+
+    const buildSearchPopupHtml = (result, options = {}) => {
+        if (result.type === "iot_station") {
+            return buildIoTSearchPopupHtml(result, options);
+        }
+        return null;
+    };
+
+    const handleIoTSearchResultClick = async (result, lat, lng) => {
+        try {
+            setHighlightedFeature({
+                id: result.SerialNumber,
+                geometry: {
+                    type: "Point",
+                    coordinates: [lng, lat],
+                },
+                icon: "tower-broadcast",
+                name: result.StationName,
+                popupHtml: buildSearchPopupHtml(result, { loading: true }),
+            });
+
+            const endDate = new Date().toISOString().split("T")[0];
+            const startDate = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
+                .toISOString()
+                .split("T")[0];
+
+            const dataResult = await fetchIoTData(result.SerialNumber, {
+                startDate,
+                endDate,
+                limit: 1000,
+            });
+
+            if (dataResult.success && dataResult.data && dataResult.data.length > 0) {
+                const formattedData = formatIoTDataForDisplay(dataResult, {
+                    serial_number: result.SerialNumber,
+                    station_name: result.StationName,
+                    station_code: result.StationCode,
+                });
+                const latestRow = dataResult.data[0] || null;
+
+                if (formattedData) {
+                    setIotData(formattedData);
+                    window.searchIoTPopupPayloads[result.SerialNumber] = formattedData;
+                    setHighlightedFeature({
+                        id: result.SerialNumber,
                         geometry: {
                             type: "Point",
                             coordinates: [lng, lat],
                         },
-                        icon: "droplet",
-                        name: result.TenDiem,
-                    };
+                        icon: "tower-broadcast",
+                        name: result.StationName,
+                        popupHtml: buildSearchPopupHtml(result, {
+                            hasChart: true,
+                            latestSaltValue: latestRow?.salt_value ?? null,
+                            latestSaltUnit: latestRow?.salt_unit || "‰",
+                            lastDataTime: latestRow?.date_time || null,
+                            totalRecords: formattedData.summary.totalRecords || dataResult.data.length,
+                        }),
+                    });
+                }
+            } else {
+                setHighlightedFeature({
+                    id: result.SerialNumber,
+                    geometry: {
+                        type: "Point",
+                        coordinates: [lng, lat],
+                    },
+                    icon: "tower-broadcast",
+                    name: result.StationName,
+                    popupHtml: buildSearchPopupHtml(result, {
+                        error: dataResult.message || "Không có dữ liệu trong 14 ngày gần nhất",
+                    }),
+                });
+            }
+        } catch (error) {
+            console.error("Error loading IoT search result data:", error);
+            setHighlightedFeature({
+                id: result.SerialNumber,
+                geometry: {
+                    type: "Point",
+                    coordinates: [lng, lat],
+                },
+                icon: "tower-broadcast",
+                name: result.StationName,
+                popupHtml: buildSearchPopupHtml(result, { error: "Lỗi khi tải dữ liệu trạm IoT" }),
+            });
+        }
+    };
 
-                    setHighlightedFeature(feature);
+    const handleSalinitySearchResultClick = async (result, lat, lng) => {
+        setHighlightedFeature({
+            id: result.KiHieu,
+            geometry: {
+                type: "Point",
+                coordinates: [lng, lat],
+            },
+            icon: "droplet",
+            name: result.TenDiem,
+            popupHtml: '<div class="popup-loading"><i class="fa-solid fa-spinner fa-spin"></i><p>Đang tải dữ liệu...</p></div>',
+        });
+
+        try {
+            const data = await fetchSalinityData(result.KiHieu);
+            const { latestSalinity, latestDate, previousDate, trend } = buildSalinityTrend(data);
+
+            setHighlightedFeature({
+                id: result.KiHieu,
+                geometry: {
+                    type: "Point",
+                    coordinates: [lng, lat],
+                },
+                icon: "droplet",
+                name: result.TenDiem,
+                popupHtml: createSalinityPopup(result, latestSalinity, latestDate, trend, previousDate),
+            });
+        } catch (error) {
+            console.error("Error loading salinity search result data:", error);
+        }
+    };
+
+    const handleHydrometSearchResultClick = async (result, lat, lng) => {
+        setHighlightedFeature({
+            id: result.KiHieu,
+            geometry: {
+                type: "Point",
+                coordinates: [lng, lat],
+            },
+            icon: "cloud-rain",
+            name: result.TenTram,
+            popupHtml: '<div class="popup-loading"><i class="fa-solid fa-spinner fa-spin"></i><p>Đang tải dữ liệu...</p></div>',
+        });
+
+        try {
+            const hydrometResponse = await fetchHydrometData(result.KiHieu, {
+                limit: 100,
+                orderBy: "DESC",
+            });
+            const normalizedHydrometResponse = {
+                ...hydrometResponse,
+                data: Array.isArray(hydrometResponse?.data)
+                    ? [...hydrometResponse.data].reverse()
+                    : hydrometResponse?.data,
+            };
+
+            setHighlightedFeature({
+                id: result.KiHieu,
+                geometry: {
+                    type: "Point",
+                    coordinates: [lng, lat],
+                },
+                icon: "cloud-rain",
+                name: result.TenTram,
+                popupHtml: createHydrometPopup(result, normalizedHydrometResponse),
+            });
+        } catch (error) {
+            console.error("Error loading hydromet search result data:", error);
+        }
+    };
+
+    const handleClick = (result) => {
+        try {
+            if (result.type === "diem_do_man") {
+                const lat = normalizeCoordinate(result.ViDo);
+                const lng = normalizeCoordinate(result.KinhDo);
+                if (lat && lng) {
+                    setSelectedLocation({ lat, lng, zoom: 15 });
+                    handleSalinitySearchResultClick(result, lat, lng);
                 }
                 return;
             }
 
             if (result.type === "khi_tuong_thuy_van") {
-                const lat = result.ViDo;
-                const lng = result.KinhDo;
+                const lat = normalizeCoordinate(result.ViDo);
+                const lng = normalizeCoordinate(result.KinhDo);
                 if (lat && lng) {
                     setSelectedLocation({ lat, lng, zoom: 15 });
+                    handleHydrometSearchResultClick(result, lat, lng);
+                }
+                return;
+            }
 
-                    const feature = {
-                        id: result.KiHieu, // Use KiHieu as ID for weather stations
-                        geometry: {
-                            type: "Point",
-                            coordinates: [lng, lat],
-                        },
-                        icon: "cloud-rain",
-                        name: result.TenTram,
-                    };
-
-                    setHighlightedFeature(feature);
+            if (result.type === "iot_station") {
+                const lat = normalizeCoordinate(result.ViDo);
+                const lng = normalizeCoordinate(result.KinhDo);
+                if (lat && lng) {
+                    setSelectedLocation({ lat, lng, zoom: 15 });
+                    handleIoTSearchResultClick(result, lat, lng);
                 }
                 return;
             }
@@ -351,27 +689,21 @@ function LeftMenuMap({
             if (geojson.type === "Point") {
                 const [lng, lat] = geojson.coordinates;
                 setSelectedLocation({ lat, lng, zoom: 14 });
-
-                const feature = {
+                setHighlightedFeature({
                     geometry: geojson,
-                    id: result.id || result.MaHuyen || result.MaXa,
+                    id: result.id || result.mahuyen || result.maxa || result.MaHuyen || result.MaXa,
                     icon: "marker",
-                    name: result.name || result.TenHuyen || result.TenXa || "Điểm",
-                };
-
-                setHighlightedFeature(feature);
+                    name: result.name || result.tenhuyen || result.tenxa || result.TenHuyen || result.TenXa || "Điểm",
+                });
             } else if (geojson.type === "Polygon" || geojson.type === "MultiPolygon") {
                 const bounds = getBoundsFromCoordinates(geojson.coordinates);
                 setSelectedLocation({ bounds });
-
-                const feature = {
+                setHighlightedFeature({
                     type: "Feature",
                     geometry: geojson,
-                    id: result.id || result.MaHuyen || result.MaXa,
-                    name: result.name || result.TenHuyen || result.TenXa || "Vùng",
-                };
-
-                setHighlightedFeature(feature);
+                    id: result.id || result.mahuyen || result.maxa || result.MaHuyen || result.MaXa,
+                    name: result.name || result.tenhuyen || result.tenxa || result.TenHuyen || result.TenXa || "Vùng",
+                });
             }
         } catch (err) {
             console.error("❌ Lỗi xử lý GeoJSON hoặc tọa độ:", err);
@@ -379,7 +711,7 @@ function LeftMenuMap({
     };
 
     const renderTabContent = useMemo(() => {
-        if (state.activeTab === "Data") {
+        if (activeTab === "Data") {
             return (
                 <div className="tab-content-data">
                     {/* Monitoring Data Section */}
@@ -732,7 +1064,7 @@ function LeftMenuMap({
             );
         }
 
-        if (state.activeTab === "search") {
+        if (activeTab === "search") {
             return (
                 <div className="tab-content-search">
                     {state.isLoadingSearchResults ? (
@@ -843,6 +1175,28 @@ function LeftMenuMap({
                                                 </div>
                                             </div>
                                         </div>
+                                        ) : result.type === "iot_station" ? (
+                                            <div className="result-content iot-result">
+                                                <div className="result-header">
+                                                    <div className="result-icon">
+                                                        <i className="fa-solid fa-tower-broadcast"></i>
+                                                    </div>
+                                                    <div className="result-title">
+                                                        <h4 className="result-name">{result.StationName}</h4>
+                                                        <span className="result-type">Trạm IoT</span>
+                                                    </div>
+                                                </div>
+                                                <div className="result-details">
+                                                    <div className="detail-item">
+                                                        <span className="detail-label">Mã serial:</span>
+                                                        <span className="detail-value">{result.SerialNumber}</span>
+                                                    </div>
+                                                    <div className="detail-item">
+                                                        <span className="detail-label">Mã trạm:</span>
+                                                        <span className="detail-value">{result.StationCode}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
                                     ) : (
                                         <div className="result-content district-result">
                                             <div className="result-header">
@@ -883,7 +1237,7 @@ function LeftMenuMap({
             );
         }
     }, [
-        state.activeTab,
+        activeTab,
         state.openMenuIndex,
         state.enabledLayers,
         state.openSalinityDropdown,
@@ -930,16 +1284,6 @@ function LeftMenuMap({
                         }`}
                     >
                         LỚP DỮ LIỆU
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("Hydromet")}
-                        className={`flex-fill py-2 fw-semibold text-uppercase text-sm border-0 bg-transparent ${
-                            activeTab === "Hydromet"
-                                ? "text-dark border-bottom border-2 border-warning"
-                                : "text-secondary"
-                        }`}
-                    >
-                        KHÍ TƯỢNG
                     </button>
                     <button
                         onClick={() => setActiveTab("search")}

@@ -2,6 +2,7 @@ import React from "react";
 import L from "leaflet";
 import { convertDMSToDecimal } from "@components/convertDMSToDecimal";
 import { fetchIoTStations, fetchIoTData } from "@components/map/mapDataServices";
+import { getSingleStationClassification } from "@common/salinityClassification";
 
 const normalizeIoTRow = (row) => {
     const dateValue = row?.Date || row?.date_time || row?.timestamp || row?.created_at || null;
@@ -23,7 +24,8 @@ const buildIoTChartPayload = (station, iotResponse) => {
     const rawRows = getIoTRowsFromResponse(iotResponse);
     const normalizedRows = rawRows
         .map(normalizeIoTRow)
-        .filter((row) => Boolean(row.Date));
+        .filter((row) => Boolean(row.Date))
+        .sort((a, b) => new Date(a.Date).getTime() - new Date(b.Date).getTime());
 
     const stationInfo = iotResponse?.station || station;
     const stationName =
@@ -46,21 +48,42 @@ const buildIoTChartPayload = (station, iotResponse) => {
         data: normalizedRows,
         summary: {
             totalRecords: iotResponse?.count || normalizedRows.length,
-            firstRecord: normalizedRows[normalizedRows.length - 1]?.Date || null,
-            lastRecord: normalizedRows[0]?.Date || null,
+            totalRecordsInRange: normalizedRows.length,
+            totalRecordsAll: parseInt(stationInfo?.total_records || station?.total_records || 0),
+            rangeLabel: "14 ngày gần nhất",
+            firstRecord: normalizedRows[0]?.Date || null,
+            lastRecord: normalizedRows[normalizedRows.length - 1]?.Date || null,
         },
     };
 };
 
-// Create custom IoT icon
-export const getIoTIcon = (status, totalRecords) => {
+// Map classification class to popup status CSS class and color
+const RISK_CLASS_MAP = {
+    'normal':       { statusClass: 'status-normal',       color: '#28a745' },
+    'warning':      { statusClass: 'status-warning',      color: '#ffc107' },
+    'high-warning': { statusClass: 'status-high-warning', color: '#fd7e14' },
+    'critical':     { statusClass: 'status-critical',     color: '#dc3545' },
+    'no-data':      { statusClass: 'status-no-data',      color: '#6c757d' },
+};
+
+// Helper: get risk classification for IoT station based on latest salt value
+const getIoTRiskClassification = (station) => {
+    const saltValue = station.latest_salt_value;
+    // Derive base station code (e.g. "CKC_IoT" → "CKC") for MNB detection
+    const baseCode = (station.station_code || '').replace(/_IoT$/i, '').replace(/_iot$/i, '');
+    return getSingleStationClassification(saltValue, baseCode);
+};
+
+// Create custom IoT icon - single fixed color regardless of risk level.
+// Keep riskClass parameter for API compatibility with callers.
+export const getIoTIcon = (status, totalRecords, _riskClass = 'no-data') => {
     const isActive = status === 'active' && parseInt(totalRecords) > 0;
-    console.log("totalRecords", totalRecords)
+    const markerColor = '#7c3aed';
     return L.divIcon({
         className: 'custom-iot-marker',
         html: `
             <div class="iot-marker-container">
-                <div class="iot-marker ${isActive ? 'active' : 'inactive'}">
+                <div class="iot-marker ${isActive ? 'active' : 'inactive'}" style="--risk-color: ${markerColor}">
                     <div class="iot-icon">
                         <i class="fa-solid fa-tower-broadcast"></i>
                     </div>
@@ -80,14 +103,61 @@ export const getIoTIcon = (status, totalRecords) => {
     });
 };
 
+const toYMD = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+// Keep IoT detail payload lightweight: fetch only 14 days from latest data point.
+const getRecent14DaysRange = (lastDataTime) => {
+    const end = lastDataTime ? new Date(lastDataTime) : new Date();
+    if (Number.isNaN(end.getTime())) {
+        const fallbackEnd = new Date();
+        const fallbackStart = new Date(fallbackEnd);
+        fallbackStart.setDate(fallbackStart.getDate() - 14);
+        return {
+            startDate: toYMD(fallbackStart),
+            endDate: toYMD(fallbackEnd),
+        };
+    }
+
+    const start = new Date(end);
+    start.setDate(start.getDate() - 14);
+
+    return {
+        startDate: toYMD(start),
+        endDate: toYMD(end),
+    };
+};
+
 // Create IoT station popup - Lấy dữ liệu từ API thực tế
 export const createIoTPopup = (station) => {
-    console.log('Creating popup for station:', station);
-    
-    // Sử dụng dữ liệu thật từ API response
-    const isActive = station.status === 'active' && parseInt(station.total_records || 0) > 0;
     const hasSerial = station.serial_number && station.serial_number.trim() !== '';
+    const isActive = station.status === 'active' && parseInt(station.total_records || 0) > 0;
     
+    // Risk level based on latest salt value
+    const riskClassification = getIoTRiskClassification(station);
+    const { statusClass: riskStatusClass, color: riskColor } = RISK_CLASS_MAP[riskClassification.class] || RISK_CLASS_MAP['no-data'];
+
+    // Operational status (shown as a detail row)
+    let operationalStatusClass = 'status-inactive';
+    let operationalStatusText = 'Không hoạt động';
+    if (isActive) {
+        operationalStatusClass = 'status-active';
+        operationalStatusText = 'Đang hoạt động';
+    } else if (station.status === 'active' && !hasSerial) {
+        operationalStatusClass = 'status-pending';
+        operationalStatusText = 'Chưa lắp đặt';
+    }
+
+    // Format latest salt value
+    const hasSaltValue = station.latest_salt_value !== null && station.latest_salt_value !== undefined;
+    const saltDisplay = hasSaltValue
+        ? `${parseFloat(station.latest_salt_value).toFixed(2)} ${station.latest_salt_unit || '‰'}`
+        : '--';
+
     // Format thời gian dữ liệu cuối cùng
     const lastDataTime = station.last_data_time ? 
         new Date(station.last_data_time).toLocaleString('vi-VN', {
@@ -98,21 +168,6 @@ export const createIoTPopup = (station) => {
             minute: '2-digit'
         }) : 'Chưa có dữ liệu';
     
-    // Xác định trạng thái
-    let statusClass = 'status-inactive';  
-    let statusText = 'Không hoạt động';
-    let statusColor = '#6c757d';
-    
-    if (isActive) {
-        statusClass = 'status-active';
-        statusText = 'Đang hoạt động'; 
-        statusColor = '#198754';
-    } else if (station.status === 'active' && !hasSerial) {
-        statusClass = 'status-pending';
-        statusText = 'Chưa lắp đặt';
-        statusColor = '#ffc107';
-    }
-
     // Lấy dữ liệu thật từ station object
     const totalRecords = parseInt(station.total_records || 0);
     const stationCode = station.station_code || 'N/A';
@@ -129,16 +184,16 @@ export const createIoTPopup = (station) => {
                     <h4 class="popup-name">${stationName}</h4>
                     <span class="popup-type">Trạm IoT</span>
                 </div>
-                <div class="popup-status ${statusClass}">
-                    ${statusText}
+                <div class="popup-status ${riskStatusClass}">
+                    ${riskClassification.shortText}
                 </div>
             </div>
             
             <div class="popup-content">
                 <div class="popup-main-value">
-                    <span class="value-label">Tổng số bản ghi</span>
-                    <span class="value-number" style="color: ${statusColor}">
-                        ${totalRecords.toLocaleString()} records
+                    <span class="value-label">Độ mặn hiện tại</span>
+                    <span class="value-number" style="color: ${riskColor}">
+                        ${saltDisplay}
                     </span>
                     <span class="value-date">${lastDataTime}</span>
                 </div>
@@ -149,6 +204,13 @@ export const createIoTPopup = (station) => {
                             <div class="detail-content py-2">
                                 <strong class="detail-label"><i class="detail-icon">🏷️</i> Mã trạm: </strong>
                                 <span class="detail-value">${stationCode}</span>
+                            </div>
+                        </div>
+
+                        <div class="detail-item">
+                            <div class="detail-content py-2">
+                                <strong class="detail-label"><i class="detail-icon">⚠️</i> Cấp độ rủi ro: </strong>
+                                <span class="detail-value" style="color: ${riskColor}; font-weight: 600;">${riskClassification.shortText}</span>
                             </div>
                         </div>
                         
@@ -170,6 +232,13 @@ export const createIoTPopup = (station) => {
                             <div class="detail-content py-2">
                                 <strong class="detail-label"><i class="detail-icon">📅</i> Thời gian: </strong>
                                 <span class="detail-value">${timePeriod}</span>
+                            </div>
+                        </div>
+
+                        <div class="detail-item">
+                            <div class="detail-content py-2">
+                                <strong class="detail-label"><i class="detail-icon">📊</i> Tổng bản ghi: </strong>
+                                <span class="detail-value">${totalRecords.toLocaleString()} records</span>
                             </div>
                         </div>
                         
@@ -197,17 +266,23 @@ export const createIoTPopup = (station) => {
     `;
 };
 
-// Get IoT tooltip class
-export const getIoTTooltipClass = (status, totalRecords) => {
-    const isActive = status === 'active' && parseInt(totalRecords) > 0;
-    
-    if (isActive) {
-        return "custom-tooltip tooltip-iot-active";
-    } else if (status === 'active') {
-        return "custom-tooltip tooltip-iot-pending";
-    } else {
-        return "custom-tooltip tooltip-iot-inactive";
+// Get IoT tooltip class by risk level (used to color station name label)
+export const getIoTTooltipClass = (_status, _totalRecords, riskClass = 'no-data') => {
+    const normalizedRiskClass = String(riskClass || 'no-data');
+
+    if (normalizedRiskClass === 'normal') {
+        return 'custom-tooltip tooltip-normal';
     }
+    if (normalizedRiskClass === 'warning') {
+        return 'custom-tooltip tooltip-warning';
+    }
+    if (normalizedRiskClass === 'high-warning') {
+        return 'custom-tooltip tooltip-high-warning';
+    }
+    if (normalizedRiskClass === 'critical') {
+        return 'custom-tooltip tooltip-critical';
+    }
+    return 'custom-tooltip tooltip-no-data';
 };
 
 // Main function to render IoT stations on map
@@ -238,8 +313,9 @@ export const renderIoTStations = async (mapInstance, setIotData) => {
                 continue;
             }
 
-            const icon = getIoTIcon(station.status, station.total_records);
-            const tooltipClass = getIoTTooltipClass(station.status, station.total_records);
+            const riskInfo = getIoTRiskClassification(station);
+            const icon = getIoTIcon(station.status, station.total_records, riskInfo.class);
+            const tooltipClass = getIoTTooltipClass(station.status, station.total_records, riskInfo.class);
 
             const marker = L.marker([lat, lng], {
                 icon,
@@ -292,7 +368,10 @@ export const renderIoTStations = async (mapInstance, setIotData) => {
                         if (btnViewData && station.serial_number) {
                             btnViewData.addEventListener('click', async () => {
                                 try {
+                                    const { startDate, endDate } = getRecent14DaysRange(station.last_data_time);
                                     const iotResponse = await fetchIoTData(station.serial_number, {
+                                        startDate,
+                                        endDate,
                                         groupBy: "none",
                                     });
                                     const chartPayload = buildIoTChartPayload(station, iotResponse);
