@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import MapboxMap from "@pages/map/MapboxMap";
 import LeftMenuMap from "@components/LeftMenuMap";
-import AreaSelector from "@components/map/AreaSelector";
+// import AreaSelector from "@components/map/AreaSelector";
 import { Helmet } from "react-helmet-async";
 import axiosInstance from "@config/axios-config";
 import { useDispatch, useSelector } from "react-redux";
@@ -50,15 +50,43 @@ const Map = () => {
         setSearchResults([]);
         try {
             const response = await axiosInstance.get(
-                `${import.meta.env.VITE_BASE_URL}/search/${encodeURIComponent(searchText)}`,
+                `/search/${encodeURIComponent(searchText)}`,
             );
 
             // Backend trả về mảng kết quả trực tiếp hoặc object chứa results
             const searchData = Array.isArray(response.data) ? response.data : (response.data.results || []);
             setSearchResults(searchData);
 
-            // Log để debug
-            console.log(`🔍 Tìm kiếm "${searchText}":`, searchData.length, 'kết quả');
+            // Log để debug nội dung API sau khi tìm kiếm
+            console.group(`🔍 Search API - ${searchText}`);
+            console.log("Request URL:", `/search/${encodeURIComponent(searchText)}`);
+            console.log("Raw response.data:", response.data);
+            console.log("Parsed searchData:", searchData);
+            console.log("Total results:", searchData.length);
+            console.log("Result types:", [...new Set(searchData.map((item) => item?.type).filter(Boolean))]);
+            console.table(
+                searchData.map((item, index) => ({
+                    index: index + 1,
+                    type: item?.type,
+                    name:
+                        item?.TenDiem ||
+                        item?.TenTram ||
+                        item?.StationName ||
+                        item?.tenxa ||
+                        item?.tenhuyen ||
+                        null,
+                    code:
+                        item?.KiHieu ||
+                        item?.SerialNumber ||
+                        item?.StationCode ||
+                        item?.maxa ||
+                        item?.mahuyen ||
+                        null,
+                    latitude: item?.ViDo || null,
+                    longitude: item?.KinhDo || null,
+                })),
+            );
+            console.groupEnd();
             
         } catch (err) {
             console.error("Lỗi tìm kiếm:", err);
@@ -276,11 +304,11 @@ const Map = () => {
                         setHighlightedFeature={setHighlightedFeature}
                         iotData={iotData}
                     />
-                    <AreaSelector 
+                    {/* <AreaSelector 
                         mapInstance={leafletMapInstance}
                         onAreaSelect={handleAreaSelect}
                         className="map-area-selector"
-                    />
+                    /> */}
                 </div>
             </div>
         </div>

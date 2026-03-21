@@ -53,29 +53,39 @@ function normalizeChartData(data) {
     if (hasNewStructure) {
         // Data structure mới - mỗi item đã có tất cả sensors
         const normalized = safeData.map((item) => {
-            const time = new Date(item.Date || item.date_time).toLocaleString("vi-VN", { hour12: false });
+            const rawTime = item.Date || item.date_time;
+            const timestamp = new Date(rawTime).getTime();
+            const time = Number.isNaN(timestamp)
+                ? String(rawTime || "")
+                : new Date(timestamp).toLocaleString("vi-VN", { hour12: false });
             return {
                 time,
+                timestamp,
                 distance: toNumberOrNull(item.distance_value),
                 salt: toNumberOrNull(item.salt_value),
                 temp: toNumberOrNull(item.temp_value),
                 rainfall: toNumberOrNull(item.daily_rainfall_value),
             };
         });
-        const result = normalized.sort((a, b) => new Date(a.time) - new Date(b.time));
+        const result = normalized.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
         return result;
     } else {
         // Data structure cũ - gom nhóm theo SensorType
         const grouped = {};
         safeData.forEach((item) => {
-            const time = new Date(item.Date || item.date_time).toLocaleString("vi-VN", { hour12: false });
+            const rawTime = item.Date || item.date_time;
+            const timestamp = new Date(rawTime).getTime();
+            const time = Number.isNaN(timestamp)
+                ? String(rawTime || "")
+                : new Date(timestamp).toLocaleString("vi-VN", { hour12: false });
             if (!grouped[time]) grouped[time] = { time };
+            grouped[time].timestamp = Number.isNaN(timestamp) ? 0 : timestamp;
             if (item.SensorType === "Distance") grouped[time].distance = parseFloat(item.Value);
             if (item.SensorType === "Salt") grouped[time].salt = parseFloat(item.Value);
             if (item.SensorType === "Temp") grouped[time].temp = parseFloat(item.Value);
             if (item.SensorType === "Daily Rainfall") grouped[time].rainfall = parseFloat(item.Value);
         });
-        const result = Object.values(grouped).sort((a, b) => new Date(a.time) - new Date(b.time));
+        const result = Object.values(grouped).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
         return result;
     }
 }

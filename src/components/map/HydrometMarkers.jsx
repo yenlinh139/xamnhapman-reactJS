@@ -615,12 +615,6 @@ export const renderHydrometStations = async (mapInstance, setHydrometData, setSe
 
                     // Create enhanced popup with all parameters
                     const popupHTML = createHydrometPopup(station, hydrometeorologyData);
-                    
-                    console.log(`Creating popup for station ${station.KiHieu}:`, {
-                        hasData: stationData.hasData,
-                        station: station.TenTram,
-                        popupType: stationData.hasData ? 'enhanced' : 'basic'
-                    });
 
                     marker.bindPopup(popupHTML, {
                         maxWidth: 400,

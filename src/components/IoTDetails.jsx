@@ -100,16 +100,14 @@ const IoTDetails = ({ iotData, onClose, onOpenFullChart }) => {
             <div className="row g-2 mb-3">
                 <div className="col-6">
                     <div className="card card-body p-2 text-center">
-                        <div className="fw-bold text-primary">{summary?.totalRecords || 0}</div>
-                        <small className="text-muted">Tổng số bản ghi</small>
+                        <div className="fw-bold text-primary">{summary?.totalRecordsInRange || summary?.totalRecords || dataPoints.length}</div>
+                        <small className="text-muted">Bản ghi {summary?.rangeLabel || "đang hiển thị"}</small>
                     </div>
                 </div>
                 <div className="col-6">
                     <div className="card card-body p-2 text-center">
-                        <div className="fw-bold text-success">
-                            {dataPoints[0]?.SensorType || "Multi-sensor"}
-                        </div>
-                        <small className="text-muted">Loại cảm biến</small>
+                        <div className="fw-bold text-success">{summary?.totalRecordsAll || 0}</div>
+                        <small className="text-muted">Tổng bản ghi trong DB</small>
                     </div>
                 </div>
             </div>

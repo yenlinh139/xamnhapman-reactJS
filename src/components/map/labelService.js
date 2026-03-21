@@ -5,7 +5,7 @@ import axiosInstance from "../../config/axios-config";
 export const getDistrictLabels = async () => {
     try {
         const response = await fetch(
-            "http://localhost:8080/geoserver/xamnhapman_tphcm/ows?" +
+            "https://xamnhapman.opengis.vn/m/gsrv/xamnhapman_tphcm/ows?" +
                 "service=WFS&version=1.0.0&request=GetFeature&typeName=xamnhapman_tphcm:DiaPhanHuyen&outputFormat=application/json",
         );
 
@@ -32,7 +32,7 @@ export const getDistrictLabels = async () => {
 export const getCommuneLabels = async () => {
     try {
         const response = await fetch(
-            "http://localhost:8080/geoserver/xamnhapman_tphcm/ows?" +
+            "https://xamnhapman.opengis.vn/m/gsrv/xamnhapman_tphcm/ows?" +
                 "service=WFS&version=1.0.0&request=GetFeature&typeName=xamnhapman_tphcm:DiaPhanXa&outputFormat=application/json",
         );
 

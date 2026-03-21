@@ -150,6 +150,36 @@ export const layerStyles = {
     CTTL_2030_NongThonMoi: { type: "line", color: "#65a30d" },
     CTTL_2030_NoiDong: { type: "line", color: "#ca8a04" },
     CTTL_2030_VungThuyLoi: { type: "polygon", color: "#0369a1" },
+    iotStations: {
+        type: "point",
+        color: "#7c3aed",
+        legend: `<div class="d-flex justify-content-center gap-3 mt-2 small">
+                            <div class="d-flex align-items-center gap-1">
+                                <div
+                                    style="width: 12px; height: 12px; background-color: #28a745; border-radius: 2px;">
+                                </div>
+                                <span>Bình thường</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-1">
+                                <div
+                                    style="width: 12px; height: 12px; background-color: #ffc107; border-radius: 2px;">
+                                </div>
+                                <span>Rủi ro cấp 1</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-1">
+                                <div
+                                    style="width: 12px; height: 12px; background-color: #fd7e14; border-radius: 2px;">
+                                </div>
+                                <span>Rủi ro cấp 2</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-1">
+                                <div
+                                    style="width: 12px; height: 12px; background-color: #dc3545; border-radius: 2px;">
+                                </div>
+                                <span>Rủi ro cấp 3</span>
+                            </div>
+                        </div>`,
+    },
 };
 
 export const legendNames = {
@@ -197,8 +227,8 @@ export const createBaseMaps = () => {
 };
 
 export const createWMSLayer = () => {
-    return L.tileLayer.wms("http://localhost:8080/geoserver/xamnhapman_tphcm/wms", {
-        layers: `xamnhapman_tphcm:DiaGioiHuyen`,
+    return L.tileLayer.wms("https://xamnhapman.opengis.vn/m/gsrv/xamnhapman_tphcm/wms", {
+        layers: `xamnhapman_tphcm:DiaGioiHCM`,
         transparent: true,
         format: "image/png",
         version: "1.1.1",
@@ -229,6 +259,8 @@ export const updateLegendVisibility = (overlayLayers) => {
                 symbolHTML = `<i class="fa-solid fa-droplet" style="color: ${color}; margin-right: 5px;"></i>`;
             } else if (layerName === "hydrometStations") {
                 symbolHTML = `<i class="fa-solid fa-tower-observation" style="color: ${color}; margin-right: 5px;"></i>`;
+            } else if (layerName === "iotStations") {
+                symbolHTML = `<i class="fa-solid fa-tower-broadcast" style="color: ${color}; margin-right: 5px;"></i>`;
             } else if (type === "point") {
                 symbolHTML = `<span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:50%;margin-right:5px;"></span>`;
             } else if (type === "line") {

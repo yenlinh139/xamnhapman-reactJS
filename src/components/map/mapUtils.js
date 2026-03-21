@@ -49,6 +49,7 @@ export const handleFeatureHighlight = (
     const name = highlightedFeature?.name || highlightedFeature?.properties?.name || "Địa điểm";
 
     const iconType = highlightedFeature?.icon || "droplet";
+    const popupHtml = highlightedFeature?.popupHtml;
 
     if (isPoint && Array.isArray(coordinates)) {
         let [lng, lat] = coordinates;
@@ -66,10 +67,15 @@ export const handleFeatureHighlight = (
             return;
         }
 
-        const iconHtml =
-            iconType === "marker"
-                ? '<i class="fa-solid fa-location-dot" style="color:#dc3545; font-size:24px;"></i>'
-                : '<i class="fa-solid fa-droplet" style="color:#007bff; font-size:24px;"></i>';
+        const iconMap = {
+            marker: { icon: "location-dot", color: "#dc3545" },
+            droplet: { icon: "droplet", color: "#007bff" },
+            "cloud-rain": { icon: "cloud-rain", color: "#16a34a" },
+            "tower-broadcast": { icon: "tower-broadcast", color: "#f59e0b" },
+            router: { icon: "tower-broadcast", color: "#f59e0b" },
+        };
+        const markerConfig = iconMap[iconType] || iconMap.droplet;
+        const iconHtml = `<i class="fa-solid fa-${markerConfig.icon}" style="color:${markerConfig.color}; font-size:24px;"></i>`;
 
         const customIcon = L.divIcon({
             html: iconHtml,
@@ -83,18 +89,24 @@ export const handleFeatureHighlight = (
             icon: customIcon,
             zIndexOffset: 1000,
         }).addTo(map);
-        highlightedMarkerRef.current.bindPopup(`
-            <div class="highlight-popup">
-                <h4 style="margin:0 0 8px;color:#007bff;">
-                    <i class="fa-solid fa-${iconType}"></i> ${name}
-                </h4>
-                <p style="font-size:12px;color:#666;margin:0">
-                    <strong>Tọa độ:</strong><br>
-                    Kinh độ: ${lng.toFixed(6)}<br>
-                    Vĩ độ: ${lat.toFixed(6)}
-                </p>
-            </div>
-        `);
+        highlightedMarkerRef.current.bindPopup(
+            popupHtml || `
+                <div class="highlight-popup">
+                    <h4 style="margin:0 0 8px;color:${markerConfig.color};">
+                        <i class="fa-solid fa-${markerConfig.icon}"></i> ${name}
+                    </h4>
+                    <p style="font-size:12px;color:#666;margin:0">
+                        <strong>Tọa độ:</strong><br>
+                        Kinh độ: ${lng.toFixed(6)}<br>
+                        Vĩ độ: ${lat.toFixed(6)}
+                    </p>
+                </div>
+            `,
+            {
+                maxWidth: 360,
+                className: popupHtml ? "custom-popup search-highlight-popup" : "custom-popup",
+            },
+        );
 
         map.flyTo([lat, lng], 15, { animate: true });
         setTimeout(() => {
