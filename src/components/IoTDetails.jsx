@@ -459,7 +459,7 @@ const IoTDetails = ({ iotData, onClose, onOpenFullChart }) => {
                         <div className="col-6">
                             <div className="d-flex align-items-center">
                                 <span className="me-2">📏</span>
-                                <small>Mực nước (m)</small>
+                                <small>Mực nước (cm)</small>
                             </div>
                         </div>
                         <div className="col-6">

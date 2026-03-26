@@ -1,0 +1,268 @@
+const POPUP_FALLBACK = "N/A";
+
+export const WMS_POPUP_TITLES = {
+    salinityPoints: "Điểm đo mặn",
+    hydrometStations: "Trạm khí tượng thủy văn",
+    DiaPhanHuyen: "Địa phận huyện",
+    DiaPhanXa: "Địa phận xã",
+    ThuyHe_line: "Thủy hệ 1 nét",
+    ThuyHe_polygon: "Thủy hệ 2 nét",
+    HienTrangSDD_2020: "Hiện trạng sử dụng đất 2020",
+    QuyHoachSDD_2030: "Quy hoạch sử dụng đất 2030",
+    DiemDoCao: "Điểm độ cao",
+    DEM: "Mô hình độ cao số (DEM)",
+    GiaoThong_line: "Giao thông 1 nét",
+    GiaoThong_polygon: "Giao thông 2 nét",
+    CTTL_2023_Cong: "Cống",
+    CTTL_2023_DeBao_BoBao: "Đê bao, bờ bao",
+    CTTL_2023_KenhMuong: "Kênh mương",
+    CTTL_2023_TramBom: "Trạm bơm",
+    CTTL_2030_Vung_HeThong: "Công trình thủy lợi vùng, hệ thống",
+    CTTL_2030_NongThonMoi: "Công trình nông thôn mới",
+    CTTL_2030_NoiDong: "Công trình thủy lợi nhỏ, nội đồng",
+    CTTL_2030_VungThuyLoi: "Vùng thủy lợi",
+};
+
+const escapeHtml = (value) =>
+    String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
+const formatValue = (value, unit = "") => {
+    if (value === null || value === undefined || value === "") {
+        return POPUP_FALLBACK;
+    }
+
+    const safeValue = escapeHtml(value);
+    const safeUnit = unit ? ` ${escapeHtml(unit)}` : "";
+    return `${safeValue}${safeUnit}`;
+};
+
+const createPopupShell = (title, body, options = {}) => {
+    const minWidth = options.minWidth || 320;
+    const maxWidth = options.maxWidth || 420;
+
+    return `
+        <div style="font-family: 'Segoe UI', sans-serif; min-width: ${minWidth}px; max-width: ${maxWidth}px; box-sizing: border-box; padding: 14px 14px 12px; color: #2f3542; background: #ffffff; border-radius: 16px;">
+            <div style="padding: 0 34px 12px 0; border-bottom: 3px solid #3b9cff; margin-bottom: 14px; box-sizing: border-box;">
+                <div style="font-size: 17px; line-height: 1.25; font-weight: 700; color: #2f8cff;">${escapeHtml(title)}</div>
+            </div>
+            ${body}
+        </div>
+    `;
+};
+
+const createTableRows = (rows) =>
+    rows
+        .filter((row) => row && row.label)
+        .map((row, index, filteredRows) => {
+            const isLastRow = index === filteredRows.length - 1;
+            const borderStyle = isLastRow ? "border-bottom: none;" : "border-bottom: 1px solid #e5e7eb;";
+
+            return `
+                <tr>
+                    <td style="width: 44%; padding: 12px 14px; background: #f5f6f8; ${borderStyle} font-size: 14px; color: #5b6572; vertical-align: top;">${escapeHtml(row.label)}</td>
+                    <td style="padding: 12px 14px; ${borderStyle} font-size: 14px; color: #2f3542; vertical-align: top; word-break: break-word;">${row.value}</td>
+                </tr>
+            `;
+        })
+        .join("");
+
+export const createTablePopup = (title, rows) => {
+    const body = `
+        <div style="border: 1px solid #dfe5ec; border-radius: 10px; overflow: hidden; background: #fff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);">
+            <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+                <tbody>
+                    ${createTableRows(rows)}
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    return createPopupShell(title, body);
+};
+
+export const createMetricPopup = (title, label, value) => {
+    const body = `
+        <div style="border: 1px solid #dfe5ec; border-radius: 10px; overflow: hidden; background: #fff;">
+            <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(84px, 112px); align-items: stretch;">
+                <div style="background: #f5f6f8; padding: 14px; font-size: 15px; color: #5b6572;">${escapeHtml(label)}</div>
+                <div style="padding: 14px; font-size: 15px; line-height: 1.1; font-weight: 400; color: #2f3542; text-align: left; word-break: break-word;">${escapeHtml(value ?? "-")}</div>
+            </div>
+        </div>
+    `;
+
+    return createPopupShell(title, body, { minWidth: 320, maxWidth: 380 });
+};
+
+const rowsForLayer = (layerName, props) => {
+    console.log("props for popup:", props);
+    switch (layerName) {
+        case "DiaPhanHuyen":
+            return [
+                { label: "Huyện", value: formatValue(props.tenHuyen) },
+                { label: "Mã huyện", value: formatValue(props.maHuyen) },
+                { label: "Diện tích", value: formatValue(props.dienTichTuNhien, "m²") },
+            ];
+        case "DiaPhanXa":
+            return [
+                { label: "Xã", value: formatValue(props.tenXa) },
+                { label: "Mã xã", value: formatValue(props.maXa) },
+                { label: "Huyện", value: formatValue(props.tenHuyen) },
+                { label: "Diện tích", value: formatValue(props.dienTichTuNhien, "m²") },
+            ];
+        case "GiaoThong_line":
+            return [
+                { label: "Tên đường", value: formatValue(props.tenDuong) },
+                { label: "Chiều dài", value: formatValue(props.chieuDai, "m") },
+            ];
+        case "GiaoThong_polygon":
+            return [
+                { label: "Tên đường", value: formatValue(props.TenDuong) },
+                { label: "Rộng", value: formatValue(props.DoRong, "m") },
+                { label: "Dài", value: formatValue(props.ChieuDai, "m") },
+                { label: "Kết cấu", value: formatValue(props.KetCau) },
+                { label: "Tình trạng", value: formatValue(props.TinhTrang) },
+                { label: "Cấp quản lý", value: formatValue(props.CapQuanLy) },
+            ];
+        case "ThuyHe_line":
+            return [
+                { label: "Tên sông/kênh", value: formatValue(props.Ten) },
+                { label: "Điểm đầu", value: formatValue(props.DiemDau) },
+                { label: "Điểm cuối", value: formatValue(props.DiemCuoi) },
+                { label: "Chiều dài", value: formatValue(props.ChieuDai, "m") },
+            ];
+        case "ThuyHe_polygon":
+            return [
+                { label: "Tên", value: formatValue(props.Ten) },
+                { label: "Phân loại", value: formatValue(props.phanLoai) },
+                { label: "Trạng thái", value: formatValue(props.TrangThai) },
+                { label: "Rộng", value: formatValue(props.DoRong, "m") },
+                { label: "Sâu", value: formatValue(props.DoSau, "m") },
+            ];
+        case "HienTrangSDD_2020":
+            return [
+                { label: "Loại đất", value: formatValue(props.loaidat) },
+                { label: "Ký hiệu", value: formatValue(props.kihieu1) },
+            ];
+        case "QuyHoachSDD_2030":
+            return [
+                { label: "Loại đất", value: formatValue(props.loaidat) },
+                { label: "Phân loại", value: formatValue(props.phanloai) },
+                { label: "Ký hiệu", value: formatValue(props.kihieu1) },
+            ];
+        case "CTTL_2023_Cong":
+            return [
+                { label: "Tên cống đập", value: formatValue(props.TenCongDap) },
+                { label: "Lý trình", value: formatValue(props.LyTrinh) },
+                { label: "Cụm công trình", value: formatValue(props.CumCongTrinh) },
+                { label: "Loại công trình", value: formatValue(props.LoaiCongTrinh) },
+                { label: "Hình thức", value: formatValue(props.HinhThuc) },
+                { label: "Chiều dài", value: formatValue(props.ChieuDai) },
+                { label: "Đường kính", value: formatValue(props.DuongKinh) },
+                { label: "Bề rộng", value: formatValue(props.BeRong) },
+                { label: "Chiều cao", value: formatValue(props.ChieuCao) },
+                { label: "Số cửa", value: formatValue(props.SoCua) },
+                { label: "Cao trình đáy cống", value: formatValue(props.CaoTrinhDayCong) },
+                { label: "Cao trình đỉnh cống", value: formatValue(props.CaoTrinhDinhCong) },
+                { label: "Hình thức vận hành", value: formatValue(props.HinhThucVanHanh) },
+                { label: "Mục tiêu nhiệm vụ", value: formatValue(props.MucTieuNhiemVu) },
+                { label: "Diện tích phục vụ", value: formatValue(props.DienTichPhucVu_ha, "ha") },
+                { label: "Năm sử dụng", value: formatValue(props.NamSuDung) },
+                { label: "Cấp công trình", value: formatValue(props.CapCongTrinh) },
+                { label: "Hệ thống công trình thủy lợi", value: formatValue(props.HeThongCongTrinhThuyLoi) },
+                { label: "Đơn vị quản lý", value: formatValue(props.DonViQuanLy) },
+                { label: "Năm cập nhật", value: formatValue(props.NamCapNhat) },
+            ];
+        case "CTTL_2023_DeBao_BoBao":
+            return [
+                { label: "Tên", value: formatValue(props.Ten) },
+                { label: "Chiều dài", value: formatValue(props.ChieuDai) },
+                { label: "Cao trình đáy kênh", value: formatValue(props.CaoTrinhDayKenh) },
+                { label: "Bề rộng kênh", value: formatValue(props.BeRongKenh) },
+                { label: "Hệ số mái", value: formatValue(props.HeSoMai) },
+                { label: "Cao trình bờ trái", value: formatValue(props.CaoTrinhBoTrai) },
+                { label: "Cao trình bờ phải", value: formatValue(props.CaoTrinhBoPhai) },
+                { label: "Bề rộng bờ trái", value: formatValue(props.BeRongBoTrai) },
+                { label: "Bề rộng bờ phải", value: formatValue(props.BeRongBoPhai) },
+                { label: "Hành lang bảo vệ", value: formatValue(props.HanhLangBaoVe) },
+                { label: "Cấp công trình", value: formatValue(props.CapCongTrinh) },
+                { label: "Kết cấu công trình", value: formatValue(props.KetCauCongTrinh) },
+                { label: "Mục tiêu nhiệm vụ", value: formatValue(props.MucTieuNhiemVu) },
+                { label: "Diện tích phục vụ", value: formatValue(props.DienTichPhucVu) },
+                { label: "Năm sử dụng", value: formatValue(props.NamSuDung) },
+                { label: "Hệ thống công trình thủy lợi", value: formatValue(props.HeThongCongTrinhThuyLoi) },
+                { label: "Đơn vị quản lý", value: formatValue(props.DonViQuanLy) },
+                { label: "Năm cập nhật", value: formatValue(props.NamCapNhat) },
+                { label: "Chiều dài shape", value: formatValue(props.SHAPE_Length) },
+            ];
+        case "CTTL_2023_KenhMuong":
+            return [
+                { label: "Tên kênh mương", value: formatValue(props.TenKenhMuong) },
+                { label: "Chiều dài", value: formatValue(props.ChieuDai) },
+                { label: "Cao trình đáy kênh", value: formatValue(props.CaoTrinhDayKenh) },
+                { label: "Bề rộng kênh", value: formatValue(props.BeRongKenh) },
+                { label: "Hệ số mái", value: formatValue(props.HeSoMai) },
+                { label: "Cao trình bờ trái", value: formatValue(props.CaoTrinhBoTrai) },
+                { label: "Cao trình bờ phải", value: formatValue(props.CaoTrinhBoPhai) },
+                { label: "Bề rộng bờ trái", value: formatValue(props.BeRongBoTrai) },
+                { label: "Bề rộng bờ phải", value: formatValue(props.BeRongBoPhai) },
+                { label: "Hành lang bảo vệ", value: formatValue(props.HanhLangBaoVe) },
+                { label: "Cấp công trình", value: formatValue(props.CapCongTrinh) },
+                { label: "Kết cấu công trình", value: formatValue(props.KetCauCongTrinh) },
+                { label: "Mục tiêu nhiệm vụ", value: formatValue(props.MucTieuNhiemVu) },
+                { label: "Diện tích phục vụ", value: formatValue(props.DienTichPhucVu) },
+                { label: "Năm sử dụng", value: formatValue(props.NamSuDung) },
+                { label: "Hệ thống công trình thủy lợi", value: formatValue(props.HeThongCongTrinhThuyLoi) },
+                { label: "Đơn vị quản lý", value: formatValue(props.DonViQuanLy) },
+                { label: "Năm cập nhật", value: formatValue(props.NamCapNhat) },
+                { label: "Chiều dài shape", value: formatValue(props.SHAPE_Length) },
+            ];
+        case "CTTL_2023_TramBom":
+            return [
+                { label: "Tên trạm bơm", value: formatValue(props.TenTramBom) },
+                { label: "Loại", value: formatValue(props.Loai) },
+                { label: "Công suất", value: formatValue(props.CongSuat) },
+                { label: "Mục tiêu nhiệm vụ", value: formatValue(props.MucTieuNhiemVu) },
+                { label: "Diện tích phục vụ", value: formatValue(props.DienTichPhucVu_ha, "ha") },
+                { label: "Hệ thống công trình thủy lợi", value: formatValue(props.HeThongCongTrinhThuyLoi) },
+                { label: "Năm sử dụng", value: formatValue(props.NamSuDung) },
+                { label: "Đơn vị quản lý", value: formatValue(props.DonViQuanLy) },
+            ];
+        case "CTTL_2030_Vung_HeThong":
+        case "CTTL_2030_NongThonMoi":
+        case "CTTL_2030_NoiDong":
+            return [
+                { label: "Tên", value: formatValue(props.Ten) },
+                { label: "Vùng thủy lợi", value: formatValue(props.VungThuyLoi) },
+                { label: "Chiều dài shape", value: formatValue(props.Shape_Length) },
+            ];
+        case "CTTL_2030_VungThuyLoi":
+            return [
+                { label: "Vùng thủy lợi", value: formatValue(props.VungThuyLoi) },
+                { label: "Mô tả", value: formatValue(props.MoTa) },
+                { label: "Chiều dài shape", value: formatValue(props.Shape_Length) },
+                { label: "Diện tích shape", value: formatValue(props.Shape_Area) },
+            ];
+        default:
+            return [];
+    }
+};
+
+export const createLayerPopupContent = (layerName, props) => {
+    const title = WMS_POPUP_TITLES[layerName] || layerName;
+
+    if (layerName === "DiemDoCao") {
+        return createMetricPopup(title, "Độ cao (m)", props?.docao_m ?? props?.DoCao ?? props?.docao ?? "-");
+    }
+
+    const rows = rowsForLayer(layerName, props);
+    if (rows.length === 0) {
+        return createPopupShell(title, `<div style="font-size: 14px; color: #64748b; padding: 4px 2px 2px;">Không có cấu hình hiển thị cho lớp này.</div>`);
+    }
+
+    return createTablePopup(title, rows);
+};

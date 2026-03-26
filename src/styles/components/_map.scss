@@ -18,7 +18,7 @@
     --shadow-heavy: 0 8px 32px rgba(0, 0, 0, 0.2);
     --border-radius: 12px;
     --header-height: 70px;
-    --sidebar-width: 380px;
+    --sidebar-width: 280px;
     --sidebar-collapsed-width: 0;
 }
 
@@ -401,7 +401,7 @@
    =============================== */
 @media (max-width: 1024px) {
     :root {
-        --sidebar-width: 320px;
+        --sidebar-width: 280px;
         --header-height: 65px;
     }
 
@@ -1808,22 +1808,32 @@ button:hover,
     z-index: 10;
     
     &.active {
-        background: var(--risk-color, #28a745);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+        box-shadow: 
+            0 0 0 0 rgba(168, 85, 247, 0.7),
+            0 0 20px rgba(168, 85, 247, 0.6),
+            0 4px 12px rgba(147, 51, 234, 0.4),
+            inset 0 -2px 6px rgba(0, 0, 0, 0.1);
+        animation: markerGlow 1.5s ease-in-out infinite;
         
         .iot-icon {
             color: white;
-            animation: pulse 2s infinite;
+            animation: markerBounce 1s ease-in-out infinite;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
         }
     }
     
     &.inactive {
         background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-        box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
+        box-shadow: 
+            0 0 0 0 rgba(108, 117, 125, 0.5),
+            0 2px 8px rgba(108, 117, 125, 0.3);
+        animation: markerInactive 2s ease-in-out infinite;
         
         .iot-icon {
             color: white;
-            opacity: 0.7;
+            opacity: 0.8;
+            animation: markerFade 2s ease-in-out infinite;
         }
     }
     
@@ -1846,39 +1856,106 @@ button:hover,
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        border: 2px solid var(--risk-color, rgba(102, 126, 234, 0.4));
+        border: 2px solid var(--risk-color, rgba(168, 85, 247, 0.6));
         border-radius: 50%;
-        animation: iotSignalRing 2s ease-out infinite;
-        opacity: 0.5;
+        animation: iotSignalRing 1.5s ease-out infinite;
+        opacity: 0.8;
         
         &.ring-1 {
             width: 40px;
             height: 40px;
             animation-delay: 0s;
+            border-color: rgba(168, 85, 247, 0.8);
         }
         
         &.ring-2 {
             width: 50px;
             height: 50px;
-            animation-delay: 0.3s;
+            animation-delay: 0.2s;
+            border-color: rgba(147, 51, 234, 0.6);
         }
         
         &.ring-3 {
             width: 60px;
             height: 60px;
-            animation-delay: 0.6s;
+            animation-delay: 0.4s;
+            border-color: rgba(124, 58, 237, 0.4);
         }
     }
 }
 
 @keyframes iotSignalRing {
     0% {
-        transform: translate(-50%, -50%) scale(0.5);
+        transform: translate(-50%, -50%) scale(0.8);
         opacity: 1;
+        border-width: 3px;
+    }
+    50% {
+        opacity: 0.6;
+        border-width: 2px;
     }
     100% {
-        transform: translate(-50%, -50%) scale(1.2);
+        transform: translate(-50%, -50%) scale(1.5);
         opacity: 0;
+        border-width: 1px;
+    }
+}
+
+@keyframes markerGlow {
+    0%, 100% {
+        box-shadow: 
+            0 0 0 0 rgba(168, 85, 247, 0.7),
+            0 0 20px rgba(168, 85, 247, 0.6),
+            0 4px 12px rgba(147, 51, 234, 0.4),
+            inset 0 -2px 6px rgba(0, 0, 0, 0.1);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 
+            0 0 0 8px rgba(168, 85, 247, 0.3),
+            0 0 30px rgba(168, 85, 247, 0.8),
+            0 8px 20px rgba(147, 51, 234, 0.5),
+            inset 0 -2px 6px rgba(0, 0, 0, 0.1);
+        transform: scale(1.08);
+    }
+}
+
+@keyframes markerBounce {
+    0%, 100% {
+        transform: scale(1) translateY(0px);
+    }
+    25% {
+        transform: scale(1.15) translateY(-2px);
+    }
+    50% {
+        transform: scale(1.2) translateY(-4px);
+    }
+    75% {
+        transform: scale(1.15) translateY(-2px);
+    }
+}
+
+@keyframes markerInactive {
+    0%, 100% {
+        box-shadow: 
+            0 0 0 0 rgba(108, 117, 125, 0.5),
+            0 2px 8px rgba(108, 117, 125, 0.3);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 
+            0 0 0 4px rgba(108, 117, 125, 0.2),
+            0 4px 12px rgba(108, 117, 125, 0.4);
+        transform: scale(1.02);
+    }
+}
+
+@keyframes markerFade {
+    0%, 100% {
+        opacity: 0.8;
+    }
+    50% {
+        opacity: 0.6;
     }
 }
 

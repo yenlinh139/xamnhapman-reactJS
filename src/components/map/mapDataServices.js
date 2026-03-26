@@ -42,6 +42,58 @@ const toNullableNumber = (rawValue) => {
     return Number.isNaN(numeric) ? null : numeric;
 };
 
+const getIoTRowDateValue = (row) => {
+    return (
+        row?.Date ||
+        row?.date_time ||
+        row?.sync_5m_end_time ||
+        row?.hour_end_time ||
+        row?.day ||
+        row?.timestamp ||
+        row?.created_at ||
+        null
+    );
+};
+
+export const normalizeIoTDataRow = (row) => {
+    const dateValue = getIoTRowDateValue(row);
+
+    return {
+        ...row,
+        Date: dateValue,
+        date_time: row?.date_time || dateValue,
+        salt_value:
+            row?.salt_value ??
+            row?.salt_value_avg ??
+            null,
+        salt_unit: row?.salt_unit || "‰",
+        distance_value:
+            row?.distance_value ??
+            row?.distance_value_avg ??
+            null,
+        distance_unit: row?.distance_unit || "m",
+        daily_rainfall_value:
+            row?.daily_rainfall_value ??
+            row?.daily_rainfall_value_sum ??
+            null,
+        daily_rainfall_unit: row?.daily_rainfall_unit || "mm",
+        temp_value:
+            row?.temp_value ??
+            row?.temp_value_avg ??
+            null,
+        temp_unit: row?.temp_unit || "°C",
+    };
+};
+
+export const normalizeIoTDataRows = (rows) => {
+    const safeRows = Array.isArray(rows) ? rows : [];
+
+    return safeRows
+        .map(normalizeIoTDataRow)
+        .filter((row) => Boolean(row.Date))
+        .sort((a, b) => new Date(a.Date).getTime() - new Date(b.Date).getTime());
+};
+
 const parseDDMMYYYY = (str) => {
     if (!str) return null;
     
@@ -341,15 +393,47 @@ export const useHydrometData = (kiHieu, page = 1, limit = 100, filters = {}) => 
 };
 
 // API lấy danh sách trạm IoT
+const IOT_STATIONS_CACHE_TTL_MS = 30 * 1000;
+const iotStationsRequestCache = new Map();
+
+const getIoTStationsCacheKey = (status) => status || '__all__';
+
 export const fetchIoTStations = async (status = null) => {
+    const cacheKey = getIoTStationsCacheKey(status);
+    const cachedEntry = iotStationsRequestCache.get(cacheKey);
+    const now = Date.now();
+
+    if (cachedEntry?.data && now - cachedEntry.timestamp < IOT_STATIONS_CACHE_TTL_MS) {
+        return cachedEntry.data;
+    }
+
+    if (cachedEntry?.promise) {
+        return cachedEntry.promise;
+    }
+
     try {
         const params = new URLSearchParams();
         if (status) params.append('status', status);
-        
-        const response = await axiosInstance.get(
+
+        const requestPromise = axiosInstance.get(
             `/iot/stations${params.toString() ? `?${params.toString()}` : ''}`
-        );
+        ).then((response) => {
+            iotStationsRequestCache.set(cacheKey, {
+                data: response.data,
+                timestamp: Date.now(),
+            });
             return response.data;
+        }).catch((error) => {
+            iotStationsRequestCache.delete(cacheKey);
+            throw error;
+        });
+
+        iotStationsRequestCache.set(cacheKey, {
+            promise: requestPromise,
+            timestamp: now,
+        });
+
+        return await requestPromise;
     } catch (error) {
         console.error("Error fetching IoT stations:", error);
         return { success: false, data: [], count: 0 };
@@ -467,17 +551,21 @@ export const formatIoTDataForDisplay = (iotResponse, selectedStation) => {
         return null;
     }
 
+    const normalizedRows = normalizeIoTDataRows(iotResponse.data);
+
     const formattedData = {
         stationInfo: {
             ...selectedStation,
             serial: selectedStation.serial_number
         },
         stationName: selectedStation.station_name,
-        data: iotResponse.data,
+        dataPoints: normalizedRows,
+        data: normalizedRows,
         summary: {
-            totalRecords: iotResponse.count || iotResponse.data.length,
-            firstRecord: iotResponse.data[iotResponse.data.length - 1]?.date_time,
-            lastRecord: iotResponse.data[0]?.date_time
+            totalRecords: iotResponse.count || normalizedRows.length,
+            totalRecordsInRange: normalizedRows.length,
+            firstRecord: normalizedRows[0]?.Date || null,
+            lastRecord: normalizedRows[normalizedRows.length - 1]?.Date || null
         }
     };
     return formattedData;

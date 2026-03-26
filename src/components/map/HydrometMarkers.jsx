@@ -14,6 +14,93 @@ const getStationName = (station) => {
     ).trim();
 };
 
+const normalizeHydrometText = (value) =>
+    String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+
+const HYDROMET_LAYER_TO_CATEGORY = {
+    hydrometStations: "all",
+    hydrometRainStations: "rain",
+    hydrometMeteorologyStations: "meteorology",
+    hydrometHydrologyStations: "hydrology",
+};
+
+const inferStationCategories = (station) => {
+    const categories = new Set();
+    const rawMetadata = [
+        station?.LoaiTram,
+        station?.loaiTram,
+        station?.PhanLoai,
+        station?.phanLoai,
+        station?.TenTram,
+        station?.TenTam,
+        station?.KiHieu,
+    ]
+        .filter(Boolean)
+        .map(normalizeHydrometText)
+        .join(" ");
+
+    if (rawMetadata.includes("mua")) {
+        categories.add("rain");
+    }
+    if (rawMetadata.includes("khi tuong") || rawMetadata.includes("khi tuong thuy van")) {
+        categories.add("meteorology");
+    }
+    if (rawMetadata.includes("thuy van")) {
+        categories.add("hydrology");
+    }
+
+    const stationCode = String(station?.KiHieu || "").toUpperCase();
+    if (stationCode.endsWith("_TV") || stationCode.includes("TV")) {
+        categories.add("hydrology");
+    }
+    if (stationCode.endsWith("_KT") || stationCode.includes("KT")) {
+        categories.add("meteorology");
+    }
+
+    if (categories.size === 0) {
+        categories.add("meteorology");
+    }
+
+    return categories;
+};
+
+const stationMatchesLayerSelection = (station, activeLayerNames = []) => {
+    if (!Array.isArray(activeLayerNames) || activeLayerNames.length === 0) {
+        return true;
+    }
+
+    if (activeLayerNames.includes("hydrometStations")) {
+        return true;
+    }
+
+    const stationCategories = inferStationCategories(station);
+
+    return activeLayerNames.some((layerName) => {
+        const category = HYDROMET_LAYER_TO_CATEGORY[layerName];
+        return category === "all" || stationCategories.has(category);
+    });
+};
+
+const getStationTypeLabel = (station, activeLayerNames = []) => {
+    const categories = inferStationCategories(station);
+
+    if (activeLayerNames.includes("hydrometRainStations") && categories.has("rain")) {
+        return "Điểm đo mưa";
+    }
+    if (activeLayerNames.includes("hydrometHydrologyStations") && categories.has("hydrology")) {
+        return "Trạm thủy văn";
+    }
+    if (activeLayerNames.includes("hydrometMeteorologyStations") && categories.has("meteorology")) {
+        return "Trạm khí tượng";
+    }
+    if (categories.has("rain")) return "Điểm đo mưa";
+    if (categories.has("hydrology")) return "Trạm thủy văn";
+    return "Trạm khí tượng";
+};
+
 const normalizeHydrometStation = (station = {}) => {
     const stationCode = getStationCode(station);
     const stationName = getStationName(station) || stationCode || "Không xác định";
@@ -450,7 +537,12 @@ const getParameterLabel = (paramKey) => {
 };
 
 // Enhanced rendering function with improved data processing
-export const renderHydrometStations = async (mapInstance, setHydrometData, setSelectedStation) => {
+export const renderHydrometStations = async (
+    mapInstance,
+    setHydrometData,
+    setSelectedStation,
+    activeLayerNames = ["hydrometStations"],
+) => {
     try {
         const stations = await fetchHydrometStations();
         const latLngs = [];
@@ -471,100 +563,8 @@ export const renderHydrometStations = async (mapInstance, setHydrometData, setSe
                 continue;
             }
 
-            // Fetch station data with better error handling
-            let hydrometeorologyData = null;
-            try {
-                const fetchResult = await fetchHydrometData(station.KiHieu);
-                
-                // Handle both array response and object with data property
-                if (fetchResult) {
-                    if (Array.isArray(fetchResult)) {
-                        hydrometeorologyData = fetchResult;
-                    } else if (fetchResult.data && Array.isArray(fetchResult.data)) {
-                        hydrometeorologyData = fetchResult.data;
-                    }
-                }
-                
-                console.log(`Station ${station.KiHieu} data:`, {
-                    hasData: !!hydrometeorologyData,
-                    dataLength: hydrometeorologyData ? hydrometeorologyData.length : 0,
-                    sampleData: hydrometeorologyData && hydrometeorologyData.length > 0 
-                        ? Object.keys(hydrometeorologyData[0]) 
-                        : 'No keys'
-                });
-            } catch (error) {
-                console.warn(`Error fetching data for station ${station.KiHieu}:`, error);
-                hydrometeorologyData = null;
-            }
-
-            let stationData = {
-                rainfall: 0,
-                temperature: 0,
-                humidity: 0,
-                hasData: false,
-            };
-
-            if (hydrometeorologyData && hydrometeorologyData.length > 0) {
-                const latestRecord = hydrometeorologyData[hydrometeorologyData.length - 1];
-                
-                // Validate that we have actual measurement data
-                const hasMeasurementData = Object.keys(latestRecord).some(key => {
-                    return (key.startsWith('R_') || key.startsWith('T') || key.startsWith('H')) && 
-                           latestRecord[key] !== null && 
-                           latestRecord[key] !== undefined && 
-                           latestRecord[key] !== "NULL" && 
-                           latestRecord[key] !== "";
-                });
-
-                if (hasMeasurementData) {
-                    stationData.hasData = true;
-
-                    // Extract rainfall data - prioritize R_TTH then sum all R_ parameters
-                    const rainfallKeys = Object.keys(latestRecord).filter((key) => key.startsWith("R_"));
-                    
-                    // Check for R_TTH specifically first
-                    if (latestRecord.R_TTH !== null && latestRecord.R_TTH !== undefined && latestRecord.R_TTH !== "NULL") {
-                        stationData.rainfall = parseFloat(latestRecord.R_TTH) || 0;
-                    } else {
-                        // Fallback: sum all available rainfall data
-                        stationData.rainfall = rainfallKeys.reduce((sum, key) => {
-                            const value = parseFloat(latestRecord[key]) || 0;
-                            return sum + value;
-                        }, 0);
-                    }
-
-                    // Extract temperature data (prioritize average, then max, then min)
-                    const tempKeys = Object.keys(latestRecord).filter((key) => key.startsWith("T"));
-                    const tempAvgKey = tempKeys.find((key) => key.includes("tb"));
-                    const tempMaxKey = tempKeys.find((key) => key.includes("x"));
-                    const tempMinKey = tempKeys.find((key) => key.includes("m"));
-
-                    if (tempAvgKey) {
-                        stationData.temperature = parseFloat(latestRecord[tempAvgKey]) || 0;
-                    } else if (tempMaxKey) {
-                        stationData.temperature = parseFloat(latestRecord[tempMaxKey]) || 0;
-                    } else if (tempMinKey) {
-                        stationData.temperature = parseFloat(latestRecord[tempMinKey]) || 0;
-                    }
-
-                    // Extract humidity data (prioritize average)
-                    const humidityKeys = Object.keys(latestRecord).filter((key) => key.startsWith("H"));
-                    const humidityAvgKey = humidityKeys.find((key) => key.includes("tb"));
-                    const humidityMaxKey = humidityKeys.find((key) => key.includes("x"));
-                    const humidityMinKey = humidityKeys.find((key) => key.includes("m"));
-
-                    if (humidityAvgKey) {
-                        stationData.humidity = parseFloat(latestRecord[humidityAvgKey]) || 0;
-                    } else if (humidityMaxKey) {
-                        stationData.humidity = parseFloat(latestRecord[humidityMaxKey]) || 0;
-                    } else if (humidityMinKey) {
-                        stationData.humidity = parseFloat(latestRecord[humidityMinKey]) || 0;
-                    }
-                } else {
-                    console.log(`Station ${station.KiHieu} has data but no valid measurements`);
-                }
-            } else {
-                console.log(`Station ${station.KiHieu} has no data at all`);
+            if (!stationMatchesLayerSelection(station, activeLayerNames)) {
+                continue;
             }
 
             // Create enhanced icon based on all parameters
@@ -578,42 +578,39 @@ export const renderHydrometStations = async (mapInstance, setHydrometData, setSe
             latLngs.push([lat, lng]);
 
             // Enhanced tooltip with status info
-            const tooltipText = stationData.hasData
-                ? `${station.TenTram || station.TenTam} - ${
-                      stationData.rainfall > 0
-                          ? `Mưa: ${stationData.rainfall.toFixed(1)}mm`
-                          : stationData.temperature > 0
-                          ? `${stationData.temperature.toFixed(1)}°C`
-                          : "Có dữ liệu"
-                  }`
-                : `${station.TenTram || station.TenTam} - Chưa có dữ liệu`;
+            const tooltipText = `${station.TenTram || station.TenTam} - ${getStationTypeLabel(
+                station,
+                activeLayerNames,
+            )}`;
 
             marker.bindTooltip(tooltipText, {
                 permanent: true,
                 direction: "top",
                 offset: [0, -15],
-                className: `custom-tooltip enhanced-tooltip ${stationData.hasData ? 'has-data' : 'no-data'}`,
+                className: "custom-tooltip enhanced-tooltip",
             });
 
-            marker.on("click", () => {
+            marker.on("click", async () => {
                 try {
-                    const zoomLevel = 13;
-                    const clickLat = dmsToDecimal(station.ViDo);
-                    const clickLng = dmsToDecimal(station.KinhDo);
+                    marker.bindPopup(
+                        '<div class="popup-loading"><i class="fa-solid fa-spinner fa-spin"></i><p>Đang tải dữ liệu...</p></div>',
+                        {
+                            maxWidth: 400,
+                            className: "custom-popup enhanced-popup",
+                        },
+                    );
+                    marker.openPopup();
 
-                    if (clickLat !== null && clickLng !== null) {
-                        const clickLatLng = L.latLng(clickLat, clickLng);
-                        const map = mapInstance;
-                        const originalPoint = map.latLngToContainerPoint(clickLatLng);
-                        const offsetPixels = L.point(0, 70);
-                        const newPoint = originalPoint.subtract(offsetPixels);
-                        const newLatLng = map.containerPointToLatLng(newPoint);
-                        map.setView(newLatLng, zoomLevel, {
-                            animate: true,
-                        });
-                    }
+                    const fetchResult = await fetchHydrometData(station.KiHieu, {
+                        limit: 100,
+                        orderBy: "DESC",
+                    });
+                    const hydrometeorologyData = Array.isArray(fetchResult)
+                        ? fetchResult
+                        : Array.isArray(fetchResult?.data)
+                          ? fetchResult.data
+                          : [];
 
-                    // Create enhanced popup with all parameters
                     const popupHTML = createHydrometPopup(station, hydrometeorologyData);
 
                     marker.bindPopup(popupHTML, {
@@ -628,23 +625,11 @@ export const renderHydrometStations = async (mapInstance, setHydrometData, setSe
                         maTram: station.KiHieu,
                         tenTram: station.TenTram,
                         thongTin: station,
-                        data: stationData,
-                    });
-
-                    marker.once("popupclose", () => {
-                        mapInstance.flyTo([10.769236178832742, 106.42333733153667], 10);
+                        data: hydrometeorologyData,
                     });
                 } catch (error) {
                     console.error("❌ Error in hydromet marker click handler:", error);
                 }
-            });
-        }
-
-        if (latLngs.length > 0) {
-            const bounds = L.latLngBounds(latLngs);
-            mapInstance.fitBounds(bounds, {
-                padding: [50, 50],
-                animate: true,
             });
         }
     } catch (error) {

@@ -13,7 +13,7 @@ import {
 
 const SENSOR_MAP = {
     distance: { key: "distance", name: "Mực nước (m)", color: "#FFD600", unit: "m" }, // vàng
-    salt: { key: "salt", name: "Độ mặn (ppt)", color: "#43A047", unit: "ppt" }, // xanh lá
+    salt: { key: "salt", name: "Độ mặn (‰)", color: "#43A047", unit: "‰" }, // xanh lá
     temp: { key: "temp", name: "Nhiệt độ (°C)", color: "#1976D2", unit: "°C" }, // xanh dương
     rainfall: { key: "rainfall", name: "Lượng mưa hàng ngày (mm)", color: "#FF0000", unit: "mm" }, // đỏ
 };
@@ -35,8 +35,25 @@ const normalizeHeight = (height) => {
     return height || "300px";
 };
 
+const formatChartDateTime = (rawTime, groupBy = "none") => {
+    const timestamp = new Date(rawTime).getTime();
+    if (Number.isNaN(timestamp)) {
+        return String(rawTime || "");
+    }
+
+    const parsed = new Date(timestamp);
+    if (groupBy === "date") {
+        return parsed.toLocaleDateString("vi-VN");
+    }
+
+    const hours = String(parsed.getHours()).padStart(2, "0");
+    const minutes = String(parsed.getMinutes()).padStart(2, "0");
+    const dateLabel = parsed.toLocaleDateString("vi-VN");
+    return `${hours}:${minutes} ${dateLabel}`;
+};
+
 // Chuẩn hóa dữ liệu cho 4 loại cảm biến - hỗ trợ cả data structure cũ và mới
-function normalizeChartData(data) { 
+function normalizeChartData(data, groupBy = "none") { 
     const safeData = Array.isArray(data) ? data : [];
 
     // Kiểm tra xem data có structure mới (có salt_value, temp_value) hay cũ (có SensorType)
@@ -53,11 +70,9 @@ function normalizeChartData(data) {
     if (hasNewStructure) {
         // Data structure mới - mỗi item đã có tất cả sensors
         const normalized = safeData.map((item) => {
-            const rawTime = item.Date || item.date_time;
+            const rawTime = item.Date || item.date_time || item.sync_5m_end_time || item.hour_end_time || item.day;
             const timestamp = new Date(rawTime).getTime();
-            const time = Number.isNaN(timestamp)
-                ? String(rawTime || "")
-                : new Date(timestamp).toLocaleString("vi-VN", { hour12: false });
+            const time = formatChartDateTime(rawTime, groupBy);
             return {
                 time,
                 timestamp,
@@ -73,11 +88,9 @@ function normalizeChartData(data) {
         // Data structure cũ - gom nhóm theo SensorType
         const grouped = {};
         safeData.forEach((item) => {
-            const rawTime = item.Date || item.date_time;
+            const rawTime = item.Date || item.date_time || item.sync_5m_end_time || item.hour_end_time || item.day;
             const timestamp = new Date(rawTime).getTime();
-            const time = Number.isNaN(timestamp)
-                ? String(rawTime || "")
-                : new Date(timestamp).toLocaleString("vi-VN", { hour12: false });
+            const time = formatChartDateTime(rawTime, groupBy);
             if (!grouped[time]) grouped[time] = { time };
             grouped[time].timestamp = Number.isNaN(timestamp) ? 0 : timestamp;
             if (item.SensorType === "Distance") grouped[time].distance = parseFloat(item.Value);
@@ -90,7 +103,7 @@ function normalizeChartData(data) {
     }
 }
 
-const IoTBarChart = ({ data, height = 300, isCompact = false }) => {
+const IoTBarChart = ({ data, height = 300, isCompact = false, groupBy = "none" }) => {
     const chartHeight = normalizeHeight(height);
     const safeData = Array.isArray(data) ? data : [];
 
@@ -105,7 +118,7 @@ const IoTBarChart = ({ data, height = 300, isCompact = false }) => {
         );
     }
 
-    const chartData = normalizeChartData(safeData);
+    const chartData = normalizeChartData(safeData, groupBy);
 
     if (!Array.isArray(chartData) || chartData.length === 0) {
         return (
@@ -125,10 +138,10 @@ const IoTBarChart = ({ data, height = 300, isCompact = false }) => {
 
     // Điều chỉnh margin và width dựa trên isCompact
     const margins = isCompact 
-        ? { top: 20, right: 15, left: 25, bottom: 80 } // MapDetails: margin nhỏ hơn để biểu đồ rộng hơn
-        : { top: 20, right: 30, left: 40, bottom: 80 }; // IoTChartFull: margin tiêu chuẩn
+        ? { top: 8, right: 12, left: 18, bottom: 56 }
+        : { top: 8, right: 18, left: 24, bottom: 56 };
 
-    const yAxisWidth = isCompact ? 50 : 70;
+    const yAxisWidth = isCompact ? 44 : 56;
 
     return (
         <div style={{ width: "100%", height: chartHeight, minHeight: 0 }}>
@@ -142,14 +155,14 @@ const IoTBarChart = ({ data, height = 300, isCompact = false }) => {
                         dataKey="time"
                         angle={-45}
                         textAnchor="end"
-                        height={80}
-                        fontSize={11}
+                        height={58}
+                        fontSize={10}
                         interval={xInterval}
                     />
                     <YAxis
                         yAxisId="left"
                         orientation="left"
-                        label={{ value: "Độ mặn (ppt), Lượng mưa (mm)", angle: -90, position: "insideLeft", style: { textAnchor: 'middle' } }}
+                        label={{ value: "Độ mặn (‰), Lượng mưa (mm)", angle: -90, position: "insideLeft", style: { textAnchor: 'middle' } }}
                         fontSize={12}
                         width={yAxisWidth}
                     />
@@ -163,11 +176,16 @@ const IoTBarChart = ({ data, height = 300, isCompact = false }) => {
                     <Tooltip formatter={(value, name) => {
                         if (name === SENSOR_MAP.distance.name) return [`${value} m`, SENSOR_MAP.distance.name];
                         if (name === SENSOR_MAP.rainfall.name) return [`${value} mm`, SENSOR_MAP.rainfall.name];
-                        if (name === SENSOR_MAP.salt.name) return [`${value} ppt`, SENSOR_MAP.salt.name];
+                        if (name === SENSOR_MAP.salt.name) return [`${value} ‰`, SENSOR_MAP.salt.name];
                         if (name === SENSOR_MAP.temp.name) return [`${value} °C`, SENSOR_MAP.temp.name];
                         return [value, name];
                     }} />
-                    <Legend verticalAlign="bottom" height={36} iconType="line" wrapperStyle={{ paddingTop: '10px' }}/>
+                    <Legend
+                        verticalAlign="bottom"
+                        height={24}
+                        iconType="line"
+                        wrapperStyle={{ paddingTop: '4px' }}
+                    />
                     <Line
                         yAxisId="left"
                         type="monotone"
