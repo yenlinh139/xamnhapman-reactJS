@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { NavLink } from "react-router-dom";
 import { ROUTES } from "@common/constants";
 import imageLogo from "@assets/logo.png";
@@ -16,6 +16,14 @@ import {
     formatIoTDataForDisplay,
 } from "./map/mapDataServices";
 
+const DEFAULT_MONITORING_LAYERS = [
+    "salinityPoints",
+    "iotStations",
+    "hydrometRainStations",
+    "hydrometMeteorologyStations",
+    "hydrometHydrologyStations",
+];
+
 function LeftMenuMap({
     sidebarOpen,
     setSidebarOpen,
@@ -30,12 +38,14 @@ function LeftMenuMap({
 }) {
     const [state, setState] = useState({
         openMenuIndex: null,
-        enabledLayers: [],
+        enabledLayers: DEFAULT_MONITORING_LAYERS,
         isLoadingSearchResults: true,
         openSalinityDropdown: false,
+        openHydrometDropdown: true,
         openIrrigationDropdown: false,
         openIrrigationSubIndex: null,
     });
+    const hasAppliedDefaultLayersRef = useRef(false);
     const [districtList, setDistrictList] = useState([]);
     const [selectedDistrict, setSelectedDistrict] = useState(null);
     const [iotModalOpen, setIotModalOpen] = useState(false);
@@ -52,15 +62,15 @@ function LeftMenuMap({
         onLayerToggle("salinityPoints", checked);
     };
 
-    const handleHydrometStationsToggle = (checked) => {
+    const handleHydrometLayerToggle = (layerName, checked) => {
         setState((prevState) => ({
             ...prevState,
             enabledLayers: checked
-                ? [...prevState.enabledLayers, "hydrometStations"]
-                : prevState.enabledLayers.filter((layer) => layer !== "hydrometStations"),
+                ? [...prevState.enabledLayers.filter((layer) => layer !== layerName), layerName]
+                : prevState.enabledLayers.filter((layer) => layer !== layerName),
         }));
 
-        onLayerToggle("hydrometStations", checked);
+        onLayerToggle(layerName, checked);
     };
 
     const handleIoTStationsToggle = (checked) => {
@@ -85,6 +95,13 @@ function LeftMenuMap({
         setState((prevState) => ({
             ...prevState,
             openIrrigationDropdown: !prevState.openIrrigationDropdown,
+        }));
+    };
+
+    const toggleHydrometDropdown = () => {
+        setState((prevState) => ({
+            ...prevState,
+            openHydrometDropdown: !prevState.openHydrometDropdown,
         }));
     };
 
@@ -252,6 +269,17 @@ function LeftMenuMap({
         const interval = setInterval(loadIoTStationStats, 3 * 60 * 1000);
         return () => clearInterval(interval);
     }, []);
+
+    // Apply default monitoring layers once on first load.
+    useEffect(() => {
+        if (hasAppliedDefaultLayersRef.current) return;
+
+        DEFAULT_MONITORING_LAYERS.forEach((layerName) => {
+            onLayerToggle(layerName, true);
+        });
+
+        hasAppliedDefaultLayersRef.current = true;
+    }, [onLayerToggle]);
 
     const toggleDropdown = (index) => {
         setState((prevState) => ({
@@ -710,6 +738,11 @@ function LeftMenuMap({
         }
     };
 
+    const enabledLayerSet = useMemo(() => new Set(state.enabledLayers), [state.enabledLayers]);
+
+    const hasEnabledChildLayer = (layers = []) =>
+        Array.isArray(layers) && layers.some((layer) => enabledLayerSet.has(layer));
+
     const renderTabContent = useMemo(() => {
         if (activeTab === "Data") {
             return (
@@ -724,7 +757,11 @@ function LeftMenuMap({
                             {/* Salinity Monitoring Dropdown */}
                             <div className="category-item">
                                 <div
-                                    className={`category-header ${state.openSalinityDropdown ? "active" : ""}`}
+                                    className={`category-header ${state.openSalinityDropdown ? "active" : ""} ${
+                                        hasEnabledChildLayer(["salinityPoints", "iotStations"])
+                                            ? "has-active-children"
+                                            : ""
+                                    }`}
                                     onClick={toggleSalinityDropdown}
                                 >
                                     <div className="category-info">
@@ -763,31 +800,6 @@ function LeftMenuMap({
 
                                         {/* Trạm IoT - Enhanced UI */}
                                         <div className="iot-station-container">
-                                            {/* Station Status Info */}
-                                            <div className="iot-status-bar">
-                                                <div className="status-item">
-                                                    <span className="status-dot active"></span>
-                                                    <span className="status-text">
-                                                        {iotStationStats.active}/{iotStationStats.total} trạm
-                                                        hoạt động
-                                                    </span>
-                                                </div>
-                                                {iotStationStats.lastSync && (
-                                                    <div className="status-item">
-                                                        <i className="fa-solid fa-clock"></i>
-                                                        <span className="status-text">
-                                                            Sync:{" "}
-                                                            {new Date(
-                                                                iotStationStats.lastSync,
-                                                            ).toLocaleTimeString("vi-VN", {
-                                                                hour: "2-digit",
-                                                                minute: "2-digit",
-                                                            })}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </div>
-
                                             {/* Toggle để hiển thị trạm IoT trên map */}
                                             <div className="layer-item monitoring-layer">
                                                 <div className="layer-toggle">
@@ -817,10 +829,128 @@ function LeftMenuMap({
                                 )}
                             </div>
 
+                            {/* Hydromet Stations */}
+                            <div className="category-item">
+                                <div
+                                    className={`category-header ${state.openHydrometDropdown ? "active" : ""} ${
+                                        hasEnabledChildLayer([
+                                            "hydrometRainStations",
+                                            "hydrometMeteorologyStations",
+                                            "hydrometHydrologyStations",
+                                            "hydrometStations",
+                                        ])
+                                            ? "has-active-children"
+                                            : ""
+                                    }`}
+                                    onClick={toggleHydrometDropdown}
+                                >
+                                    <div className="category-info">
+                                        <i className="fa-solid fa-cloud-rain category-icon"></i>
+                                        <span className="category-name">Khí tượng thủy văn</span>
+                                    </div>
+                                    <i
+                                        className={`fa-solid fa-chevron-right expand-icon ${
+                                            state.openHydrometDropdown ? "rotated" : ""
+                                        }`}
+                                    ></i>
+                                </div>
+
+                                {state.openHydrometDropdown && (
+                                <div className="category-layers">
+                                    <div className="layer-item monitoring-layer">
+                                        <div className="layer-toggle">
+                                            <input
+                                                type="checkbox"
+                                                id="layer-hydromet-rain-stations"
+                                                className="layer-checkbox"
+                                                checked={state.enabledLayers.includes("hydrometRainStations")}
+                                                onChange={(e) =>
+                                                    handleHydrometLayerToggle(
+                                                        "hydrometRainStations",
+                                                        e.target.checked,
+                                                    )
+                                                }
+                                            />
+                                            <label
+                                                htmlFor="layer-hydromet-rain-stations"
+                                                className="layer-label"
+                                            >
+                                                <div className="layer-info">
+                                                    <div className="layer-details">
+                                                        <span className="layer-name">Điểm đo mưa</span>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div className="layer-item monitoring-layer">
+                                        <div className="layer-toggle">
+                                            <input
+                                                type="checkbox"
+                                                id="layer-hydromet-meteorology-stations"
+                                                className="layer-checkbox"
+                                                checked={state.enabledLayers.includes("hydrometMeteorologyStations")}
+                                                onChange={(e) =>
+                                                    handleHydrometLayerToggle(
+                                                        "hydrometMeteorologyStations",
+                                                        e.target.checked,
+                                                    )
+                                                }
+                                            />
+                                            <label
+                                                htmlFor="layer-hydromet-meteorology-stations"
+                                                className="layer-label"
+                                            >
+                                                <div className="layer-info">
+                                                    <div className="layer-details">
+                                                        <span className="layer-name">Trạm khí tượng</span>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div className="layer-item monitoring-layer">
+                                        <div className="layer-toggle">
+                                            <input
+                                                type="checkbox"
+                                                id="layer-hydromet-hydrology-stations"
+                                                className="layer-checkbox"
+                                                checked={state.enabledLayers.includes("hydrometHydrologyStations")}
+                                                onChange={(e) =>
+                                                    handleHydrometLayerToggle(
+                                                        "hydrometHydrologyStations",
+                                                        e.target.checked,
+                                                    )
+                                                }
+                                            />
+                                            <label
+                                                htmlFor="layer-hydromet-hydrology-stations"
+                                                className="layer-label"
+                                            >
+                                                <div className="layer-info">
+                                                    <div className="layer-details">
+                                                        <span className="layer-name">Trạm thủy văn</span>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                )}
+                            </div>
+                            
                             {/* Irrigation Works (Công trình thủy lợi) */}
                             <div className="category-item">
                                 <div
-                                    className={`category-header ${state.openIrrigationDropdown ? "active" : ""}`}
+                                    className={`category-header ${state.openIrrigationDropdown ? "active" : ""} ${
+                                        hasEnabledChildLayer(
+                                            irrigationLayers.items.flatMap((menu) => menu.layers || []),
+                                        )
+                                            ? "has-active-children"
+                                            : ""
+                                    }`}
                                     onClick={toggleIrrigationDropdown}
                                 >
                                     <div className="category-info">
@@ -843,7 +973,11 @@ function LeftMenuMap({
                                             return (
                                                 <div className="subcategory-item" key={uniqueIndex}>
                                                     <div
-                                                        className={`subcategory-header ${isOpen ? "active" : ""}`}
+                                                        className={`subcategory-header ${isOpen ? "active" : ""} ${
+                                                            hasEnabledChildLayer(menu.layers)
+                                                                ? "has-active-children"
+                                                                : ""
+                                                        }`}
                                                         onClick={() =>
                                                             toggleIrrigationSubDropdown(uniqueIndex)
                                                         }
@@ -905,26 +1039,6 @@ function LeftMenuMap({
                                     </div>
                                 )}
                             </div>
-
-                            {/* Hydromet Stations */}
-                            <div className="layer-item monitoring-layer">
-                                <div className="layer-toggle">
-                                    <input
-                                        type="checkbox"
-                                        id="layer-hydromet-stations"
-                                        className="layer-checkbox"
-                                        checked={state.enabledLayers.includes("hydrometStations")}
-                                        onChange={(e) => handleHydrometStationsToggle(e.target.checked)}
-                                    />
-                                    <label htmlFor="layer-hydromet-stations" className="layer-label">
-                                        <div className="layer-info">
-                                            <div className="layer-details">
-                                                <span className="layer-name">Trạm khí tượng thủy văn</span>
-                                            </div>
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
                         </div>
                     </div>
 
@@ -939,6 +1053,7 @@ function LeftMenuMap({
                                 const uniqueIndex = index;
                                 const isOpen = state.openMenuIndex === uniqueIndex;
                                 const isSingleLayer = menu.layer && !menu.layers;
+                                const hasChildLayerEnabled = hasEnabledChildLayer(menu.layers || []);
 
                                 return (
                                     <div className="category-item" key={uniqueIndex}>
@@ -970,7 +1085,9 @@ function LeftMenuMap({
                                             // Multi-layer item - dropdown
                                             <>
                                                 <div
-                                                    className={`category-header ${isOpen ? "active" : ""}`}
+                                                    className={`category-header ${isOpen ? "active" : ""} ${
+                                                        hasChildLayerEnabled ? "has-active-children" : ""
+                                                    }`}
                                                     onClick={() => toggleDropdown(uniqueIndex)}
                                                 >
                                                     <div className="category-info">
@@ -1241,6 +1358,7 @@ function LeftMenuMap({
         state.openMenuIndex,
         state.enabledLayers,
         state.openSalinityDropdown,
+        state.openHydrometDropdown,
         state.openIrrigationDropdown,
         state.openIrrigationSubIndex,
         searchResults,

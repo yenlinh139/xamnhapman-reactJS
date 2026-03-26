@@ -66,7 +66,6 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
     return `
     <div class="modern-popup salinity-popup">
       <div class="popup-header">
-        <div class="popup-icon">🌊</div>
         <div class="popup-title">
           <h4 class="popup-name">${point.TenDiem}</h4>
           <span class="popup-type">Điểm đo độ mặn</span>
@@ -107,28 +106,28 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
           <div class="detail-grid">
             <div class="detail-item">
               <div class="detail-content py-2">
-                <strong class="detail-label"><i class="detail-icon">🆔</i> Mã trạm: </strong>
+                <strong class="detail-label">Mã trạm: </strong>
                 <span class="detail-value">${point.KiHieu || "Không xác định"}</span>
               </div>
             </div>
             
             <div class="detail-item">
               <div class="detail-content py-2">
-                <strong class="detail-label font-weight"><i class="detail-icon">📝</i> Mô tả: </strong>
+                <strong class="detail-label font-weight">Mô tả: </strong>
                 <span class="detail-value">${descriptionText}</span>
               </div>
             </div>
             
             <div class="detail-item">
               <div class="detail-content py-2">
-                <strong class="detail-label"><i class="detail-icon">🌐</i> Kinh độ: </strong>
+                <strong class="detail-label">Kinh độ: </strong>
                 <span class="detail-value">${lngDisplay}</span>
               </div>
             </div>
 
             <div class="detail-item">
               <div class="detail-content py-2">
-                <strong class="detail-label"><i class="detail-icon">📍</i> Vĩ độ: </strong>
+                <strong class="detail-label">Vĩ độ: </strong>
                 <span class="detail-value">${latDisplay}</span>
               </div>
             </div>
@@ -137,7 +136,6 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
 
         <div class="popup-actions">
           <button class="action-btn primary" onclick="window.openChartDetails('${stationCodeForClick}', '${stationNameForClick}')">
-            <i class="btn-icon">📈</i>
             Xem dữ liệu chi tiết
           </button>
         </div>
@@ -160,41 +158,31 @@ export const renderSalinityPoints = async (mapInstance, setSalinityData, setSele
                 continue;
             }
 
-            const data = await fetchSalinityData(point.KiHieu);
-            let latestSalinity = null;
-            let previousSalinity = null;
-            let latestDate = null;
-            let previousDate = null;
+            // Use latest/previous values directly from fetchSalinityPoints API response
+            const latestSalinity = point.latest_value;
+            const previousSalinity = point.previous_value;
+            const latestDate = point.latest_date ? 
+                new Date(point.latest_date).toLocaleDateString("vi-VN") : 
+                null;
+            const previousDate = point.previous_date ? 
+                new Date(point.previous_date).toLocaleDateString("vi-VN") : 
+                null;
+
+            // Calculate trend from latest and previous values (no API call needed)
             let trend = null;
-
-            // Find latest and previous salinity values
-            for (let i = data.length - 1; i >= 0; i--) {
-              const value = Number(data[i].salinity);
-
-              if (Number.isFinite(value)) {
-                    if (latestSalinity === null) {
-                  latestSalinity = value;
-                        latestDate = new Date(data[i].date).toLocaleDateString("vi-VN");
-                    } else if (previousSalinity === null) {
-                  previousSalinity = value;
-                        previousDate = new Date(data[i].date).toLocaleDateString("vi-VN");
-                        break;
-                    }
-                }
-            }
-
-            if (latestSalinity !== null && previousSalinity !== null) {
+            if (latestSalinity !== null && latestSalinity !== undefined &&
+                previousSalinity !== null && previousSalinity !== undefined) {
                 const diff = latestSalinity - previousSalinity;
-                trend = {
-                    text:
-                        diff > 0
-                            ? `Tăng ${diff.toFixed(2)} ‰ so với `
-                            : diff < 0
-                              ? `Giảm ${Math.abs(diff).toFixed(2)} ‰ so với`
-                              : "Không thay đổi so với",
-                    color: diff > 0 ? "#dc3545" : diff < 0 ? "#198754" : "#6c757d",
-                    icon: diff > 0 ? "▲" : diff < 0 ? "▼" : "■",
-                };
+                if (Math.abs(diff) > 0.01) {
+                    trend = {
+                        text:
+                            diff > 0
+                                ? `Tăng ${diff.toFixed(2)} ‰ so với `
+                                : `Giảm ${Math.abs(diff).toFixed(2)} ‰ so với`,
+                        color: diff > 0 ? "#dc3545" : "#198754",
+                        icon: diff > 0 ? "▲" : "▼",
+                    };
+                }
             }
 
             const icon = getSalinityIcon(latestSalinity, point.KiHieu);
@@ -214,23 +202,8 @@ export const renderSalinityPoints = async (mapInstance, setSalinityData, setSele
                 className: tooltipClass,
             });
 
-            marker.on("click", () => {
+            marker.on("click", async () => {
                 try {
-                    const zoomLevel = 13;
-                    const clickLat = convertDMSToDecimal(point.ViDo.trim());
-                    const clickLng = convertDMSToDecimal(point.KinhDo.trim());
-                    if (clickLat !== null && clickLng !== null) {
-                        const clickLatLng = L.latLng(clickLat, clickLng);
-                        const map = mapInstance;
-                        const originalPoint = map.latLngToContainerPoint(clickLatLng);
-                        const offsetPixels = L.point(0, 70);
-                        const newPoint = originalPoint.subtract(offsetPixels);
-                        const newLatLng = map.containerPointToLatLng(newPoint);
-                        map.setView(newLatLng, zoomLevel, {
-                            animate: true,
-                        });
-                    }
-
                     const popupHTML = createSalinityPopup(
                         point,
                         latestSalinity,
@@ -243,26 +216,16 @@ export const renderSalinityPoints = async (mapInstance, setSalinityData, setSele
                         className: "custom-popup",
                     });
                     marker.openPopup();
-                    setSalinityData(data);
+
+                    // Store point info for later (data will be fetched on demand when clicking "Xem biểu đồ")
                     setSelectedPoint({
                         kiHieu: point.KiHieu,
                         tenDiem: point.TenDiem,
                         thongTin: point,
                     });
-                    marker.once("popupclose", () => {
-                        mapInstance.flyTo([10.769236178832742, 106.42333733153667], 10);
-                    });
                 } catch (error) {
                     console.error("❌ Error in marker click handler:", error);
                 }
-            });
-        }
-
-        if (latLngs.length > 0) {
-            const bounds = L.latLngBounds(latLngs);
-            mapInstance.fitBounds(bounds, {
-                padding: [50, 50],
-                animate: true,
             });
         }
     } catch (error) {

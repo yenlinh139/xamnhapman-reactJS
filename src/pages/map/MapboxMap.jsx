@@ -320,7 +320,7 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
 
         // Clear existing overlay layers (WMS layers)
         Object.entries(overlayLayers.current).forEach(([layerName, layerData]) => {
-            // Get the actual layer instance (for WMS layers, diemdocao)
+            // Get the actual layer instance for WMS layers.
             // Marker layers (salinityPoints, hydrometStations) don't have layer property
             const actualLayer = layerData.layer;
             
@@ -344,12 +344,20 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
             }
         });
 
-        // Implement mutual exclusivity between salinity points and hydromet stations
-        const hasSalinityPoints = selectedLayers.includes("salinityPoints");
-        const hasHydrometStations = selectedLayers.includes("hydrometStations");
+        const hydrometLayerNames = [
+            "hydrometStations",
+            "hydrometRainStations",
+            "hydrometMeteorologyStations",
+            "hydrometHydrologyStations",
+        ];
+        const activeHydrometLayers = selectedLayers.filter((layerName) =>
+            hydrometLayerNames.includes(layerName),
+        );
+        let hydrometRendered = false;
 
         // Add selected layers with optimized configuration
         selectedLayers.forEach((layerName) => {
+
             // Handle special marker layers
             if (layerName === "salinityPoints") {
                 renderSalinityPoints(map, setSalinityData, setSelectedPoint);
@@ -357,8 +365,17 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                     ...getLayerConfig(layerName),
                     type: "marker"
                 };
-            } else if (layerName === "hydrometStations") {
-                renderHydrometStations(map, setHydrometData, setSelectedStation);
+            } else if (activeHydrometLayers.includes(layerName)) {
+                if (!hydrometRendered) {
+                    renderHydrometStations(
+                        map,
+                        setHydrometData,
+                        setSelectedStation,
+                        activeHydrometLayers,
+                    );
+                    hydrometRendered = true;
+                }
+
                 overlayLayers.current[layerName] = {
                     ...getLayerConfig(layerName),
                     type: "marker"
@@ -367,33 +384,36 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                 renderIoTStations(map, setInternalIotData);
                 overlayLayers.current[layerName] = {
                     ...getLayerConfig(layerName),
-                    type: "marker"
+                    type: "marker",
                 };
             }
-            // Handle special raster layer (diemdocao)
-            else if (layerName === "diemdocao") {
-                const rasterLayer = L.tileLayer.wms("https://xamnhapman.opengis.vn/m/gsrv/xamnhapman_tphcm/wms", {
-                    layers: `xamnhapman_tphcm:${layerName}`,
-                    transparent: true,
-                    format: "image/png",
-                    version: "1.1.0",
-                    attribution: "GeoServer",
-                });
+            // Handle special raster layer (DEM)
+            else if (layerName === "DEM") {
+                const rasterLayer = L.tileLayer.wms(
+                    "https://xamnhapman.opengis.vn/m/gsrv/xamnhapman_tphcm/wms",
+                    {
+                        layers: `xamnhapman_tphcm:${layerName}`,
+                        transparent: true,
+                        format: "image/png",
+                        version: "1.1.0",
+                        attribution: "GeoServer",
+                    },
+                );
 
                 rasterLayer.addTo(map);
                 overlayLayers.current[layerName] = {
                     layer: rasterLayer,
-                    ...getLayerConfig(layerName)
+                    ...getLayerConfig(layerName),
                 };
-            } 
+            }
             // Handle all other WMS layers uniformly
             else {
                 const wmsLayer = createWMSLayer(layerName);
                 wmsLayer.addTo(map);
-                
+
                 overlayLayers.current[layerName] = {
                     layer: wmsLayer,
-                    ...getLayerConfig(layerName)
+                    ...getLayerConfig(layerName),
                 };
             }
         });
@@ -509,6 +529,7 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
 
                 const [year, month, day] = rawDate.split("-");
                 if (parseInt(year, 10) < 1000) return;
+                const selectedDateLabel = `${day}/${month}/${year}`;
 
                 try {
                     // Show loading indicator in the legend
@@ -518,7 +539,7 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                                 <div class="spinner-border text-primary" role="status" style="width: 2rem; height: 2rem;">
                                     <span class="visually-hidden">Đang tải...</span>
                                 </div>
-                                <p>Đang tìm kiếm dữ liệu cho ngày ${day}-${month}-${year}...</p>
+                                <p>Đang tìm kiếm dữ liệu cho ngày ${selectedDateLabel}...</p>
                             </div>
                         `;
                     }
@@ -545,7 +566,7 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                             legendPrimary.innerHTML = `
                                 <div class="empty-state">
                                     <i class="fas fa-exclamation-circle"></i>
-                                    <p>Không tìm thấy dữ liệu cho ngày ${day}-${month}-${year}</p>
+                                    <p>Không tìm thấy dữ liệu cho ngày ${selectedDateLabel}</p>
                                 </div>
                             `;
                         }
@@ -573,7 +594,7 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                     if (legendSummary && legendPrimary) {
                         legendSummary.style.display = "block";
 
-                        const formattedDate = `${day}-${month}-${year}`;
+                        const formattedDate = selectedDateLabel;
                         const labelMapping = {
                             meteorologyData: "Khí tượng",
                             salinityData: "Độ mặn",
@@ -608,7 +629,6 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                                         popupContent = `
                                             <div class="modern-popup salinity-popup enhanced">
                                                 <div class="popup-header">
-                                                    <div class="popup-icon">🌊</div>
                                                     <div class="popup-title">
                                                         <h4 class="popup-name">${station.name || "Trạm quan trắc"}</h4>
                                                         <span class="popup-type">Điểm đo độ mặn</span>
@@ -628,28 +648,28 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                                                         <div class="detail-grid">
                                                             <div class="detail-item">
                                                                 <div class="detail-content">
-                                                                    <strong class="detail-label"><i class="detail-icon">🏷️</i> Mã trạm:</strong>
+                                                                    <strong class="detail-label">Mã trạm:</strong>
                                                                     <span class="detail-value">${station.kiHieu || "N/A"}</span>
                                                                 </div>
                                                             </div>
                                                             
                                                             <div class="detail-item">
                                                                 <div class="detail-content">
-                                                                    <strong class="detail-label"><i class="detail-icon">📍</i> Vĩ độ:</strong>
+                                                                    <strong class="detail-label">Vĩ độ:</strong>
                                                                     <span class="detail-value">${vido.toFixed(6)}</span>
                                                                 </div>
                                                             </div>
                                                             
                                                             <div class="detail-item">
                                                                 <div class="detail-content">
-                                                                    <strong class="detail-label"><i class="detail-icon">📍</i> Kinh độ:</strong>
+                                                                    <strong class="detail-label">Kinh độ:</strong>
                                                                     <span class="detail-value">${kinhdo.toFixed(6)}</span>
                                                                 </div>
                                                             </div>
                                                             
                                                             <div class="detail-item">
                                                                 <div class="detail-content">
-                                                                    <strong class="detail-label"><i class="detail-icon">⚠️</i> Mức rủi ro:</strong>
+                                                                    <strong class="detail-label">Mức rủi ro:</strong>
                                                                     <span class="detail-value" style="color: ${statusColor}; font-weight: 600;">
                                                                         ${classification || "Không xác định"}
                                                                     </span>
@@ -660,7 +680,6 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                                                     
                                                     <div class="popup-actions">
                                                         <button class="action-btn primary" onclick="window.openChartDetails('${station.kiHieu || station.name}')">
-                                                            <i class="btn-icon">📈</i>
                                                             Xem biểu đồ chi tiết
                                                         </button>
                                                     </div>
@@ -675,7 +694,6 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                                         popupContent = `
                                             <div class="modern-popup hydromet-popup enhanced">
                                                 <div class="popup-header">
-                                                    <div class="popup-icon">🌤️</div>
                                                     <div class="popup-title">
                                                         <h4 class="popup-name">${station.name || "Trạm quan trắc"}</h4>
                                                         <span class="popup-type">Trạm khí tượng thủy văn</span>
@@ -730,14 +748,14 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                                                         <div class="detail-grid">
                                                             <div class="detail-item">
                                                                 <div class="detail-content">
-                                                                    <strong class="detail-label"><i class="detail-icon">📍</i> Vĩ độ:</strong>
+                                                                    <strong class="detail-label">Vĩ độ:</strong>
                                                                     <span class="detail-value">${vido.toFixed(6)}</span>
                                                                 </div>
                                                             </div>
                                                             
                                                             <div class="detail-item">
                                                                 <div class="detail-content">
-                                                                    <strong class="detail-label"><i class="detail-icon">📍</i> Kinh độ:</strong>
+                                                                    <strong class="detail-label">Kinh độ:</strong>
                                                                     <span class="detail-value">${kinhdo.toFixed(6)}</span>
                                                                 </div>
                                                             </div>
@@ -746,7 +764,6 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                                                     
                                                     <div class="popup-actions">
                                                         <button class="action-btn primary" onclick="window.openHydrometDetails('${station.name}')">
-                                                            <i class="btn-icon">📈</i>
                                                             Xem biểu đồ chi tiết
                                                         </button>
                                                     </div>
@@ -1038,8 +1055,35 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                             });
                     }
                 } catch (error) {
+                    const statusCode = error?.response?.status;
+                    const errorMessage = String(error?.message || "").toLowerCase();
+                    const isNoDataCase =
+                        statusCode === 404 ||
+                        errorMessage.includes("404") ||
+                        errorMessage.includes("not found") ||
+                        errorMessage.includes("không có dữ liệu") ||
+                        errorMessage.includes("no data");
+
+                    const legendPrimary = document.getElementById("legend-primary");
+                    const legendSummary = document.getElementById("legend-summary");
+
+                    if (isNoDataCase) {
+                        if (legendPrimary) {
+                            legendPrimary.innerHTML = `
+                                <div class="empty-state">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                    <p>Không tìm thấy dữ liệu cho ngày ${selectedDateLabel}</p>
+                                </div>
+                            `;
+                        }
+                        if (legendSummary) {
+                            legendSummary.style.display = "block";
+                        }
+                        return;
+                    }
+
                     console.log(`error.message:`, error.message);
-                    ToastCommon(TOAST.ERROR, error.message);
+                    ToastCommon(TOAST.ERROR, "Không thể tải dữ liệu ngày quan trắc. Vui lòng thử lại.");
                 }
             });
         }, 0);
@@ -1154,16 +1198,6 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
             });
 
             marker.on("click", () => {
-                const zoomLevel = 15;
-                const offsetX = 0;
-                const offsetY = -100;
-
-                const targetLatLng = L.latLng(lat, lng);
-                const pointInPixel = mapInstance.project(targetLatLng, zoomLevel);
-                const offsetPoint = pointInPixel.subtract([-offsetX, -offsetY]);
-                const offsetLatLng = mapInstance.unproject(offsetPoint, zoomLevel);
-                mapInstance.setView(offsetLatLng, zoomLevel, { animate: true });
-
                 const popupHTML = `
           <div class="modern-popup">
             <div class="popup-header">
@@ -1198,27 +1232,27 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                 <div class="detail-grid">
                   <div class="detail-item">
                     <div class="detail-content py-2">
-                      <strong class="detail-label"><i class="detail-icon">📅</i> Ngày quan trắc: </strong>
+                      <strong class="detail-label">Ngày quan trắc: </strong>
                       <span class="detail-value">${date}</span>
                     </div>
                   </div>
                   <div class="detail-item">
                     <div class="detail-content py-2">
-                      <strong class="detail-label"><i class="detail-icon">🏷️</i> Phân loại: </strong>
+                      <strong class="detail-label">Phân loại: </strong>
                       <span class="detail-value">${point.PhanLoai}</span>
                     </div>
                   </div>
                   
                   <div class="detail-item">
                     <div class="detail-content py-2">
-                      <strong class="detail-label font-weight"><i class="detail-icon">⏰</i> Thời gian: </strong>
+                      <strong class="detail-label font-weight">Thời gian: </strong>
                       <span class="detail-value">${point.ThoiGian}</span>
                     </div>
                   </div>
                   
                   <div class="detail-item">
                     <div class="detail-content py-2">
-                      <strong class="detail-label"><i class="detail-icon">📊</i> Tần suất đo: </strong>
+                      <strong class="detail-label">Tần suất đo: </strong>
                       <span class="detail-value">${point.TanSuat}</span>
                     </div>
                   </div>
@@ -1231,14 +1265,6 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                 marker.bindPopup(popupHTML).openPopup();
             });
         });
-
-        if (latLngs.length > 0) {
-            const bounds = L.latLngBounds(latLngs);
-            mapInstance.fitBounds(bounds, {
-                padding: [200, 200],
-                animate: true,
-            });
-        }
     };
 
     const renderHydrometeorologySummaryPoints = (mapInstance, hydrometeorologyPositions) => {
@@ -1346,7 +1372,6 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
             const popupHTML = `
         <div class="modern-popup">
           <div class="popup-header">
-            <div class="popup-icon">🌤️</div>
             <div class="popup-title">
               <h4 class="popup-name">${point.TenTam}</h4>
               <span class="popup-type">${point.PhanLoai || "Trạm khí tượng thủy văn"}</span>
@@ -1359,19 +1384,19 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
               <div class="detail-grid">
                 <div class="detail-item py-2">
                   <div class="detail-content">
-                    <strong class="detail-label"><i class="detail-icon">📅</i> Ngày quan trắc:</strong>
+                    <strong class="detail-label">Ngày quan trắc:</strong>
                     <span class="detail-value">${date}</span>
                   </div>
                 </div>
                 <div class="detail-item py-2">
                   <div class="detail-content">
-                    <strong class="detail-label"><i class="detail-icon">🏭</i> Mã trạm:</strong>
+                    <strong class="detail-label">Mã trạm:</strong>
                     <span class="detail-value">${point.KiHieu}</span>
                   </div>
                 </div>    
                 <div class="detail-item py-2">
                   <div class="detail-content">
-                    <strong class="detail-label"> <i class="detail-icon">📊</i> Yếu tố:</strong>
+                    <strong class="detail-label">Yếu tố:</strong>
                     <span class="detail-value">${point.YeuTo || "Không xác định"}</span>
                   </div>
                 </div>
@@ -1384,13 +1409,6 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
             marker.bindPopup(popupHTML);
         });
 
-        if (latLngs.length > 0) {
-            const bounds = L.latLngBounds(latLngs);
-            mapInstance.fitBounds(bounds, {
-                padding: [50, 50],
-                animate: true,
-            });
-        }
     };
 
     // Handle map resize when sidebar state changes

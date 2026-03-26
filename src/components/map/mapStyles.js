@@ -1,4 +1,5 @@
 import L from "leaflet";
+import DEMLegendImage from "@assets/DEM.png";
 
 export const layerStyles = {
     salinityPoints: {
@@ -32,6 +33,9 @@ export const layerStyles = {
                         </div>`,
     },
     hydrometStations: { type: "point", color: "#990000" },
+    hydrometRainStations: { type: "point", color: "#0d6efd" },
+    hydrometMeteorologyStations: { type: "point", color: "#fd7e14" },
+    hydrometHydrologyStations: { type: "point", color: "#198754" },
     DiaPhanHuyen: { type: "polygon", color: "#FF7D31" },
     DiaPhanXa: { type: "polygon", color: "#BEB297" },
     ThuyHe_line: { type: "line", color: "#495cc8" },
@@ -126,17 +130,18 @@ export const layerStyles = {
             </div>
         `,
     },
-    diemdocao: {
+    DiemDoCao: { type: "point", color: "#999999" },
+    DEM: {
         type: "raster",
         legend: `
-                        <div style="margin-left: 20px; margin-bottom: 10px; font-size: 1em;">
-                            <div><span style="display:inline-block;width:12px;height:12px;background:#08306b;margin-right:5px;"></span>-20 – 0 m</div>
-                            <div><span style="display:inline-block;width:12px;height:12px;background:#41ab5d;margin-right:5px;"></span>1 – 5 m</div>
-                            <div><span style="display:inline-block;width:12px;height:12px;background:#ffff00;margin-right:5px;"></span>6 – 10 m</div>
-                            <div><span style="display:inline-block;width:12px;height:12px;background:#fd8d3c;margin-right:5px;"></span>11 – 15 m</div>
-                            <div><span style="display:inline-block;width:12px;height:12px;background:#e31a1c;margin-right:5px;"></span>16 – 35 m</div>
-                        </div>
-                    `,
+            <div style="margin: 8px 0 12px 20px;">
+                <img
+                    src="${DEMLegendImage}"
+                    alt="Chú thích DEM"
+                    style="display:block; max-width: 100%; width: 260px;"
+                />
+            </div>
+        `,
     },
     GiaoThong_line: { type: "line", color: "#C43C39" },
     GiaoThong_polygon: { type: "polygon", color: "#E5B636" },
@@ -185,13 +190,17 @@ export const layerStyles = {
 export const legendNames = {
     salinityPoints: "Điểm đo mặn",
     hydrometStations: "Trạm khí tượng thủy văn",
+    hydrometRainStations: "Điểm đo mưa",
+    hydrometMeteorologyStations: "Trạm khí tượng",
+    hydrometHydrologyStations: "Trạm thủy văn",
     DiaPhanHuyen: "Địa phận huyện",
     DiaPhanXa: "Địa phận xã",
     ThuyHe_line: "Thủy hệ 1 nét",
     ThuyHe_polygon: "Thủy hệ 2 nét",
     HienTrangSDD_2020: "Hiện trạng sử dụng đất 2020",
     QuyHoachSDD_2030: "Quy hoạch sử dụng đất 2030",
-    diemdocao: "Độ cao (m)",
+    DiemDoCao: "Điểm độ cao (m)",
+    DEM: "Mô hình độ cao số (DEM)",
     GiaoThong_line: "Giao thông 1 nét",
     GiaoThong_polygon: "Giao thông 2 nét",
     // Công trình thủy lợi - Hiện trạng 2023
@@ -247,18 +256,38 @@ export const updateLegendVisibility = (overlayLayers) => {
     secondaryLegend.style.display = "block";
     secondaryLegend.innerHTML = "";
 
-    Object.keys(overlayLayers).forEach((layerName) => {
+    const hasSalinityLegend =
+        Boolean(overlayLayers?.salinityPoints) && Boolean(layerStyles?.salinityPoints?.legend);
+
+    const orderedLayerNames = Object.keys(overlayLayers).sort((a, b) => {
+        const priority = {
+            iotStations: 0,
+            salinityPoints: 1,
+        };
+
+        const rankA = priority[a] ?? 100;
+        const rankB = priority[b] ?? 100;
+        return rankA - rankB;
+    });
+
+    orderedLayerNames.forEach((layerName) => {
         const layerInfo = overlayLayers[layerName];
         const style = layerStyles[layerName] || {};
         const { type, color, colors } = style;
 
         let symbolHTML = "";
-        // Skip creating symbol for QuyHoachSDD_2030, HienTrangSDD_2020 and diemdocao as they use custom legend handling
-        if (layerName !== "QuyHoachSDD_2030" && layerName !== "HienTrangSDD_2020" && layerName !== "diemdocao") {
+        // Skip creating symbol for layers that use custom legend handling
+        if (layerName !== "QuyHoachSDD_2030" && layerName !== "HienTrangSDD_2020" && layerName !== "DEM") {
             if (layerName === "salinityPoints") {
                 symbolHTML = `<i class="fa-solid fa-droplet" style="color: ${color}; margin-right: 5px;"></i>`;
             } else if (layerName === "hydrometStations") {
                 symbolHTML = `<i class="fa-solid fa-tower-observation" style="color: ${color}; margin-right: 5px;"></i>`;
+            } else if (layerName === "hydrometRainStations") {
+                symbolHTML = `<i class="fa-solid fa-cloud-rain" style="color: ${color}; margin-right: 5px;"></i>`;
+            } else if (layerName === "hydrometMeteorologyStations") {
+                symbolHTML = `<i class="fa-solid fa-temperature-three-quarters" style="color: ${color}; margin-right: 5px;"></i>`;
+            } else if (layerName === "hydrometHydrologyStations") {
+                symbolHTML = `<i class="fa-solid fa-water" style="color: ${color}; margin-right: 5px;"></i>`;
             } else if (layerName === "iotStations") {
                 symbolHTML = `<i class="fa-solid fa-tower-broadcast" style="color: ${color}; margin-right: 5px;"></i>`;
             } else if (type === "point") {
@@ -288,9 +317,8 @@ export const updateLegendVisibility = (overlayLayers) => {
             if (style?.legend) {
                 secondaryLegend.innerHTML += `${style.legend}`;
             }
-        } else if (layerName === "diemdocao") {
-            // diemdocao: show mountain icon with name and detailed legend
-            secondaryLegend.innerHTML += `<p><i class="fa-solid fa-mountain" style="color: #227200; margin-right: 5px;"></i><b>${layerDisplayName}</b></p>`;
+        } else if (layerName === "DEM") {
+            secondaryLegend.innerHTML += `<p><b>${layerDisplayName}</b></p>`;
             if (layerInfo?.legend) {
                 secondaryLegend.innerHTML += `${layerInfo.legend}`;
             }
@@ -299,7 +327,8 @@ export const updateLegendVisibility = (overlayLayers) => {
             secondaryLegend.innerHTML += `<p>${symbolHTML}<b>${layerDisplayName}</b></p>`;
             
             // Add detailed legend if available
-            if (style?.legend) {
+            const shouldHideIotLegend = layerName === "iotStations" && hasSalinityLegend;
+            if (style?.legend && !shouldHideIotLegend) {
                 secondaryLegend.innerHTML += `${style.legend}`;
             }
         }
