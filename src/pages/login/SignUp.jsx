@@ -1,11 +1,9 @@
 import { useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import { signUp } from "@stores/actions/authActions";
-import { ToastCommon } from "@components/ToastCommon";
-import { TOAST } from "@common/constants";
 
 // eslint-disable-next-line react/prop-types
-function SignUp() {
+function SignUp({ onSwitchTab }) {
     const dispatch = useDispatch();
     const [errorMessage, setErrorMessage] = useState("");
     const email = useRef(null);
@@ -26,7 +24,6 @@ function SignUp() {
 
     const handleSignUp = async () => {
         try {
-            // Gọi action đăng ký
             await dispatch(
                 signUp({
                     name: name.current.value,
@@ -35,14 +32,7 @@ function SignUp() {
                     confirmPassword: confirmPassword.current.value,
                 }),
             );
-
-            // Sau khi đăng ký thành công, gửi email xác minh
-            await dispatch(sendVerificationEmail(email.current.value));
-
-            ToastCommon(
-                TOAST.SUCCESS,
-                "Đăng ký thành công! Vui lòng kiểm tra email để xác minh tài khoản của bạn.",
-            );
+            onSwitchTab?.(false);
         } catch (error) {
             setErrorMessage(error?.response?.data?.message || "Đã xảy ra lỗi trong quá trình đăng ký.");
         }
@@ -51,7 +41,7 @@ function SignUp() {
     return (
         <div className="signUp">
             <form onSubmit={(e) => e.preventDefault()}>
-                <label className="labelLogin" htmlFor="chk" aria-hidden="true">
+                <label className="labelLogin" aria-hidden="true">
                     Đăng ký
                 </label>
                 <input
@@ -86,8 +76,15 @@ function SignUp() {
                     ref={confirmPassword}
                     onKeyDown={(e) => handleKeyPress(e, null)}
                 />
+                {errorMessage && <div className="error-message">{errorMessage}</div>}
                 <button type="button" className="btnLogin btnLoginSubmit" onClick={() => handleSignUp()}>
                     Đăng ký
+                </button>
+                <button type="button" className="register-text" onClick={() => onSwitchTab?.(false)}>
+                    Đã có tài khoản?
+                    <span>
+                        Đăng nhập <i className="fas fa-arrow-right ms-1"></i>
+                    </span>
                 </button>
             </form>
         </div>

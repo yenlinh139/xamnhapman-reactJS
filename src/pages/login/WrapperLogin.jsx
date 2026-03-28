@@ -8,14 +8,13 @@ import { NavLink } from "react-router-dom";
 import { ROUTES } from "@common/constants";
 
 function WrapperLogin() {
-    // const []
     const { isShowSignUp } = useSelector((state) => state.appStore);
     const dispatch = useDispatch();
 
-    const handleShowSignUp = () => {
+    const handleShowSignUp = (showSignUp) => {
         dispatch({
             type: SET_SHOW_SIGNUP,
-            payload: !isShowSignUp,
+            payload: showSignUp,
         });
     };
 
@@ -33,17 +32,34 @@ function WrapperLogin() {
                     </div>
                 </NavLink>
                 <div className="line"></div>
-                <input
-                    className="inputLogin"
-                    type="checkbox"
-                    id="chk"
-                    aria-hidden="true"
-                    checked={isShowSignUp}
-                    onChange={handleShowSignUp}
-                />
-                <Login />
+                <div className="authTabs" role="tablist" aria-label="Xác thực tài khoản">
+                    <button
+                        type="button"
+                        role="tab"
+                        aria-selected={!isShowSignUp}
+                        className={`authTab ${!isShowSignUp ? "active" : ""}`}
+                        onClick={() => handleShowSignUp(false)}
+                    >
+                        Đăng nhập
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        aria-selected={isShowSignUp}
+                        className={`authTab ${isShowSignUp ? "active" : ""}`}
+                        onClick={() => handleShowSignUp(true)}
+                    >
+                        Đăng ký
+                    </button>
+                </div>
 
-                <SignUp />
+                <div className="authPanel">
+                    {!isShowSignUp ? (
+                        <Login onSwitchTab={handleShowSignUp} />
+                    ) : (
+                        <SignUp onSwitchTab={handleShowSignUp} />
+                    )}
+                </div>
             </div>
         </div>
     );

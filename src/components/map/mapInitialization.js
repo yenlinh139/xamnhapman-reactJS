@@ -121,6 +121,31 @@ export const createLegendControl = () => {
                     toggleBtn.setAttribute("aria-expanded", isCollapsed.toString());
                 });
             }
+          // Handle date input with dd/mm/yyyy format and default value
+          const dateInput = document.getElementById("legend-date");
+          if (dateInput) {
+            // Use fixed ISO string to avoid timezone shift (UTC conversion can subtract one day)
+            const isoDate = "2025-03-08";
+            dateInput.value = isoDate;
+
+            // Format display as dd/mm/yyyy
+            const formatDateDisplay = (isoDateStr) => {
+              if (!isoDateStr) return '';
+              const [year, month, day] = isoDateStr.split('-');
+              return `${day}/${month}/${year}`;
+            };
+
+            // Create a wrapper to show formatted date
+            const dateWrapper = dateInput.parentElement;
+            const dateDisplay = document.createElement('div');
+            dateDisplay.style.cssText = `
+              font-size: 13px;
+              color: #6c757d;
+              margin-top: 4px;
+              font-weight: 500;
+            `;
+            
+          }
         }, 100);
 
         return div;
