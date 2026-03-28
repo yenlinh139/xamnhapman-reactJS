@@ -1,4 +1,4 @@
-const POPUP_FALLBACK = "N/A";
+const POPUP_FALLBACK = "";
 
 export const WMS_POPUP_TITLES = {
     salinityPoints: "Điểm đo mặn",
@@ -71,6 +71,34 @@ const createTableRows = (rows) =>
         })
         .join("");
 
+const createFourColumnRows = (rows) => {
+    const safeRows = rows.filter((row) => row && row.label);
+    const pairedRows = [];
+
+    for (let index = 0; index < safeRows.length; index += 2) {
+        pairedRows.push([safeRows[index], safeRows[index + 1] || null]);
+    }
+
+    return pairedRows
+        .map(([leftRow, rightRow], index) => {
+            const isLastRow = index === pairedRows.length - 1;
+            const borderStyle = isLastRow ? "border-bottom: none;" : "border-bottom: 1px solid #e5e7eb;";
+
+            const rightLabel = rightRow ? escapeHtml(rightRow.label) : "";
+            const rightValue = rightRow ? rightRow.value : "";
+
+            return `
+                <tr>
+                    <td style="width: 23%; padding: 10px 10px; background: #f5f6f8; ${borderStyle} font-size: 13px; color: #5b6572; vertical-align: top;">${escapeHtml(leftRow.label)}</td>
+                    <td style="width: 27%; padding: 10px 10px; ${borderStyle} font-size: 13px; color: #2f3542; vertical-align: top; word-break: break-word;">${leftRow.value}</td>
+                    <td style="width: 23%; padding: 10px 10px; background: #f5f6f8; ${borderStyle} font-size: 13px; color: #5b6572; vertical-align: top;">${rightLabel}</td>
+                    <td style="width: 27%; padding: 10px 10px; ${borderStyle} font-size: 13px; color: #2f3542; vertical-align: top; word-break: break-word;">${rightValue}</td>
+                </tr>
+            `;
+        })
+        .join("");
+};
+
 export const createTablePopup = (title, rows) => {
     const body = `
         <div style="border: 1px solid #dfe5ec; border-radius: 10px; overflow: hidden; background: #fff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);">
@@ -85,12 +113,26 @@ export const createTablePopup = (title, rows) => {
     return createPopupShell(title, body);
 };
 
+export const createFourColumnTablePopup = (title, rows) => {
+    const body = `
+        <div style="border: 1px solid #dfe5ec; border-radius: 10px; overflow: hidden; background: #fff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);">
+            <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+                <tbody>
+                    ${createFourColumnRows(rows)}
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    return createPopupShell(title, body, { minWidth: 560, maxWidth: 680 });
+};
+
 export const createMetricPopup = (title, label, value) => {
     const body = `
         <div style="border: 1px solid #dfe5ec; border-radius: 10px; overflow: hidden; background: #fff;">
             <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(84px, 112px); align-items: stretch;">
                 <div style="background: #f5f6f8; padding: 14px; font-size: 15px; color: #5b6572;">${escapeHtml(label)}</div>
-                <div style="padding: 14px; font-size: 15px; line-height: 1.1; font-weight: 400; color: #2f3542; text-align: left; word-break: break-word;">${escapeHtml(value ?? "-")}</div>
+                <div style="padding: 14px; font-size: 15px; line-height: 1.1; font-weight: 400; color: #2f3542; text-align: left; word-break: break-word;">${escapeHtml(value ?? "")}</div>
             </div>
         </div>
     `;
@@ -99,7 +141,6 @@ export const createMetricPopup = (title, label, value) => {
 };
 
 const rowsForLayer = (layerName, props) => {
-    console.log("props for popup:", props);
     switch (layerName) {
         case "DiaPhanHuyen":
             return [
@@ -262,6 +303,10 @@ export const createLayerPopupContent = (layerName, props) => {
     const rows = rowsForLayer(layerName, props);
     if (rows.length === 0) {
         return createPopupShell(title, `<div style="font-size: 14px; color: #64748b; padding: 4px 2px 2px;">Không có cấu hình hiển thị cho lớp này.</div>`);
+    }
+
+    if (layerName.startsWith("CTTL_")) {
+        return createFourColumnTablePopup(title, rows);
     }
 
     return createTablePopup(title, rows);

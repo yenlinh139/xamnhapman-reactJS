@@ -5,6 +5,24 @@ import { fetchSalinityPoints, fetchSalinityData } from "@components/map/mapDataS
 import { getSalinityIcon } from "@components/map/mapMarkers";
 import { getSingleStationClassification } from "../../common/salinityClassification";
 
+const ensureStationPanes = (mapInstance) => {
+  const paneConfigs = [
+    ["hydrometMarkerPane", 610],
+    ["hydrometTooltipPane", 611],
+    ["salinityMarkerPane", 620],
+    ["salinityTooltipPane", 621],
+    ["iotMarkerPane", 630],
+    ["iotTooltipPane", 631],
+  ];
+
+  paneConfigs.forEach(([name, zIndex]) => {
+    if (!mapInstance.getPane(name)) {
+      mapInstance.createPane(name);
+    }
+    mapInstance.getPane(name).style.zIndex = String(zIndex);
+  });
+};
+
 export const getSalinityTooltipClass = (salinity, stationCode = null) => {
     const classification = getSingleStationClassification(salinity, stationCode);
     switch (classification.level) {
@@ -146,6 +164,8 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
 
 export const renderSalinityPoints = async (mapInstance, setSalinityData, setSelectedPoint) => {
     try {
+    ensureStationPanes(mapInstance);
+
         const points = await fetchSalinityPoints();
         const latLngs = [];
 
@@ -191,6 +211,8 @@ export const renderSalinityPoints = async (mapInstance, setSalinityData, setSele
             const marker = L.marker([lat, lng], {
                 icon,
                 isSalinityPoint: true,
+              pane: "salinityMarkerPane",
+              zIndexOffset: 2000,
             }).addTo(mapInstance);
 
             latLngs.push([lat, lng]);
@@ -199,7 +221,8 @@ export const renderSalinityPoints = async (mapInstance, setSalinityData, setSele
                 permanent: true,
                 direction: "top",
                 offset: [0, -10],
-                className: tooltipClass,
+                className: `${tooltipClass} station-tooltip`,
+                pane: "salinityTooltipPane",
             });
 
             marker.on("click", async () => {

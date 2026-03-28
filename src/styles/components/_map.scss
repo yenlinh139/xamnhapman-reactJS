@@ -1186,15 +1186,40 @@ button:hover,
     border-top-color: var(--lightBlue) !important;
 }
 
+.leaflet-popup-close-button {
+    top: 6px !important;
+    right: 8px !important;
+    left: auto !important;
+    padding: 0 !important;
+    width: 22px !important;
+    height: 22px !important;
+    line-height: 20px !important;
+    text-align: center !important;
+    border-radius: 50% !important;
+    color: #64748b !important;
+    background: rgba(255, 255, 255, 0.92) !important;
+    border: 1px solid rgba(148, 163, 184, 0.35) !important;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12) !important;
+    font-size: 18px !important;
+    font-weight: 500 !important;
+}
+
+.leaflet-popup-close-button:hover {
+    color: #0f172a !important;
+    background: #ffffff !important;
+}
+
 /* Custom Tooltip Styles Override */
 .custom-tooltip {
     background: rgba(0, 0, 0, 0.8) !important;
     border: none !important;
-    border-radius: 8px !important;
+    border-radius: 7px !important;
     color: white !important;
-    font-size: 12px !important;
+    font-size: 11px !important;
     font-weight: 500 !important;
-    padding: 6px 10px !important;
+    line-height: 1.2 !important;
+    padding: 4px 8px !important;
+    max-width: 200px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
 
     &::before {
@@ -1236,6 +1261,10 @@ button:hover,
             border-top-color: rgba(108, 117, 125, 0.9) !important;
         }
     }
+}
+
+.custom-tooltip.iot-tooltip {
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.45) !important;
 }
 
 /* Marker Pulse Animation */
@@ -1843,7 +1872,6 @@ button:hover,
         
         .iot-icon {
             color: white;
-            animation: markerBounce 1s ease-in-out infinite;
             filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
         }
     }
@@ -1858,7 +1886,6 @@ button:hover,
         .iot-icon {
             color: white;
             opacity: 0.8;
-            animation: markerFade 2s ease-in-out infinite;
         }
     }
     
@@ -1870,43 +1897,7 @@ button:hover,
 }
 
 .iot-signal {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1;
-    
-    .signal-ring {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        border: 2px solid var(--risk-color, rgba(168, 85, 247, 0.6));
-        border-radius: 50%;
-        animation: iotSignalRing 1.5s ease-out infinite;
-        opacity: 0.8;
-        
-        &.ring-1 {
-            width: 40px;
-            height: 40px;
-            animation-delay: 0s;
-            border-color: rgba(168, 85, 247, 0.8);
-        }
-        
-        &.ring-2 {
-            width: 50px;
-            height: 50px;
-            animation-delay: 0.2s;
-            border-color: rgba(147, 51, 234, 0.6);
-        }
-        
-        &.ring-3 {
-            width: 60px;
-            height: 60px;
-            animation-delay: 0.4s;
-            border-color: rgba(124, 58, 237, 0.4);
-        }
-    }
+    display: none;
 }
 
 @keyframes iotSignalRing {

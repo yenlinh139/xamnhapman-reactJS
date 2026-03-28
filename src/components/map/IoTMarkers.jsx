@@ -8,6 +8,24 @@ import {
 } from "@components/map/mapDataServices";
 import { getSingleStationClassification } from "@common/salinityClassification";
 
+const ensureStationPanes = (mapInstance) => {
+    const paneConfigs = [
+        ["hydrometMarkerPane", 610],
+        ["hydrometTooltipPane", 611],
+        ["salinityMarkerPane", 620],
+        ["salinityTooltipPane", 621],
+        ["iotMarkerPane", 630],
+        ["iotTooltipPane", 631],
+    ];
+
+    paneConfigs.forEach(([name, zIndex]) => {
+        if (!mapInstance.getPane(name)) {
+            mapInstance.createPane(name);
+        }
+        mapInstance.getPane(name).style.zIndex = String(zIndex);
+    });
+};
+
 const getIoTRowsFromResponse = (response) => {
     if (Array.isArray(response?.data)) return response.data;
     if (Array.isArray(response?.dataPoints)) return response.dataPoints;
@@ -327,6 +345,8 @@ export const getIoTTooltipClass = (_status, _totalRecords, riskClass = 'no-data'
 // Main function to render IoT stations on map
 export const renderIoTStations = async (mapInstance, setIotData) => {
     try {
+        ensureStationPanes(mapInstance);
+
         const stationsResponse = await fetchIoTStations();
 
         if (!stationsResponse.success || !stationsResponse.data) {
@@ -359,7 +379,9 @@ export const renderIoTStations = async (mapInstance, setIotData) => {
             const marker = L.marker([lat, lng], {
                 icon,
                 isIoTStation: true,
-                stationData: station
+                stationData: station,
+                pane: "iotMarkerPane",
+                zIndexOffset: 3000,
             });
 
             // Add to map first
@@ -376,7 +398,8 @@ export const renderIoTStations = async (mapInstance, setIotData) => {
                 permanent: true,
                 direction: "top",
                 offset: [0, -10],
-                className: tooltipClass,
+                className: `${tooltipClass} station-tooltip iot-tooltip`,
+                pane: "iotTooltipPane",
             });
 
             // Add click handler

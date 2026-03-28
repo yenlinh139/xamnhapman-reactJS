@@ -1359,8 +1359,27 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
     };
 
     // Summary points rendering functions for date search
+    const ensureStationPanes = (mapInstance) => {
+        const paneConfigs = [
+            ["hydrometMarkerPane", 610],
+            ["hydrometTooltipPane", 611],
+            ["salinityMarkerPane", 620],
+            ["salinityTooltipPane", 621],
+            ["iotMarkerPane", 630],
+            ["iotTooltipPane", 631],
+        ];
+
+        paneConfigs.forEach(([name, zIndex]) => {
+            if (!mapInstance.getPane(name)) {
+                mapInstance.createPane(name);
+            }
+            mapInstance.getPane(name).style.zIndex = String(zIndex);
+        });
+    };
+
     const renderSalinitySummaryPoints = (mapInstance, salinityPositions) => {
         const latLngs = [];
+        ensureStationPanes(mapInstance);
 
         // First remove any existing salinity points to avoid duplicates
         mapInstance.eachLayer((layer) => {
@@ -1392,6 +1411,8 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                 isSalinityPoint: true,
                 isSummaryPoint: true,
                 kiHieu: station.kiHieu,
+                pane: "salinityMarkerPane",
+                zIndexOffset: 2000,
             }).addTo(mapInstance);
 
             latLngs.push([lat, lng]);
@@ -1401,7 +1422,8 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                 permanent: true,
                 direction: "top",
                 offset: [0, -10],
-                className: tooltipClass,
+                className: `${tooltipClass} station-tooltip`,
+                pane: "salinityTooltipPane",
             });
 
             marker.on("click", () => {
@@ -1476,6 +1498,21 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
 
     const renderHydrometeorologySummaryPoints = (mapInstance, hydrometeorologyPositions) => {
         const latLngs = [];
+        ensureStationPanes(mapInstance);
+
+        const inferHydrometSummaryType = (values = []) => {
+            const keys = values
+                .map((item) => String(item?.kiHieu || "").toUpperCase())
+                .filter(Boolean);
+
+            if (keys.some((key) => key.startsWith("R_"))) {
+                return "Điểm đo mưa";
+            }
+            if (keys.some((key) => key.startsWith("H"))) {
+                return "Trạm thủy văn";
+            }
+            return "Trạm khí tượng";
+        };
 
         // First remove any existing hydromet points to avoid duplicates
         mapInstance.eachLayer((layer) => {
@@ -1512,8 +1549,8 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                 return;
             }
 
-            // Chỉ sử dụng icon chung cho trạm
-            const icon = getHydrometIcon();
+            const stationTypeLabel = inferHydrometSummaryType(station.values);
+            const icon = getHydrometIcon(stationTypeLabel);
 
             const marker = L.marker([lat, lng], {
                 icon,
@@ -1521,6 +1558,8 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                 isHydrometSummary: true,
                 kiHieu: point.KiHieu,
                 maTram: point.TenTam, // Add station name as identifier
+                pane: "hydrometMarkerPane",
+                zIndexOffset: 1000,
             }).addTo(mapInstance);
 
             latLngs.push([lat, lng]);
@@ -1529,7 +1568,8 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                 permanent: true,
                 direction: "top",
                 offset: [0, -10],
-                className: "custom-tooltip",
+                className: "custom-tooltip station-tooltip",
+                pane: "hydrometTooltipPane",
             });
 
             const valueRows = station.values

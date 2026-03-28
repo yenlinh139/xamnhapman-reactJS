@@ -3,6 +3,25 @@ import L from "leaflet";
 import { dmsToDecimal } from "@components/convertDMSToDecimal";
 import { fetchHydrometStations, fetchHydrometData } from "@components/map/mapDataServices";
 import { prefixUnitMap } from "@components/map/mapStyles";
+import { getHydrometIcon } from "@components/map/mapMarkers";
+
+const ensureStationPanes = (mapInstance) => {
+    const paneConfigs = [
+        ["hydrometMarkerPane", 610],
+        ["hydrometTooltipPane", 611],
+        ["salinityMarkerPane", 620],
+        ["salinityTooltipPane", 621],
+        ["iotMarkerPane", 630],
+        ["iotTooltipPane", 631],
+    ];
+
+    paneConfigs.forEach(([name, zIndex]) => {
+        if (!mapInstance.getPane(name)) {
+            mapInstance.createPane(name);
+        }
+        mapInstance.getPane(name).style.zIndex = String(zIndex);
+    });
+};
 
 const getStationCode = (station) => {
     return String(station?.KiHieu || station?.kiHieu || station?.maTram || "").trim();
@@ -121,16 +140,6 @@ const escapePopupActionValue = (value) => {
     return String(value || "")
         .replace(/\\/g, "\\\\")
         .replace(/'/g, "\\'");
-};
-
-const getHydrometIcon = () => {
-    return L.divIcon({
-        className: "custom-hydromet-icon",
-        html: `<i class="fa-solid fa-tower-observation" style="color: #990000; font-size: 1.5rem;"></i>`,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10],
-        popupAnchor: [0, -10],
-    });
 };
 
 // Basic popup for stations without data - MOVED TO TOP
@@ -544,6 +553,8 @@ export const renderHydrometStations = async (
     activeLayerNames = ["hydrometStations"],
 ) => {
     try {
+        ensureStationPanes(mapInstance);
+
         const stations = await fetchHydrometStations();
         const latLngs = [];
 
@@ -567,27 +578,27 @@ export const renderHydrometStations = async (
                 continue;
             }
 
-            // Create enhanced icon based on all parameters
-            const icon = getHydrometIcon();
+            const stationTypeLabel = getStationTypeLabel(station, activeLayerNames);
+            const icon = getHydrometIcon(stationTypeLabel);
 
             const marker = L.marker([lat, lng], {
                 icon,
                 isHydrometStation: true,
+                pane: "hydrometMarkerPane",
+                zIndexOffset: 1000,
             }).addTo(mapInstance);
 
             latLngs.push([lat, lng]);
 
             // Enhanced tooltip with status info
-            const tooltipText = `${station.TenTram || station.TenTam} - ${getStationTypeLabel(
-                station,
-                activeLayerNames,
-            )}`;
+            const tooltipText = station.TenTram || station.TenTam;
 
             marker.bindTooltip(tooltipText, {
                 permanent: true,
                 direction: "top",
-                offset: [0, -15],
-                className: "custom-tooltip enhanced-tooltip",
+                offset: [-1, -9],
+                className: "custom-tooltip enhanced-tooltip station-tooltip",
+                pane: "hydrometTooltipPane",
             });
 
             marker.on("click", async () => {
