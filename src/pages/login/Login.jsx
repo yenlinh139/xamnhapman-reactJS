@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { login } from "@stores/actions/authActions";
 import { ROUTES } from "@common/constants";
 
-const Login = () => {
+// eslint-disable-next-line react/prop-types
+const Login = ({ onSwitchTab }) => {
     const email = useRef(null);
     const password = useRef(null);
     const navigate = useNavigate();
@@ -12,10 +13,6 @@ const Login = () => {
 
     // State để lưu thông báo lỗi
     const [errorMessage, setErrorMessage] = useState("");
-
-    const handleToggleAuth = () => {
-        document.getElementById("chk").checked = true;
-    };
 
     const handleKeyPress = (event) => {
         if (event.key === "Enter") {
@@ -51,7 +48,7 @@ const Login = () => {
         <>
             <div className="login">
                 <form onSubmit={(e) => e.preventDefault()}>
-                    <label className="labelLogin" htmlFor="chk" aria-hidden="true">
+                    <label className="labelLogin" aria-hidden="true">
                         Đăng nhập
                     </label>
                     <input
@@ -75,14 +72,12 @@ const Login = () => {
                         Đăng nhập
                     </button>
                 </form>
-                <div className="line mt-5"></div>
-
-                <p className="register-text" onClick={handleToggleAuth}>
+                <button type="button" className="register-text" onClick={() => onSwitchTab?.(true)}>
                     Chưa có tài khoản?
                     <span>
-                        Đăng ký ngay <i className="fas fa-arrow-down ms-1"></i>
+                        Đăng ký ngay <i className="fas fa-arrow-right ms-1"></i>
                     </span>
-                </p>
+                </button>
             </div>
         </>
     );

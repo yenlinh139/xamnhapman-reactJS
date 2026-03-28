@@ -23,6 +23,7 @@ import {
     fetchSalinityData,
     fetchSalinityStationPositions,
     fetchHydrometeorologyStationPositions,
+    fetchIoTStations,
 } from "@components/map/mapDataServices";
 import { getSalinityIcon, getHydrometIcon } from "@components/map/mapMarkers";
 import { 
@@ -522,7 +523,7 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
 
             // Configure date input events
 
-            dateInput.addEventListener("change", async () => {
+            const handleLegendDateChange = async () => {
                 const rawDate = dateInput.value; // yyyy-mm-dd
                 const legendPrimary = document.getElementById("legend-primary");
                 if (!/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) return;
@@ -558,7 +559,8 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                     const hasData =
                         data.meteorologyData?.length > 0 ||
                         data.hydrologyData?.length > 0 ||
-                        data.salinityData?.length > 0;
+                        data.salinityData?.length > 0 ||
+                        data.iotData?.length > 0;
 
                     if (!hasData) {
                         // No data found for this date
@@ -597,6 +599,7 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                         const formattedDate = selectedDateLabel;
                         const labelMapping = {
                             meteorologyData: "Khí tượng",
+                            iotData: "IoT",
                             salinityData: "Độ mặn",
                             hydrologyData: "Thủy văn",
                         };
@@ -612,7 +615,57 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
 
                                     // Determine station type and create appropriate popup
                                     let popupContent;
-                                    if (station.kiHieu) {
+                                    if (station.isIoT || station.serial_number) {
+                                        popupContent = `
+                                            <div class="modern-popup iot-custom-popup enhanced">
+                                                <div class="popup-header">
+                                                    <div class="popup-title">
+                                                        <h4 class="popup-name">${station.stationName || station.name || "Trạm IoT"}</h4>
+                                                        <span class="popup-type">Trạm IoT</span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="popup-content">
+                                                    <div class="popup-main-value">
+                                                        <span class="value-label">Độ mặn hiện tại</span>
+                                                        <span class="value-number" style="color: #7c3aed">
+                                                            ${station.salt_value || "--"} ${station.salt_unit || "‰"}
+                                                        </span>
+                                                        <span class="value-date">${station.date_time || "Ngày tìm kiếm"}</span>
+                                                    </div>
+
+                                                    <div class="popup-details">
+                                                        <div class="detail-grid">
+                                                            <div class="detail-item">
+                                                                <div class="detail-content">
+                                                                    <strong class="detail-label">Serial:</strong>
+                                                                    <span class="detail-value">${station.serial_number || "N/A"}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div class="detail-item">
+                                                                <div class="detail-content">
+                                                                    <strong class="detail-label">Mực nước:</strong>
+                                                                    <span class="detail-value">${station.distance_value || "--"} ${station.distance_unit || "m"}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div class="detail-item">
+                                                                <div class="detail-content">
+                                                                    <strong class="detail-label">Nhiệt độ:</strong>
+                                                                    <span class="detail-value">${station.temp_value || "--"} ${station.temp_unit || "°C"}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div class="detail-item">
+                                                                <div class="detail-content">
+                                                                    <strong class="detail-label">Lượng mưa:</strong>
+                                                                    <span class="detail-value">${station.daily_rainfall_value || "--"} ${station.daily_rainfall_unit || "mm"}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    } else if (station.kiHieu) {
                                         // This is a salinity station
                                         const classification = getSalinityRiskLevel(
                                             station.value,
@@ -783,6 +836,113 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                         const processStationsData = async () => {
                             const stationsInfo = {};
 
+                            if (data.iotData?.length > 0) {
+                                const iotStationsResponse = await fetchIoTStations();
+                                const iotStations = Array.isArray(iotStationsResponse?.data)
+                                    ? iotStationsResponse.data
+                                    : Array.isArray(iotStationsResponse)
+                                      ? iotStationsResponse
+                                      : [];
+
+                                const formatIoTNumber = (value, digits) => {
+                                    const numeric = Number.parseFloat(value);
+                                    return Number.isFinite(numeric) ? numeric.toFixed(digits) : "--";
+                                };
+
+                                // Keep only the latest row per station to avoid duplicated entries in legend.
+                                const latestIoTRows = Object.values(
+                                    data.iotData.reduce((accumulator, row) => {
+                                        const key =
+                                            row.station_code || row.serial_number || row.station_name || JSON.stringify(row);
+                                        const rowTime = new Date(
+                                            row.date_time || row.Date || row.date || row.day || 0,
+                                        ).getTime();
+                                        const savedTime = new Date(
+                                            accumulator[key]?.date_time ||
+                                                accumulator[key]?.Date ||
+                                                accumulator[key]?.date ||
+                                                accumulator[key]?.day ||
+                                                0,
+                                        ).getTime();
+
+                                        if (!accumulator[key] || rowTime >= savedTime) {
+                                            accumulator[key] = row;
+                                        }
+
+                                        return accumulator;
+                                    }, {}),
+                                );
+
+                                stationsInfo.iotData = latestIoTRows
+                                    .map((row) => {
+                                        const matchedStation = iotStations.find(
+                                            (station) =>
+                                                station.serial_number === row.serial_number ||
+                                                station.station_code === row.station_code ||
+                                                station.station_name === row.station_name,
+                                        );
+
+                                        const latitude = Number(
+                                            matchedStation?.vido_decimal ??
+                                                matchedStation?.latitude ??
+                                                matchedStation?.vido ??
+                                                matchedStation?.ViDo ??
+                                                row?.vido ??
+                                                row?.latitude ??
+                                                row?.ViDo ??
+                                                NaN,
+                                        );
+                                        const longitude = Number(
+                                            matchedStation?.kinhdo_decimal ??
+                                                matchedStation?.longitude ??
+                                                matchedStation?.kinhdo ??
+                                                matchedStation?.KinhDo ??
+                                                row?.kinhdo ??
+                                                row?.longitude ??
+                                                row?.KinhDo ??
+                                                NaN,
+                                        );
+
+                                        return {
+                                            position:
+                                                Number.isFinite(latitude) && Number.isFinite(longitude)
+                                                    ? {
+                                                          vido: latitude,
+                                                          kinhdo: longitude,
+                                                      }
+                                                    : null,
+                                            name: row.station_name || matchedStation?.station_name || "Trạm IoT",
+                                            stationName: row.station_name || matchedStation?.station_name || "Trạm IoT",
+                                            serial_number: row.serial_number,
+                                            station_code: row.station_code,
+                                            salt_value: formatIoTNumber(
+                                                row.salt_value ?? row.salt_value_avg,
+                                                2,
+                                            ),
+                                            salt_unit: row.salt_unit || "‰",
+                                            temp_value: formatIoTNumber(
+                                                row.temp_value ?? row.temp_value_avg,
+                                                1,
+                                            ),
+                                            temp_unit: row.temp_unit || "°C",
+                                            distance_value: formatIoTNumber(
+                                                row.distance_value ?? row.distance_value_avg,
+                                                2,
+                                            ),
+                                            distance_unit: row.distance_unit || "m",
+                                            daily_rainfall_value: formatIoTNumber(
+                                                row.daily_rainfall_value ?? row.daily_rainfall_value_sum,
+                                                2,
+                                            ),
+                                            daily_rainfall_unit: row.daily_rainfall_unit || "mm",
+                                            date_time: row.date_time || row.Date || row.date || row.day,
+                                            color: "#7c3aed",
+                                            isIoT: true,
+                                        };
+                                    })
+                                    .filter(Boolean);
+                            }
+
                             // Process salinity data
                             if (data.salinityData?.length > 0) {
                                 const salinityPositions = await fetchSalinityStationPositions(
@@ -856,29 +1016,37 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                             const stationsInfo = await processStationsData();
 
                             // Create array with all three data types to ensure they are all displayed
-                            const allDataTypes = ["salinityData", "meteorologyData", "hydrologyData"];
+                            const allDataTypes = ["salinityData", "iotData", "meteorologyData", "hydrologyData"];
 
-                            legendPrimary.innerHTML = `
+                                                        const summaryTypeTags = allDataTypes
+                                                                .filter((key) => (data[key]?.length || 0) > 0)
+                                                                .map((key) => {
+                                                                        if (key === "salinityData") return "Điểm đo mặn";
+                                                                        if (key === "iotData") return "Trạm IoT";
+                                                                        if (key === "meteorologyData") return "KTTV - Khí tượng";
+                                                                        if (key === "hydrologyData") return "KTTV - Thủy văn";
+                                                                        return key;
+                                                                })
+                                                                .map((label) => `<span class="summary-type-tag">${label}</span>`)
+                                                                .join("");
+
+                                                        legendPrimary.innerHTML = `
                               <div class="data-summary-card">
                                 <div class="summary-header">
                                   <div class="d-flex justify-content-between align-items-center w-100">
                                     <h6 class="summary-date mb-0">📅 ${formattedDate}</h6>
-                                    <button class="btn btn-sm btn-outline-danger clear-data-btn" onclick="clearDateSearchData()" title="Xóa dữ liệu tìm kiếm và các điểm trên bản đồ">
-                                      <i class="fa-solid fa-xmark"></i>
-                                    </button>
+                                                                        <div class="summary-type-tags">${summaryTypeTags || '<span class="summary-type-tag">Không có dữ liệu</span>'}</div>
                                   </div>
                                 </div>
                                <div class="summary-stats">
                                 ${allDataTypes
                                     .map((key) => {
                                         const label = labelMapping[key] || key;
-                                        const count = data[key]?.length || 0;
 
                                         // Salinity data
                                         if (key === "salinityData" && stationsInfo.salinityData?.length > 0) {
                                             return `
                                                 <div class="stat-item" >
-                                                    <span class="stat-label">${label}</span>
                                                     <div class="station-list">
                                                         ${stationsInfo.salinityData
                                                             .map(
@@ -907,6 +1075,46 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                                             `;
                                         }
 
+                                        else if (key === "iotData" && stationsInfo.iotData?.length > 0) {
+                                            return `
+                                                <div class="stat-item">
+                                                    <div class="station-list">
+                                                        ${stationsInfo.iotData
+                                                            .map(
+                                                                (station) => `
+                                                        <div class="station-item" data-station="${station.serial_number}" data-position='${JSON.stringify(station)}' role="button" tabindex="0">
+                                                            <span class="station-name">${station.name}</span>
+                                                            <div class="station-params">
+                                                                <div class="param-item">
+                                                                    <span class="param-value" style="color: ${station.color}; background-color: rgba(124,58,237,0.10); padding: 2px 6px; border-radius: 10px; font-weight: 600;">
+                                                                        Độ mặn: ${station.salt_value || "--"} "‰"
+                                                                    </span>
+                                                                </div>
+                                                                <div class="param-item">
+                                                                    <span class="param-value" style="background-color: rgba(245, 158, 11, 0.12); padding: 2px 6px; border-radius: 10px; font-weight: 600; color: #b45309;">
+                                                                        Nhiệt độ: ${station.temp_value || "--"} ${station.temp_unit || "°C"}
+                                                                    </span>
+                                                                </div>
+                                                                <div class="param-item">
+                                                                    <span class="param-value" style="background-color: rgba(13, 110, 253, 0.12); padding: 2px 6px; border-radius: 10px; font-weight: 600; color: #0d6efd;">
+                                                                        Mực nước: ${station.distance_value || "--"} ${station.distance_unit || "m"}
+                                                                    </span>
+                                                                </div>
+                                                                <div class="param-item">
+                                                                    <span class="param-value" style="background-color: rgba(40, 167, 69, 0.12); padding: 2px 6px; border-radius: 10px; font-weight: 600; color: #2e7d32;">
+                                                                        Lượng mưa: ${station.daily_rainfall_value || "--"} ${station.daily_rainfall_unit || "mm"}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        `,
+                                                            )
+                                                            .join("")}
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }
+
                                         // Meteorology data
                                         else if (
                                             key === "meteorologyData" &&
@@ -914,7 +1122,6 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                                         ) {
                                             return `
                                                 <div class="stat-item">
-                                                <span class="stat-label">${label}</span>
                                                 <div class="station-list">
                                                     ${stationsInfo.meteorologyData
                                                         .map(
@@ -950,7 +1157,6 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                                         ) {
                                             return `
                                                 <div class="stat-item">
-                                                <span class="stat-label">${label}</span>
                                                 <div class="station-list">
                                                     ${stationsInfo.hydrologyData
                                                         .map(
@@ -979,16 +1185,9 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                                             `;
                                         }
 
-                                        // Default fallback
-                                        else {
-                                            return `
-                                                <div class="stat-item">
-                                                <span class="stat-label">${label}</span>
-                                                <span class="stat-value">(0 trạm)</span>
-                                                </div>
-                                            `;
-                                        }
+                                        return "";
                                     })
+                                    .filter(Boolean)
                                     .join("")}
                                 </div>
                               </div>
@@ -1085,7 +1284,15 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                     console.log(`error.message:`, error.message);
                     ToastCommon(TOAST.ERROR, "Không thể tải dữ liệu ngày quan trắc. Vui lòng thử lại.");
                 }
-            });
+            };
+
+            dateInput.addEventListener("change", handleLegendDateChange);
+
+            // Always fetch API immediately on mount with default date.
+            if (!dateInput.value || !/^\d{4}-\d{2}-\d{2}$/.test(dateInput.value)) {
+                dateInput.value = "2025-03-08";
+            }
+            handleLegendDateChange();
         }, 0);
 
         // Cleanup function

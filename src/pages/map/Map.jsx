@@ -6,7 +6,7 @@ import { Helmet } from "react-helmet-async";
 import axiosInstance from "@config/axios-config";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "@stores/actions/authActions";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { ROUTES } from "@common/constants";
 import "@styles/components/AreaStationsPanel.scss";
 
@@ -16,7 +16,6 @@ const Map = () => {
     const [searchResults, setSearchResults] = useState([]);
     const { userInfo } = useSelector((state) => state.authStore);
     const dispatch = useDispatch();
-    const navigate = useNavigate();
     const [searchText, setSearchText] = useState("");
     const [selectedLocation, setSelectedLocation] = useState(null);
     const [highlightedFeature, setHighlightedFeature] = useState(null);
@@ -40,9 +39,8 @@ const Map = () => {
         }
     };
 
-    const handleLogout = () => {
-        dispatch(logout());
-        navigate(ROUTES.home);
+    const handleLogout = async () => {
+        await dispatch(logout());
     };
 
     const handleSearch = async () => {
@@ -165,7 +163,6 @@ const Map = () => {
                                 target="_blank"
                                 rel="noopener noreferrer"
                             >
-                                <i className="fa-solid fa-house"></i>
                                 <span>Trang chủ</span>
                             </a>
 
@@ -173,8 +170,14 @@ const Map = () => {
                                 to={ROUTES.map}
                                 className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
                             >
-                                <i className="fa-solid fa-map-location-dot"></i>
                                 <span>Bản đồ</span>
+                            </NavLink>
+
+                            <NavLink
+                                to={ROUTES.salinityReport}
+                                className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+                            >
+                                <span>Báo cáo độ mặn</span>
                             </NavLink>
 
                             {/* User Dropdown */}
@@ -185,9 +188,6 @@ const Map = () => {
                                     data-bs-toggle="dropdown"
                                     aria-expanded="false"
                                 >
-                                    <div className="user-avatar">
-                                        <i className="fa-solid fa-user"></i>
-                                    </div>
                                     <div className="user-info">
                                         <span className="user-name">{userInfo?.name}</span>
                                     </div>
@@ -197,7 +197,6 @@ const Map = () => {
                                 <ul className="dropdown-menu">
                                     <li>
                                         <NavLink to={ROUTES.setting} className="dropdown-item">
-                                            <i className="fa-solid fa-gear"></i>
                                             <span>Cài đặt</span>
                                         </NavLink>
                                     </li>
@@ -206,13 +205,21 @@ const Map = () => {
                                     </li>
                                     <li>
                                         <button className="dropdown-item" onClick={handleLogout}>
-                                            <i className="fa-solid fa-right-from-bracket"></i>
                                             <span>Đăng xuất</span>
                                         </button>
                                     </li>
                                 </ul>
                                 </div>
-                                : null
+                                : (
+                                    <NavLink
+                                        to={ROUTES.login}
+                                        className={({ isActive }) =>
+                                            isActive ? "nav-link active" : "nav-link"
+                                        }
+                                    >
+                                        <span>Đăng nhập</span>
+                                    </NavLink>
+                                )
                             }
                         </nav>
 
@@ -268,14 +275,32 @@ const Map = () => {
                                 <i className="fa-solid fa-map-location-dot"></i>
                                 <span>Bản đồ</span>
                             </NavLink>
-                            <NavLink to={ROUTES.setting} className="mobile-link">
-                                <i className="fa-solid fa-gear"></i>
-                                <span>Cài đặt</span>
+                            <NavLink
+                                to={ROUTES.salinityReport}
+                                className={({ isActive }) =>
+                                    isActive ? "mobile-link active" : "mobile-link"
+                                }
+                            >
+                                <i className="fa-solid fa-chart-column"></i>
+                                <span>Báo cáo độ mặn</span>
                             </NavLink>
-                            <button className="mobile-link logout-link" onClick={handleLogout}>
-                                <i className="fa-solid fa-right-from-bracket"></i>
-                                <span>Đăng xuất</span>
-                            </button>
+                            {userInfo?.name ? (
+                                <>
+                                    <NavLink to={ROUTES.setting} className="mobile-link">
+                                        <i className="fa-solid fa-gear"></i>
+                                        <span>Cài đặt</span>
+                                    </NavLink>
+                                    <button className="mobile-link logout-link" onClick={handleLogout}>
+                                        <i className="fa-solid fa-right-from-bracket"></i>
+                                        <span>Đăng xuất</span>
+                                    </button>
+                                </>
+                            ) : (
+                                <NavLink to={ROUTES.login} className="mobile-link">
+                                    <i className="fa-solid fa-right-to-bracket"></i>
+                                    <span>Đăng nhập</span>
+                                </NavLink>
+                            )}
                         </div>
                     </div>
                 </div>
