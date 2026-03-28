@@ -35,12 +35,47 @@ export const getSalinityIcon = (value = null, stationCode = null) => {
     });
 };
 
-export const getHydrometIcon = () => {
+const HYDROMET_ICON_COLORS = {
+    rain: "#0d6efd",
+    meteorology: "#fd7e14",
+    hydrology: "#198754",
+    default: "#990000",
+};
+
+const resolveHydrometColor = (stationType = "") => {
+    const normalizedType = String(stationType || "").toLowerCase();
+
+    if (normalizedType.includes("mưa") || normalizedType.includes("rain")) {
+        return HYDROMET_ICON_COLORS.rain;
+    }
+    if (normalizedType.includes("thủy văn") || normalizedType.includes("hydrology")) {
+        return HYDROMET_ICON_COLORS.hydrology;
+    }
+    if (normalizedType.includes("khí tượng") || normalizedType.includes("meteorology")) {
+        return HYDROMET_ICON_COLORS.meteorology;
+    }
+
+    return HYDROMET_ICON_COLORS.default;
+};
+
+export const getHydrometIcon = (stationType = "") => {
+    const iconColor = resolveHydrometColor(stationType);
+
     return L.divIcon({
         className: "custom-hydromet-icon",
-        html: `<i class="fa-solid fa-tower-observation" style="color: red; font-size: 1.5rem;"></i>`,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10],
+        html: `
+            <span style="
+                display:inline-block;
+                width:14px;
+                height:14px;
+                border-radius:50%;
+                background:${iconColor};
+                border:2px solid #ffffff;
+                box-shadow:0 0 0 1px rgba(0,0,0,0.25);
+            "></span>
+        `,
+        iconSize: [18, 18],
+        iconAnchor: [9, 9],
         popupAnchor: [0, -10],
     });
 };

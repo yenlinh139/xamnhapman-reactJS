@@ -281,13 +281,13 @@ export const updateLegendVisibility = (overlayLayers) => {
             if (layerName === "salinityPoints") {
                 symbolHTML = `<i class="fa-solid fa-droplet" style="color: ${color}; margin-right: 5px;"></i>`;
             } else if (layerName === "hydrometStations") {
-                symbolHTML = `<i class="fa-solid fa-tower-observation" style="color: ${color}; margin-right: 5px;"></i>`;
+                symbolHTML = `<span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:50%;margin-right:5px;border:1px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.25);"></span>`;
             } else if (layerName === "hydrometRainStations") {
-                symbolHTML = `<i class="fa-solid fa-cloud-rain" style="color: ${color}; margin-right: 5px;"></i>`;
+                symbolHTML = `<span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:50%;margin-right:5px;border:1px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.25);"></span>`;
             } else if (layerName === "hydrometMeteorologyStations") {
-                symbolHTML = `<i class="fa-solid fa-temperature-three-quarters" style="color: ${color}; margin-right: 5px;"></i>`;
+                symbolHTML = `<span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:50%;margin-right:5px;border:1px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.25);"></span>`;
             } else if (layerName === "hydrometHydrologyStations") {
-                symbolHTML = `<i class="fa-solid fa-water" style="color: ${color}; margin-right: 5px;"></i>`;
+                symbolHTML = `<span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:50%;margin-right:5px;border:1px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.25);"></span>`;
             } else if (layerName === "iotStations") {
                 symbolHTML = `<i class="fa-solid fa-tower-broadcast" style="color: ${color}; margin-right: 5px;"></i>`;
             } else if (type === "point") {
