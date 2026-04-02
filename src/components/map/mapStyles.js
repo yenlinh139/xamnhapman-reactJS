@@ -246,6 +246,35 @@ export const createWMSLayer = () => {
     });
 };
 
+const createCompactRiskLegend = (layerDisplayName, symbolHTML = "") => {
+    const riskItems = [
+        { color: "#28a745", shortLabel: "BT", title: "Bình thường (< 1‰)" },
+        { color: "#ffc107", shortLabel: "C1", title: "Rủi ro cấp 1" },
+        { color: "#fd7e14", shortLabel: "C2", title: "Rủi ro cấp 2" },
+        { color: "#dc3545", shortLabel: "C3", title: "Rủi ro cấp 3" },
+    ];
+
+    return `
+        <div class="legend-entry-card">
+            <div class="legend-entry-head">
+                <span class="legend-entry-title">${symbolHTML}<b>${layerDisplayName}</b></span>
+            </div>
+            <div class="legend-entry-scale small">
+                ${riskItems
+                    .map(
+                        (item) => `
+                            <span class="legend-entry-chip" title="${item.title}">
+                                <span class="legend-entry-dot" style="background:${item.color};"></span>
+                                ${item.shortLabel}
+                            </span>
+                        `,
+                    )
+                    .join("")}
+            </div>
+        </div>
+    `;
+};
+
 export const updateLegendVisibility = (overlayLayers) => {
     const legendDiv = document.querySelector(".legend-container");
     const secondaryLegend = document.querySelector(".legend-secondary");
@@ -258,6 +287,26 @@ export const updateLegendVisibility = (overlayLayers) => {
 
     const hasSalinityLegend =
         Boolean(overlayLayers?.salinityPoints) && Boolean(layerStyles?.salinityPoints?.legend);
+    const hasSharedRiskLegend =
+        Boolean(overlayLayers?.salinityPoints) || Boolean(overlayLayers?.iotStations);
+
+    if (hasSharedRiskLegend) {
+        const sharedIcons = [
+            overlayLayers?.iotStations
+                ? `<i class="fa-solid fa-tower-broadcast" style="color: ${layerStyles?.iotStations?.color || "#7c3aed"};"></i><span style="margin-left:5px;">Trạm IoT</span>`
+                : "",
+            overlayLayers?.salinityPoints
+                ? `<i class="fa-solid fa-droplet" style="color: ${layerStyles?.salinityPoints?.color || "#0ea5e9"};"></i><span style="margin-left:5px;">Điểm đo mặn</span>`
+                : "",
+        ]
+            .filter(Boolean)
+            .join('<span style="color:#94a3b8;">/</span>');
+
+        secondaryLegend.innerHTML += createCompactRiskLegend(
+        
+            sharedIcons,
+        );
+    }
 
     const orderedLayerNames = Object.keys(overlayLayers).sort((a, b) => {
         const priority = {
@@ -317,15 +366,17 @@ export const updateLegendVisibility = (overlayLayers) => {
             if (style?.legend) {
                 secondaryLegend.innerHTML += `${style.legend}`;
             }
+        } else if (layerName === "salinityPoints" || layerName === "iotStations") {
+            return;
         } else if (layerName === "DEM") {
-            secondaryLegend.innerHTML += `<p><b>${layerDisplayName}</b></p>`;
+            secondaryLegend.innerHTML += `<p class="m-0"><b>${layerDisplayName}</b></p>`;
             if (layerInfo?.legend) {
                 secondaryLegend.innerHTML += `${layerInfo.legend}`;
             }
         } else {
             // All other layers: show symbol with name and optional detailed legend
-            secondaryLegend.innerHTML += `<p>${symbolHTML}<b>${layerDisplayName}</b></p>`;
-            
+            secondaryLegend.innerHTML += `<p class="m-0">${symbolHTML}<b>${layerDisplayName}</b></p>`;
+
             // Add detailed legend if available
             const shouldHideIotLegend = layerName === "iotStations" && hasSalinityLegend;
             if (style?.legend && !shouldHideIotLegend) {

@@ -141,12 +141,12 @@ const SalinityTable = ({
     // Format salinity value (only for display, data remains unchanged)
     const formatSalinity = (value) => {
         if (value === "NULL" || value === null || value === undefined || value === "") {
-            return <span className="no-data">--</span>;
+            return <span className="salinity-value no-data">--</span>;
         }
         // Only round for display, keep original data intact
         const numericValue = parseFloat(value);
         if (isNaN(numericValue)) {
-            return <span className="no-data">--</span>;
+            return <span className="salinity-value no-data">--</span>;
         }
         const roundedValue = numericValue.toFixed(2);
         return <span className="salinity-value">{roundedValue}‰</span>;

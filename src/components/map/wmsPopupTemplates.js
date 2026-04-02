@@ -146,14 +146,14 @@ const rowsForLayer = (layerName, props) => {
             return [
                 { label: "Huyện", value: formatValue(props.tenHuyen) },
                 { label: "Mã huyện", value: formatValue(props.maHuyen) },
-                { label: "Diện tích", value: formatValue(props.dienTichTuNhien, "m²") },
+                { label: "Diện tích", value: formatValue(props.dienTichTuNhien, "km²") },
             ];
         case "DiaPhanXa":
             return [
                 { label: "Xã", value: formatValue(props.tenXa) },
                 { label: "Mã xã", value: formatValue(props.maXa) },
                 { label: "Huyện", value: formatValue(props.tenHuyen) },
-                { label: "Diện tích", value: formatValue(props.dienTichTuNhien, "m²") },
+                { label: "Diện tích", value: formatValue(props.dienTichTuNhien, "km²") },
             ];
         case "GiaoThong_line":
             return [

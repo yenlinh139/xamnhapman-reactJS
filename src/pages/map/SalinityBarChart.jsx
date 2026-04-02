@@ -71,6 +71,13 @@ const SalinityBarChart = ({ data, height }) => {
         (year) => formattedData.find((d) => new Date(d.date).getFullYear() === year)?.date,
     );
 
+    const legendItems = [
+        { color: "#28a745", label: "Bình thường", title: "Độ mặn < 1‰" },
+        { color: "#ffc107", label: "Cấp 1", title: "Nhà Bè 1–4‰" },
+        { color: "#fd7e14", label: "Cấp 2", title: "Nhà Bè > 4‰, trạm khác 1–4‰" },
+        { color: "#dc3545", label: "Cấp 3", title: "Độ mặn > 4‰" },
+    ];
+
     return (
         <>
             {isLoading ? (
@@ -130,51 +137,26 @@ const SalinityBarChart = ({ data, height }) => {
                     </BarChart>
                 </ResponsiveContainer>
             )}
-            <div className="d-flex justify-content-center gap-3 mt-2 small">
-                <div className="d-flex align-items-center gap-1">
+            <div className="d-flex flex-wrap justify-content-center gap-2 mt-3 small">
+                {legendItems.map((item) => (
                     <div
-                        style={{
-                            width: 12,
-                            height: 12,
-                            backgroundColor: "#28a745",
-                            borderRadius: 2,
-                        }}
-                    ></div>
-                    <span>Bình thường (độ mặn &lt; 1‰)</span>
-                </div>
-                <div className="d-flex align-items-center gap-1">
-                    <div
-                        style={{
-                            width: 12,
-                            height: 12,
-                            backgroundColor: "#ffc107",
-                            borderRadius: 2,
-                        }}
-                    ></div>
-                    <span>Rủi ro cấp 1 (Nhà Bè 1-4‰)</span>
-                </div>
-                <div className="d-flex align-items-center gap-1">
-                    <div
-                        style={{
-                            width: 12,
-                            height: 12,
-                            backgroundColor: "#fd7e14",
-                            borderRadius: 2,
-                        }}
-                    ></div>
-                    <span>Rủi ro cấp 2 (độ mặn tại Nhà Bè trên 4‰, các trạm khác từ 1–4‰)</span>
-                </div>
-                <div className="d-flex align-items-center gap-1">
-                    <div
-                        style={{
-                            width: 12,
-                            height: 12,
-                            backgroundColor: "#dc3545",
-                            borderRadius: 2,
-                        }}
-                    ></div>
-                    <span>Rủi ro cấp 3 (độ mặn &gt; 4‰)</span>
-                </div>
+                        key={item.label}
+                        className="d-inline-flex align-items-center gap-2 px-2 py-1 rounded-pill border bg-white shadow-sm"
+                        title={item.title}
+                        style={{ lineHeight: 1.2 }}
+                    >
+                        <span
+                            style={{
+                                width: 10,
+                                height: 10,
+                                backgroundColor: item.color,
+                                borderRadius: 2,
+                                display: "inline-block",
+                            }}
+                        ></span>
+                        <span>{item.label}</span>
+                    </div>
+                ))}
             </div>
         </>
     );

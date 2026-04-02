@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import html2canvas from "html2canvas";
 import IoTBarChart from "./IoTBarChart";
 import { fetchIoTData, normalizeIoTDataRows } from "@components/map/mapDataServices";
+import { getSingleStationClassification } from "@common/salinityClassification";
+import "@styles/components/_hydrometChart.scss";
 
 const EMPTY_DATA = [];
 
@@ -87,6 +89,45 @@ const getDateOptionsFromRows = (rows) => {
         }));
 };
 
+const SALINITY_RISK_META = {
+    normal: {
+        label: "bình thường",
+        textColor: "#198754",
+        backgroundColor: "rgba(25, 135, 84, 0.12)",
+    },
+    warning: {
+        label: "rủi ro cấp 1",
+        textColor: "#b58105",
+        backgroundColor: "rgba(255, 193, 7, 0.18)",
+    },
+    "high-warning": {
+        label: "rủi ro cấp 2",
+        textColor: "#c75b12",
+        backgroundColor: "rgba(253, 126, 20, 0.16)",
+    },
+    critical: {
+        label: "rủi ro cấp 3",
+        textColor: "#dc3545",
+        backgroundColor: "rgba(220, 53, 69, 0.14)",
+    },
+    "no-data": {
+        label: "--",
+        textColor: "#6c757d",
+        backgroundColor: "rgba(108, 117, 125, 0.12)",
+    },
+};
+
+const getIoTSalinityRiskMeta = (value, stationCode = "") => {
+    const baseCode = String(stationCode || "").replace(/_IoT$/i, "").replace(/_iot$/i, "");
+    const classification = getSingleStationClassification(value, baseCode);
+    const riskMeta = SALINITY_RISK_META[classification.class] || SALINITY_RISK_META["no-data"];
+
+    return {
+        ...riskMeta,
+        description: classification.shortText || classification.description || "Khuyết số liệu",
+    };
+};
+
 const IoTQueryControls = ({ queryOptions, onChange, dateOptions }) => {
     return (
         <div
@@ -146,54 +187,172 @@ const IoTQueryControls = ({ queryOptions, onChange, dateOptions }) => {
 };
 
 // Component bảng số liệu IoT với 4 cột cảm biến
-const IoTExportPreviewTable = ({ data, groupBy = "none" }) => {
+const IoTExportPreviewTable = ({ data, groupBy = "none", stationCode = "" }) => {
     const safeData = Array.isArray(data) ? data : [];
+    const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
-    // Data đã có đầy đủ thông tin sensor trong mỗi item, chỉ cần sắp xếp theo thời gian
-    const rows = safeData
-        .filter((item) => item?.Date || item?.date_time) // Lọc bỏ item không có thời gian
-        .sort((a, b) => new Date(a.Date || a.date_time) - new Date(b.Date || b.date_time));
+    const getValueBySortKey = (row, key) => {
+        if (key === "time") return getIoTRowTime(row);
+        return row?.[key];
+    };
+
+    const rows = useMemo(() => {
+        const effectiveSort = sortConfig.key
+            ? sortConfig
+            : { key: "time", direction: "desc" };
+
+        return [...safeData]
+            .filter((item) => item?.Date || item?.date_time)
+            .sort((a, b) => {
+                const aValueRaw = getValueBySortKey(a, effectiveSort.key);
+                const bValueRaw = getValueBySortKey(b, effectiveSort.key);
+
+                if (effectiveSort.key === "time") {
+                    const aTime = new Date(aValueRaw || 0).getTime();
+                    const bTime = new Date(bValueRaw || 0).getTime();
+                    if (aTime < bTime) return effectiveSort.direction === "asc" ? -1 : 1;
+                    if (aTime > bTime) return effectiveSort.direction === "asc" ? 1 : -1;
+                    return 0;
+                }
+
+                const aValue = Number(aValueRaw ?? Number.NEGATIVE_INFINITY);
+                const bValue = Number(bValueRaw ?? Number.NEGATIVE_INFINITY);
+
+                if (aValue < bValue) return effectiveSort.direction === "asc" ? -1 : 1;
+                if (aValue > bValue) return effectiveSort.direction === "asc" ? 1 : -1;
+                return 0;
+            });
+    }, [safeData, sortConfig]);
+
+    const handleSort = (key) => {
+        let direction = "asc";
+        if (sortConfig.key === key && sortConfig.direction === "asc") {
+            direction = "desc";
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const getSortIcon = (columnKey) => {
+        if (sortConfig.key !== columnKey) {
+            return <i className="fa-solid fa-sort text-muted ms-1" style={{ fontSize: "0.75rem" }}></i>;
+        }
+        return sortConfig.direction === "asc" ? (
+            <i className="fa-solid fa-sort-up text-primary ms-1" style={{ fontSize: "0.75rem" }}></i>
+        ) : (
+            <i className="fa-solid fa-sort-down text-primary ms-1" style={{ fontSize: "0.75rem" }}></i>
+        );
+    };
 
     return (
-        <div className="table-responsive">
-            <table className="table table-bordered table-sm table-striped align-middle">
+        <div className="table-responsive map-data-table-wrap">
+            <table className="table table-bordered table-sm table-striped align-middle map-data-table">
                 <thead className="table-light">
                     <tr>
                         <th style={{ width: 60 }}>#</th>
-                        <th>Thời gian</th>
-                        <th>Độ mặn (‰)</th>
-                        <th>Mực nước (m)</th>
-                        <th>Lượng mưa hàng ngày (mm)</th>
-                        <th>Nhiệt độ (°C)</th>
+                        <th
+                            style={{ cursor: "pointer", userSelect: "none" }}
+                            onClick={() => handleSort("time")}
+                        >
+                            <div className="d-flex align-items-center justify-content-between">
+                                <span>Thời gian</span>
+                                {getSortIcon("time")}
+                            </div>
+                        </th>
+                        <th
+                            style={{ cursor: "pointer", userSelect: "none" }}
+                            onClick={() => handleSort("salt_value")}
+                        >
+                            <div className="d-flex align-items-center justify-content-between">
+                                <span>Độ mặn (‰)</span>
+                                {getSortIcon("salt_value")}
+                            </div>
+                        </th>
+                        <th
+                            style={{ cursor: "pointer", userSelect: "none" }}
+                            onClick={() => handleSort("distance_value")}
+                        >
+                            <div className="d-flex align-items-center justify-content-between">
+                                <span>Mực nước (m)</span>
+                                {getSortIcon("distance_value")}
+                            </div>
+                        </th>
+                        <th
+                            style={{ cursor: "pointer", userSelect: "none" }}
+                            onClick={() => handleSort("daily_rainfall_value")}
+                        >
+                            <div className="d-flex align-items-center justify-content-between">
+                                <span>Lượng mưa hàng ngày (mm)</span>
+                                {getSortIcon("daily_rainfall_value")}
+                            </div>
+                        </th>
+                        <th
+                            style={{ cursor: "pointer", userSelect: "none" }}
+                            onClick={() => handleSort("temp_value")}
+                        >
+                            <div className="d-flex align-items-center justify-content-between">
+                                <span>Nhiệt độ (°C)</span>
+                                {getSortIcon("temp_value")}
+                            </div>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
-                    {rows.map((row, idx) => (
-                        <tr key={`${row.Date || row.date_time}-${idx}`}>
-                            <td>{idx + 1}</td>
-                            <td>{toDisplayDateTime(row.Date || row.date_time, groupBy)}</td>
-                            <td className="text-end">
-                                {row.salt_value !== undefined && row.salt_value !== null
-                                    ? `${Number(row.salt_value).toFixed(4)}`
-                                    : "-"}
-                            </td>
-                            <td className="text-end">
-                                {row.distance_value !== undefined && row.distance_value !== null
-                                    ? `${Number(row.distance_value).toFixed(4)}`
-                                    : "-"}
-                            </td>
-                            <td className="text-end">
-                                {row.daily_rainfall_value !== undefined && row.daily_rainfall_value !== null
-                                    ? `${Number(row.daily_rainfall_value).toFixed(4)}`
-                                    : "-"}
-                            </td>
-                            <td className="text-end">
-                                {row.temp_value !== undefined && row.temp_value !== null
-                                    ? `${Number(row.temp_value).toFixed(1)}`
-                                    : "-"}
-                            </td>
-                        </tr>
-                    ))}
+                    {rows.map((row, idx) => {
+                        const hasSaltValue = row.salt_value !== undefined && row.salt_value !== null;
+                        const saltRisk = getIoTSalinityRiskMeta(row.salt_value, stationCode);
+
+                        return (
+                            <tr key={`${row.Date || row.date_time}-${idx}`}>
+                                <td>{idx + 1}</td>
+                                <td>{toDisplayDateTime(row.Date || row.date_time, groupBy)}</td>
+                                <td
+                                    className="text-end"
+                                    style={
+                                        hasSaltValue
+                                            ? {
+                                                  backgroundColor: saltRisk.backgroundColor,
+                                                  color: saltRisk.textColor,
+                                              }
+                                            : undefined
+                                    }
+                                >
+                                    {hasSaltValue ? (
+                                        <div className="d-flex justify-content-end align-items-center gap-2">
+                                            <span className="fw-semibold">{Number(row.salt_value).toFixed(4)}</span>
+                                            <span
+                                                className="badge rounded-pill"
+                                                title={saltRisk.description}
+                                                style={{
+                                                    backgroundColor: saltRisk.textColor,
+                                                    color: "#fff",
+                                                    minWidth: 38,
+                                                }}
+                                            >
+                                                {saltRisk.label}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        "-"
+                                    )}
+                                </td>
+                                <td className="text-end">
+                                    {row.distance_value !== undefined && row.distance_value !== null
+                                        ? `${Number(row.distance_value).toFixed(4)}`
+                                        : "-"}
+                                </td>
+                                <td className="text-end">
+                                    {row.daily_rainfall_value !== undefined && row.daily_rainfall_value !== null
+                                        ? `${Number(row.daily_rainfall_value).toFixed(4)}`
+                                        : "-"}
+                                </td>
+                                <td className="text-end">
+                                    {row.temp_value !== undefined && row.temp_value !== null
+                                        ? `${Number(row.temp_value).toFixed(1)}`
+                                        : "-"}
+                                </td>
+                            </tr>
+                        );
+                    })}
                 </tbody>
             </table>
         </div>
@@ -213,9 +372,11 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
     const [isLoadingData, setIsLoadingData] = useState(false);
     const [loadError, setLoadError] = useState("");
     const [activeTab, setActiveTab] = useState("chart");
+    const [hasUserAdjustedQuery, setHasUserAdjustedQuery] = useState(false);
 
     const stationName = iotData?.stationName || iotData?.stationInfo?.station_name || "Trạm IoT";
     const serialNumber = iotData?.serialNumber || iotData?.stationInfo?.serial_number || "N/A";
+    const stationCode = iotData?.stationCode || iotData?.stationInfo?.station_code || "";
 
     const dataPoints = useMemo(() => {
         const rawDataPoints = iotData?.dataPoints?.length ? iotData.dataPoints : iotData?.data;
@@ -233,6 +394,7 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
         setActiveTab("chart");
         setDisplayData(dataPoints);
         setLoadError("");
+        setHasUserAdjustedQuery(false);
         setQueryOptions((prev) => ({
             startDate: nextRange.startDate,
             endDate: nextRange.endDate,
@@ -246,6 +408,11 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
         }
 
         if (!queryOptions.startDate || !queryOptions.endDate) {
+            return;
+        }
+
+        // Use payload data for initial render; only fetch after user changes filters.
+        if (!hasUserAdjustedQuery) {
             return;
         }
 
@@ -265,20 +432,22 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                 if (isCancelled) return;
 
                 if (!response?.success) {
-                    setDisplayData([]);
+                    // Keep current data instead of blanking the chart on API errors.
                     setLoadError(response?.message || "Không tải được dữ liệu IoT.");
                     return;
                 }
 
                 const normalizedRows = normalizeIoTDataRows(response.data);
-                setDisplayData(normalizedRows);
-                if (normalizedRows.length === 0) {
+                if (normalizedRows.length > 0) {
+                    setDisplayData(normalizedRows);
+                }
+                if (normalizedRows.length === 0 && displayData.length === 0) {
                     setLoadError(response?.message || "Không có dữ liệu trong khoảng thời gian đã chọn.");
                 }
             } catch (error) {
                 if (!isCancelled) {
                     console.error("Error loading IoT chart data:", error);
-                    setDisplayData([]);
+                    // Keep current data to avoid empty chart when a refresh request fails.
                     setLoadError("Có lỗi khi tải dữ liệu IoT.");
                 }
             } finally {
@@ -293,10 +462,19 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
         return () => {
             isCancelled = true;
         };
-    }, [show, serialNumber, queryOptions.startDate, queryOptions.endDate, queryOptions.groupBy]);
+    }, [
+        show,
+        serialNumber,
+        queryOptions.startDate,
+        queryOptions.endDate,
+        queryOptions.groupBy,
+        hasUserAdjustedQuery,
+        displayData.length,
+    ]);
 
     const handleQueryOptionChange = (e) => {
         const { name, value } = e.target;
+        setHasUserAdjustedQuery(true);
         setQueryOptions((prev) => {
             const nextOptions = {
                 ...prev,
@@ -392,7 +570,7 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
 
     return (
         <div
-            className={`modal fade ${show ? "show d-block" : ""}`}
+            className={`modal fade map-data-modal iot-chart-modal ${show ? "show d-block" : ""}`}
             tabIndex="-1"
             style={{
                 backgroundColor: show ? "rgba(0,0,0,0.5)" : "transparent",
@@ -482,19 +660,11 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                                             Đang tải dữ liệu IoT...
                                         </div>
                                     ) : data.length > 0 ? (
-                                        <div
-                                            className="flex-grow-1"
-                                            style={{
-                                                display: "flex",
-                                                flexDirection: "column",
-                                                minHeight: 0,
-                                                overflow: "hidden",
-                                            }}
-                                        >
+                                        <div className="map-chart-pane flex-grow-1">
                                             <div
                                                 id="iot-chart"
-                                                className="chart-container"
-                                                style={{ flex: 1, minHeight: 0, paddingTop: 0 }}
+                                                className="chart-container map-chart-box iot-chart-box"
+                                                style={{ paddingTop: 0, flex: 1, minHeight: 300 }}
                                             >
                                                 <IoTBarChart
                                                     data={data}
@@ -503,7 +673,7 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                                                 />
                                             </div>
                                             <div
-                                                className="d-flex justify-content-between align-items-center"
+                                                className="map-chart-footer d-flex justify-content-between align-items-center"
                                                 style={{ flexShrink: 0, padding: "8px 0", borderTop: "1px solid #e9ecef" }}
                                             >
                                                 <div className="text-muted" style={{ fontSize: "12px" }}>
@@ -557,61 +727,11 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                                     {data.length > 0 ? (
                                         <>
                                             <div style={{ flex: 1, minHeight: 0, overflow: "auto", paddingRight: 4 }}>
-                                        <div className="alert alert-info mb-3">
-                                            <h6 className="mb-2">Cấp độ rủi ro thiên tai do xâm nhập mặn:</h6>
-                                            <div className="row g-2 small">
-                                                <div className="col-6 col-md-3">
-                                                    <span
-                                                        className="badge rounded-pill me-2"
-                                                        style={{
-                                                            backgroundColor: "#28a745",
-                                                            color: "white",
-                                                        }}
-                                                    >
-                                                        Bình thường
-                                                    </span>
-                                                    <span className="text-muted">{"(< 1 ‰)"}</span>
-                                                </div>
-                                                <div className="col-6 col-md-3">
-                                                    <span
-                                                        className="badge rounded-pill me-2"
-                                                        style={{
-                                                            backgroundColor: "#ffc107",
-                                                            color: "black",
-                                                        }}
-                                                    >
-                                                        Rủi ro cấp 1
-                                                    </span>
-                                                    <span className="text-muted">(1-4 ‰)</span>
-                                                </div>
-                                                <div className="col-6 col-md-3">
-                                                    <span
-                                                        className="badge rounded-pill me-2"
-                                                        style={{
-                                                            backgroundColor: "#ff8c00",
-                                                            color: "white",
-                                                        }}
-                                                    >
-                                                        Rủi ro cấp 2
-                                                    </span>
-                                                    <span className="text-muted">(4-8 ‰)</span>
-                                                </div>
-                                                <div className="col-6 col-md-3">
-                                                    <span
-                                                        className="badge rounded-pill me-2"
-                                                        style={{
-                                                            backgroundColor: "#dc3545",
-                                                            color: "white",
-                                                        }}
-                                                    >
-                                                        Rủi ro cấp 3
-                                                    </span>
-                                                    <span className="text-muted">({"> 8 ‰"})</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <IoTExportPreviewTable data={data} groupBy={queryOptions.groupBy} />
+                                                <IoTExportPreviewTable
+                                                    data={data}
+                                                    groupBy={queryOptions.groupBy}
+                                                    stationCode={stationCode}
+                                                />
                                             </div>
 
                                         <div

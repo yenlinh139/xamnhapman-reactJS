@@ -33,6 +33,36 @@ const getStationName = (station) => {
     ).trim();
 };
 
+const getHydrometTypeLabel = (station = {}) => {
+    const metadata = [
+        station?.PhanLoai,
+        station?.phanLoai,
+        station?.LoaiTram,
+        station?.loaiTram,
+        station?.TenTram,
+        station?.TenTam,
+    ]
+        .filter(Boolean)
+        .map(normalizeHydrometText)
+        .join(" ");
+
+    const stationCode = String(station?.KiHieu || station?.kiHieu || "").toUpperCase();
+
+    if (metadata.includes("mua") || stationCode.includes("R_")) {
+        return "Điểm đo mưa";
+    }
+
+    if (metadata.includes("thuy van") || stationCode.endsWith("_TV") || stationCode.includes("TV")) {
+        return "Thủy văn";
+    }
+
+    if (metadata.includes("khi tuong") || stationCode.endsWith("_KT") || stationCode.includes("KT")) {
+        return "Trạm khí tượng";
+    }
+
+    return "Trạm khí tượng";
+};
+
 const normalizeHydrometText = (value) =>
     String(value || "")
         .normalize("NFD")
@@ -131,7 +161,7 @@ const normalizeHydrometStation = (station = {}) => {
         TenTam: station.TenTam || stationName,
         ViDo: station.ViDo || station.viDo || station.latitude || station.lat || null,
         KinhDo: station.KinhDo || station.kinhDo || station.longitude || station.lng || null,
-        PhanLoai: station.PhanLoai || station.phanLoai || "Không xác định",
+        PhanLoai: getHydrometTypeLabel(station),
         TinhTrang: station.TinhTrang || station.tinhTrang || station.TrangThai || station.status || "Không xác định",
     };
 };
@@ -140,6 +170,11 @@ const escapePopupActionValue = (value) => {
     return String(value || "")
         .replace(/\\/g, "\\\\")
         .replace(/'/g, "\\'");
+};
+
+const getFirstValidValue = (...values) => {
+    const found = values.find((value) => value !== null && value !== undefined && value !== "" && value !== "NULL");
+    return found ?? null;
 };
 
 // Basic popup for stations without data - MOVED TO TOP
@@ -154,7 +189,7 @@ const createBasicPopup = (station, message = "Chưa có dữ liệu") => {
         <div class="popup-icon">🌤️</div>
         <div class="popup-title">
                     <h4 class="popup-name">${normalizedStation.TenTram}</h4>
-          <span class="popup-type">Trạm khí tượng thủy văn</span>
+          <span class="popup-type">${normalizedStation.PhanLoai}</span>
         </div>
         <div class="popup-status status-no-data">
           ${message}
@@ -166,18 +201,6 @@ const createBasicPopup = (station, message = "Chưa có dữ liệu") => {
           <div class="detail-grid">
             <div class="detail-item">
               <div class="detail-content">
-                <strong class="detail-label"><i class="detail-icon">🏷️</i> Phân loại:</strong>
-                                <span class="detail-value">${normalizedStation.PhanLoai}</span>
-              </div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-content">
-                                <strong class="detail-label"><i class="detail-icon">🛠️</i> Tình trạng:</strong>
-                                <span class="detail-value">${normalizedStation.TinhTrang}</span>
-                            </div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-content">
                 <strong class="detail-label"><i class="detail-icon">📍</i> Ký hiệu:</strong>
                                 <span class="detail-value">${normalizedStation.KiHieu || "N/A"}</span>
               </div>
@@ -246,20 +269,34 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
     });
 
     // Get primary parameter for main display using prefixUnitMap
-    const { primaryLabel, primaryValue, primaryUnit, statusColor } = getPrimaryParameter(
+    const { primaryLabel, primaryValue, primaryUnit, statusColor, primaryKey } = getPrimaryParameter(
         rainfallParams,
         temperatureParams,
         humidityParams,
     );
 
     const formattedDate = latestData.Ngày || "Chưa có dữ liệu";
+    const element = getFirstValidValue(
+        latestData?.YeuTo,
+        latestData?.yeuTo,
+        latestData?.yeu_to,
+        normalizedStation?.YeuTo,
+        normalizedStation?.yeuTo,
+    );
+    const frequency = getFirstValidValue(
+        latestData?.TanSuat,
+        latestData?.tanSuat,
+        latestData?.tan_suat,
+        normalizedStation?.TanSuat,
+        normalizedStation?.tanSuat,
+    );
 
     return `
     <div class="modern-popup hydromet-popup enhanced">
       <div class="popup-header">
         <div class="popup-title">
                     <h4 class="popup-name">${normalizedStation.TenTram}</h4>
-          <span class="popup-type">Trạm khí tượng thủy văn</span>
+                    <span class="popup-type">${normalizedStation.PhanLoai}</span>
         </div>
       </div>
       
@@ -273,31 +310,29 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
         </div>
         
         <div class="multi-param-grid">
-          ${createParameterCards(rainfallParams, temperatureParams, humidityParams)}
+                    ${createParameterCards(rainfallParams, temperatureParams, humidityParams, primaryKey)}
         </div>
         
         <div class="popup-details mt-3">
-          <div class="detail-grid">
-            <div class="detail-item">
-              <div class="detail-content">
-                <strong class="detail-label"><i class="detail-icon">🏷️</i> Phân loại:</strong>
-                                <span class="detail-value">${normalizedStation.PhanLoai}</span>
-              </div>
-            </div>
-            
-            <div class="detail-item">
-              <div class="detail-content">
-                                <strong class="detail-label"><i class="detail-icon">🛠️</i> Tình trạng:</strong>
-                                <span class="detail-value">${normalizedStation.TinhTrang}</span>
-              </div>
-            </div>
-            
+          <div class="detail-grid">            
             <div class="detail-item">
               <div class="detail-content">
                                 <strong class="detail-label"><i class="detail-icon">📍</i> Ký hiệu:</strong>
                                 <span class="detail-value">${normalizedStation.KiHieu || "N/A"}</span>
               </div>
             </div>
+                        <div class="detail-item">
+                            <div class="detail-content">
+                                                                <strong class="detail-label">Yếu tố:</strong>
+                                                                <span class="detail-value">${element || "Không xác định"}</span>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-content">
+                                                                <strong class="detail-label">Tần suất:</strong>
+                                                                <span class="detail-value">${frequency || "Không xác định"}</span>
+                            </div>
+                        </div>
           </div>
         </div>
         
@@ -313,13 +348,14 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
 };
 
 // Helper function to create parameter cards with proper units and colors
-const createParameterCards = (rainfall, temperature, humidity) => {
+const createParameterCards = (rainfall, temperature, humidity, excludedPrimaryKey = null) => {
     const unitMap = prefixUnitMap();
     let cards = "";
 
     // Rainfall parameters
     if (Object.keys(rainfall).length > 0) {
         const rainfallCard = Object.entries(rainfall)
+            .filter(([key]) => key !== excludedPrimaryKey)
             .map(([key, value]) => {
                 const details = getParameterDetails(key, value);
                 return `
@@ -341,6 +377,7 @@ const createParameterCards = (rainfall, temperature, humidity) => {
     // Temperature parameters
     if (Object.keys(temperature).length > 0) {
         const tempCard = Object.entries(temperature)
+            .filter(([key]) => key !== excludedPrimaryKey)
             .map(([key, value]) => {
                 const details = getParameterDetails(key, value);
                 return `
@@ -362,6 +399,7 @@ const createParameterCards = (rainfall, temperature, humidity) => {
     // Humidity parameters
     if (Object.keys(humidity).length > 0) {
         const humidityCard = Object.entries(humidity)
+            .filter(([key]) => key !== excludedPrimaryKey)
             .map(([key, value]) => {
                 const details = getParameterDetails(key, value);
                 return `
@@ -398,6 +436,7 @@ const getPrimaryParameter = (rainfallParams, temperatureParams, humidityParams) 
             primaryValue: totalRainfall,
             primaryUnit: unitMap.R.donvi,
             statusColor: getRainfallColor(totalRainfall),
+            primaryKey: null,
         };
     } else if (Object.keys(temperatureParams).length > 0) {
         // Prioritize average temperature
@@ -412,6 +451,7 @@ const getPrimaryParameter = (rainfallParams, temperatureParams, humidityParams) 
             primaryValue: tempValue,
             primaryUnit: unitMap[tempType].donvi,
             statusColor: getTemperatureColor(tempValue),
+            primaryKey: tempKey,
         };
     } else if (Object.keys(humidityParams).length > 0) {
         // Prioritize average humidity
@@ -425,6 +465,7 @@ const getPrimaryParameter = (rainfallParams, temperatureParams, humidityParams) 
             primaryValue: humidityValue,
             primaryUnit: unitMap[humidityType].donvi,
             statusColor: getHumidityColor(humidityValue),
+            primaryKey: humidityKey,
         };
     }
 
@@ -433,6 +474,7 @@ const getPrimaryParameter = (rainfallParams, temperatureParams, humidityParams) 
         primaryValue: 0,
         primaryUnit: "",
         statusColor: "#6c757d",
+        primaryKey: null,
     };
 };
 

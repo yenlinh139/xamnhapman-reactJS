@@ -360,6 +360,29 @@
                 box-shadow: 0 4px 15px rgba(220, 53, 69, 0.2);
             }
 
+            &.no-data {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                min-width: 42px;
+                padding: 4px 10px;
+                background: linear-gradient(135deg, #f1f3f5 0%, #e9ecef 100%);
+                color: #6c757d;
+                border: 1px dashed #cbd3da;
+                box-shadow: none;
+                font-style: italic;
+                text-shadow: none;
+
+                &::before {
+                    display: none;
+                }
+
+                &:hover {
+                    transform: none;
+                    box-shadow: none;
+                }
+            }
+
             // Legacy support
             &.salinity-normal {
                 background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);

@@ -120,6 +120,52 @@
     }
 }
 
+.iot-management-tab {
+    .filter-section {
+        overflow-x: auto;
+
+        .filter-row {
+            flex-wrap: nowrap;
+            justify-content: flex-start;
+            overflow-x: auto;
+            scrollbar-width: thin;
+        }
+
+        .filter-left {
+            flex-wrap: nowrap;
+            gap: 1rem;
+            min-width: max-content;
+        }
+
+        .filter-right {
+            flex-wrap: nowrap;
+            margin-left: auto;
+        }
+
+        .filter-group {
+            min-width: 180px;
+        }
+
+        .filter-group.filter-group-date {
+            min-width: 140px;
+
+            .filter-input {
+                width: 140px;
+                min-width: 140px;
+            }
+        }
+
+        .filter-actions {
+            flex-wrap: nowrap;
+        }
+
+        .filter-actions .btn,
+        .filter-right .btn {
+            white-space: nowrap;
+        }
+    }
+}
+
 /* Bulk Actions */
 .bulk-actions {
     background: var(--warning-light);
@@ -347,6 +393,20 @@
             .salinity-value {
                 font-weight: 600;
                 font-size: 0.95rem;
+
+                &.no-data {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-width: 42px;
+                    padding: 0.2rem 0.5rem;
+                    border-radius: 999px;
+                    background: rgba(108, 117, 125, 0.1);
+                    border: 1px dashed rgba(108, 117, 125, 0.4);
+                    color: #6c757d;
+                    font-style: italic;
+                    line-height: 1.2;
+                }
             }
         }
 

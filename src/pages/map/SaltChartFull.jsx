@@ -4,30 +4,33 @@ import SalinityBarChart from "@pages/map/SalinityBarChart";
 import html2canvas from "html2canvas";
 import { getDisplayStationName, getFilenameSafeStationName } from "@common/stationMapping";
 import { getSingleStationClassification } from "@common/salinityClassification";
+import "@styles/components/_hydrometChart.scss";
 
 const ExportPreviewTable = ({ data, kiHieu }) => {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
     const sortedData = React.useMemo(() => {
-        if (!sortConfig.key) return data;
+        const effectiveSort = sortConfig.key
+            ? sortConfig
+            : { key: "date", direction: "desc" };
 
         const sorted = [...data].sort((a, b) => {
-            let aValue = a[sortConfig.key];
-            let bValue = b[sortConfig.key];
+            let aValue = a[effectiveSort.key];
+            let bValue = b[effectiveSort.key];
 
-            if (sortConfig.key === "date") {
+            if (effectiveSort.key === "date") {
                 aValue = new Date(aValue);
                 bValue = new Date(bValue);
-            } else if (sortConfig.key === "salinity") {
+            } else if (effectiveSort.key === "salinity") {
                 aValue = Number(aValue);
                 bValue = Number(bValue);
             }
 
             if (aValue < bValue) {
-                return sortConfig.direction === "asc" ? -1 : 1;
+                return effectiveSort.direction === "asc" ? -1 : 1;
             }
             if (aValue > bValue) {
-                return sortConfig.direction === "asc" ? 1 : -1;
+                return effectiveSort.direction === "asc" ? 1 : -1;
             }
             return 0;
         });
@@ -55,8 +58,8 @@ const ExportPreviewTable = ({ data, kiHieu }) => {
     };
 
     return (
-        <div className="table-responsive mb-3" style={{ maxHeight: 300 }}>
-            <table className="table table-bordered table-sm table-striped">
+        <div className="table-responsive mb-3 map-data-table-wrap" style={{ maxHeight: 300 }}>
+            <table className="table table-bordered table-sm table-striped map-data-table">
                 <thead className="table-light">
                     <tr>
                         <th style={{ width: "60px" }}>#</th>
@@ -292,7 +295,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
 
     return (
         <div
-            className={`modal fade ${show ? "show d-block" : ""}`}
+            className={`modal fade map-data-modal salt-chart-modal ${show ? "show d-block" : ""}`}
             tabIndex="-1"
             style={{ backgroundColor: show ? "rgba(0,0,0,0.5)" : "transparent" }}
         >
@@ -348,11 +351,11 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                         <div className="tab-content">
                             <div className="tab-pane fade show active" id="chart">
                                 {data.length > 0 ? (
-                                    <>
-                                        <div id="salinity-chart">
-                                            <SalinityBarChart data={data} height={450} />
+                                    <div className="map-chart-pane">
+                                        <div id="salinity-chart" className="map-chart-box">
+                                            <SalinityBarChart data={data} height={350} />
                                         </div>
-                                        <div className="mt-3 d-flex justify-content-between align-items-center">
+                                        <div className="map-chart-footer mt-3 d-flex justify-content-between align-items-center">
                                             <div className="text-muted small">
                                                 Hiển thị: <strong>{data.length}</strong> ngày có dữ liệu hợp
                                                 lệ
@@ -366,7 +369,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                                 📸 {isLoggedIn ? "Tải ảnh biểu đồ" : "Đăng nhập để tải"}
                                             </button>
                                         </div>
-                                    </>
+                                    </div>
                                 ) : (
                                     <p className="text-muted">Không có dữ liệu hợp lệ.</p>
                                 )}
@@ -375,85 +378,40 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                             <div className="tab-pane fade" id="export">
                                 {data.length > 0 ? (
                                     <>
-                                        {/* Risk Level Legend */}
-                                        <div className="alert alert-info mb-3">
-                                            <h6 className="mb-2">
-                                                📊 Cấp độ rủi ro thiên tai do xâm nhập mặn:
-                                            </h6>
-                                            <div className="row g-2 small">
-                                                <div className="col-6 col-md-3">
-                                                    <span
-                                                        className="badge rounded-pill me-2"
-                                                        style={{ backgroundColor: "#28a745", color: "white" }}
-                                                    >
-                                                        Bình thường
-                                                    </span>
-                                                    <span className="text-muted">{"(< 1‰)"}</span>
-                                                </div>
-                                                <div className="col-6 col-md-3">
-                                                    <span
-                                                        className="badge rounded-pill me-2"
-                                                        style={{ backgroundColor: "#ffc107", color: "black" }}
-                                                    >
-                                                        Rủi ro cấp 1
-                                                    </span>
-                                                    <span className="text-muted">(Nhà Bè: 1-4‰)</span>
-                                                </div>
-                                                <div className="col-6 col-md-3">
-                                                    <span
-                                                        className="badge rounded-pill me-2"
-                                                        style={{ backgroundColor: "#ff8c00", color: "white" }}
-                                                    >
-                                                        Rủi ro cấp 2
-                                                    </span>
-                                                    <span className="text-muted">
-                                                        (Nhà Bè {"> 4‰"}, khác 1-4‰)
-                                                    </span>
-                                                </div>
-                                                <div className="col-6 col-md-3">
-                                                    <span
-                                                        className="badge rounded-pill me-2"
-                                                        style={{ backgroundColor: "#dc3545", color: "white" }}
-                                                    >
-                                                        Rủi ro cấp 3
-                                                    </span>
-                                                    <span className="text-muted">(Các điểm {"> 4‰"})</span>
+                                        <div className="map-data-scroll">
+                                            <div className="mb-4">
+                                                <div className="row g-3 align-items-end">
+                                                    <div className="col-12 col-md-3">
+                                                        <h6 className="mb-2 mb-md-0">Chọn giai đoạn:</h6>
+                                                    </div>
+                                                    <div className="col-6 col-md-4">
+                                                        <label className="form-label">Từ ngày:</label>
+                                                        <input
+                                                            type="date"
+                                                            className="form-control"
+                                                            name="startDate"
+                                                            value={exportRange.startDate}
+                                                            onChange={handleDateRangeChange}
+                                                        />
+                                                    </div>
+                                                    <div className="col-6 col-md-4">
+                                                        <label className="form-label">Đến ngày:</label>
+                                                        <input
+                                                            type="date"
+                                                            className="form-control"
+                                                            name="endDate"
+                                                            value={exportRange.endDate}
+                                                            onChange={handleDateRangeChange}
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        <div className="mb-4">
-                                            <div className="row g-3 align-items-end">
-                                                <div className="col-12 col-md-3">
-                                                    <h6 className="mb-2 mb-md-0">Chọn khoảng thời gian xuất dữ liệu:</h6>
-                                                </div>
-                                                <div className="col-6 col-md-4">
-                                                    <label className="form-label">Từ ngày:</label>
-                                                    <input
-                                                        type="date"
-                                                        className="form-control"
-                                                        name="startDate"
-                                                        value={exportRange.startDate}
-                                                        onChange={handleDateRangeChange}
-                                                    />
-                                                </div>
-                                                <div className="col-6 col-md-4">
-                                                    <label className="form-label">Đến ngày:</label>
-                                                    <input
-                                                        type="date"
-                                                        className="form-control"
-                                                        name="endDate"
-                                                        value={exportRange.endDate}
-                                                        onChange={handleDateRangeChange}
-                                                    />
-                                                </div>
-                                            </div>
+                                            <ExportPreviewTable
+                                                data={filteredData.length > 0 ? filteredData : data}
+                                                kiHieu={kiHieu}
+                                            />
                                         </div>
-
-                                        <ExportPreviewTable
-                                            data={filteredData.length > 0 ? filteredData : data}
-                                            kiHieu={kiHieu}
-                                        />
 
                                         <div className="d-flex gap-2 justify-content-between align-items-center">
                                             <div className="text-muted small">

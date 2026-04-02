@@ -237,8 +237,28 @@ export const createIoTPopup = (station) => {
     const lngDisplay = Number.isFinite(lngDecimal) ? lngDecimal.toFixed(6) : station.longitude || 'Không xác định';
     
     const stationCode = station.station_code || 'N/A';
-    const serialNumber = station.serial_number || 'Chưa có';
     const stationName = station.station_name || 'Trạm IoT';
+
+    const totalRecordsText = Number.isFinite(Number(station?.total_records))
+        ? Number(station.total_records).toLocaleString("vi-VN")
+        : "--";
+    
+    const formatDateTime = (dateStr) => {
+        const date = new Date(dateStr);
+
+        const pad = (n) => n.toString().padStart(2, "0");
+
+        const hours = pad(date.getHours());
+        const minutes = pad(date.getMinutes());
+        const day = pad(date.getDate());
+        const month = pad(date.getMonth() + 1);
+        const year = date.getFullYear();
+
+        return `${hours}:${minutes} ${day}/${month}/${year}`;
+    };
+
+    const startTime = formatDateTime(station.start_time);
+    const endTime = formatDateTime(station.end_time);
 
     return `
         <div class="modern-popup salinity-popup iot-popup">
@@ -282,42 +302,61 @@ export const createIoTPopup = (station) => {
                 <div class="popup-details">
                     <div class="detail-grid">
                         <div class="detail-item">
-                            <div class="detail-content py-2">
+                            <div class="detail-content py-1">
                                 <strong class="detail-label">Mã trạm: </strong>
                                 <span class="detail-value">${stationCode}</span>
                             </div>
                         </div>
                         
                         <div class="detail-item">
-                            <div class="detail-content py-2">
-                                <strong class="detail-label">Serial: </strong>
-                                <span class="detail-value">${serialNumber}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="detail-item">
-                            <div class="detail-content py-2">
+                            <div class="detail-content py-1">
                                 <strong class="detail-label">Kinh độ: </strong>
                                 <span class="detail-value">${lngDisplay}</span>
                             </div>
                         </div>
 
                         <div class="detail-item">
-                            <div class="detail-content py-2">
+                            <div class="detail-content py-1">
                                 <strong class="detail-label">Vĩ độ: </strong>
                                 <span class="detail-value">${latDisplay}</span>
+                            </div>
+                        </div>
+
+                        <div class="detail-item">
+                            <div class="detail-content py-1">
+                                <strong class="detail-label">Tần suất: </strong>
+                                <span class="detail-value">${station.frequency || ""}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-item">
+                            <div class="detail-content py-1">
+                                <strong class="detail-label">Thời gian: </strong>
+                                </br>
+                                <span class="detail-value">${startTime} - ${endTime}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-item">
+                            <div class="detail-content py-1">
+                                <strong class="detail-label">Tổng bản ghi: </strong>
+                                <span class="detail-value">${totalRecordsText}</span>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                ${hasSerial ? `
+                ${
+                    hasSerial
+                        ? `
                     <div class="popup-actions">
                         <button class="action-btn primary btn-view-data" data-serial="${station.serial_number}" data-name="${stationName}">
                             Xem dữ liệu chi tiết
                         </button>
                     </div>
-                ` : ''}
+                `
+                        : ""
+                }
             </div>
         </div>
     `;

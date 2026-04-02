@@ -1,3 +1,114 @@
+.map-data-modal {
+    .modal-dialog {
+        max-width: 95vw;
+        height: 92vh;
+        margin: 1rem auto;
+    }
+
+    .modal-content {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border-radius: 12px;
+    }
+
+    .modal-body {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        padding-top: 0.75rem;
+    }
+
+    .nav-tabs {
+        flex-shrink: 0;
+    }
+
+    .tab-content {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .tab-pane {
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .tab-pane.show.active {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .map-data-scroll {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        padding-right: 4px;
+    }
+
+    .map-chart-pane {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .map-chart-box {
+        max-height: 90%;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 10px;
+        background: #ffffff;
+        overflow: hidden;
+    }
+
+    .map-chart-footer {
+        flex-shrink: 0;
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .map-data-table-wrap {
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        overflow: auto;
+        background: #fff;
+        margin-bottom: 0;
+    }
+
+    .map-data-table {
+        margin-bottom: 0;
+        font-size: 0.9rem;
+
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: #f8fafc;
+            color: #1e293b;
+            font-weight: 700;
+            vertical-align: middle;
+            border-bottom: 1px solid #cbd5e1;
+        }
+
+        tbody td {
+            vertical-align: middle;
+            padding: 0.5rem 0.6rem;
+        }
+
+        tbody tr:hover {
+            background: #f8fafc;
+        }
+    }
+}
+
 // HydrometChart Styles
 .hydromet-chart-modal {
     .modal-dialog {
@@ -11,7 +122,67 @@
 
     .modal-body {
         max-height: 99vh;
-        overflow-y: auto;
+        padding: 0.5rem 0.75rem 0.75rem;
+    }
+
+    .hydromet-compact-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.45rem 0.6rem;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        background: #f8fafc;
+
+        .toolbar-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #475569;
+            margin-right: 0.25rem;
+            white-space: nowrap;
+        }
+
+        .toolbar-field {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            margin: 0;
+
+            span {
+                font-size: 0.78rem;
+                color: #64748b;
+                white-space: nowrap;
+            }
+
+            .form-control-sm {
+                min-width: 132px;
+                height: 30px;
+            }
+        }
+
+        .btn-sm {
+            height: 30px;
+            padding: 0 0.65rem;
+            white-space: nowrap;
+        }
+    }
+
+    .hydromet-pane {
+        flex: 1;
+        min-height: 0;
+    }
+
+    .hydromet-chart-box {
+        flex: 1;
+        min-height: 0;
+        max-height: none;
+        height: auto;
+        margin-bottom: 0;
+        box-shadow: none;
+    }
+
+    .tab-content {
+        margin-top: 0.4rem !important;
     }
 
     .chart-filters {
@@ -113,7 +284,7 @@
     .export-actions {
         background: #f8f9fa;
         border-radius: 8px;
-        padding: 1rem;
+        padding: 0.55rem 0.75rem;
         border: 1px solid #dee2e6;
 
         .btn {
@@ -171,12 +342,29 @@
     }
 }
 
+.iot-chart-modal {
+    .iot-chart-box {
+        flex: 1;
+        min-height: 300px;
+        height: auto;
+        max-height: none;
+    }
+}
+
 // Responsive adjustments
 @media (max-width: 768px) {
     .hydromet-chart-modal {
         .modal-dialog {
             max-width: 95vw;
             margin: 0.5rem;
+        }
+
+        .hydromet-compact-toolbar {
+            flex-wrap: wrap;
+
+            .toolbar-field {
+                flex: 1 1 160px;
+            }
         }
 
         .chart-filters {
@@ -212,6 +400,15 @@
 
         #hydromet-chart {
             padding: 0.5rem;
+        }
+    }
+
+    .map-data-modal {
+        .map-chart-box {
+            height: 52%;
+            max-height: 52%;
+            min-height: 180px;
+            padding: 8px;
         }
     }
 }
