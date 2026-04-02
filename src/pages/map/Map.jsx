@@ -26,7 +26,8 @@ const Map = () => {
     const [leafletMapInstance, setLeafletMapInstance] = useState(null);
     const mapInstanceRef = useRef(null);
     const searchContainerRef = useRef(null);
-
+    const hasAccess = userInfo && userInfo.role == 1; 
+    
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (!searchContainerRef.current?.contains(event.target)) {
@@ -268,8 +269,12 @@ const Map = () => {
                                                             <i className={itemMeta.icon}></i>
                                                         </span>
                                                         <span className="item-text">
-                                                            <span className="item-title">{itemMeta.title}</span>
-                                                            <span className="item-subtitle">{itemMeta.subtitle}</span>
+                                                            <span className="item-title">
+                                                                {itemMeta.title}
+                                                            </span>
+                                                            <span className="item-subtitle">
+                                                                {itemMeta.subtitle}
+                                                            </span>
                                                         </span>
                                                     </button>
                                                 );
@@ -306,48 +311,60 @@ const Map = () => {
                             >
                                 <span>Báo cáo độ mặn</span>
                             </NavLink>
-
-                            {/* User Dropdown */}
-                            {userInfo?.name ? 
-                            <div className="user-dropdown">
-                                <button
-                                    className="user-button"
-                                    data-bs-toggle="dropdown"
-                                    aria-expanded="false"
+                            {hasAccess && (
+                                <NavLink
+                                    to={ROUTES.salinity}
+                                    className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
                                 >
-                                    <div className="user-info">
-                                        <span className="user-name">{userInfo?.name}</span>
-                                    </div>
-                                    <i className="fa-solid fa-chevron-down dropdown-arrow"></i>
-                                </button>
-
-                                <ul className="dropdown-menu">
-                                    <li>
-                                        <NavLink to={ROUTES.setting} className="dropdown-item">
-                                            <span>Cài đặt</span>
-                                        </NavLink>
-                                    </li>
-                                    <li>
-                                        <hr className="dropdown-divider" />
-                                    </li>
-                                    <li>
-                                        <button className="dropdown-item" onClick={handleLogout}>
-                                            <span>Đăng xuất</span>
-                                        </button>
-                                    </li>
-                                </ul>
-                                </div>
-                                : (
-                                    <NavLink
-                                        to={ROUTES.login}
-                                        className={({ isActive }) =>
-                                            isActive ? "nav-link active" : "nav-link"
-                                        }
+                                    <span>Quản lý độ mặn</span>
+                                </NavLink>
+                            )}
+                            {hasAccess && (
+                                <NavLink
+                                    to={ROUTES.users}
+                                    className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+                                >
+                                    <span>Quản lý người dùng</span>
+                                </NavLink>
+                            )}
+                            {/* User Dropdown */}
+                            {userInfo?.name ? (
+                                <div className="user-dropdown">
+                                    <button
+                                        className="user-button"
+                                        data-bs-toggle="dropdown"
+                                        aria-expanded="false"
                                     >
-                                        <span>Đăng nhập</span>
-                                    </NavLink>
-                                )
-                            }
+                                        <div className="user-info">
+                                            <span className="user-name">{userInfo?.name}</span>
+                                        </div>
+                                        <i className="fa-solid fa-chevron-down dropdown-arrow"></i>
+                                    </button>
+
+                                    <ul className="dropdown-menu">
+                                        <li>
+                                            <NavLink to={ROUTES.setting} className="dropdown-item">
+                                                <span>Cài đặt</span>
+                                            </NavLink>
+                                        </li>
+                                        <li>
+                                            <hr className="dropdown-divider" />
+                                        </li>
+                                        <li>
+                                            <button className="dropdown-item" onClick={handleLogout}>
+                                                <span>Đăng xuất</span>
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            ) : (
+                                <NavLink
+                                    to={ROUTES.login}
+                                    className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+                                >
+                                    <span>Đăng nhập</span>
+                                </NavLink>
+                            )}
                         </nav>
 
                         {/* Mobile Menu Toggle */}
@@ -455,7 +472,6 @@ const Map = () => {
                         setHighlightedFeature={setHighlightedFeature}
                         iotData={iotData}
                     />
-
                 </div>
             </div>
         </div>

@@ -128,17 +128,72 @@ const STATION_LOCATIONS = [
     },
 ];
 
+const DEFAULT_REPORT_DATE = "2025-05-25";
+
 const SalinityReport = () => {
     const { userInfo } = useSelector((state) => state.authStore);
     const [loading, setLoading] = useState(false);
     const [reportData, setReportData] = useState(null);
-    const [selectedDate, setSelectedDate] = useState('2022-12-31'); // Set to last available data date
+    const [selectedDate, setSelectedDate] = useState(DEFAULT_REPORT_DATE);
+    const [dateInputValue, setDateInputValue] = useState("25/05/2025");
     const [generatingPDF, setGeneratingPDF] = useState(false);
     const [generatingFrontendPDF, setGeneratingFrontendPDF] = useState(false);
     const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
+    const reportStations = React.useMemo(() => {
+        const salinityStations = Array.isArray(reportData?.stations) ? reportData.stations : [];
+        const iotFallbackStations = Array.isArray(reportData?.iotStations) ? reportData.iotStations : [];
+        return salinityStations.length > 0 ? salinityStations : iotFallbackStations;
+    }, [reportData?.stations, reportData?.iotStations]);
+
+    const isUsingIoTStations = React.useMemo(() => {
+        const salinityStations = Array.isArray(reportData?.stations) ? reportData.stations : [];
+        const iotFallbackStations = Array.isArray(reportData?.iotStations) ? reportData.iotStations : [];
+        return salinityStations.length === 0 && iotFallbackStations.length > 0;
+    }, [reportData?.stations, reportData?.iotStations]);
+
+    const stationCountLabel = isUsingIoTStations ? "Trạm IoT" : "Điểm đo mặn";
+    const stationNameLabel = isUsingIoTStations ? "Tên trạm IoT" : "Tên điểm đo mặn";
+
     // Check if user is logged in
     const isLoggedIn = localStorage.getItem("access_token");
+
+    const formatDateVietnamese = (dateString) => {
+        if (!dateString) return "";
+        try {
+            const date = new Date(dateString);
+            if (Number.isNaN(date.getTime())) return "";
+
+            const day = String(date.getDate()).padStart(2, "0");
+            const month = String(date.getMonth() + 1).padStart(2, "0");
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        } catch (error) {
+            console.error("Error formatting date:", error);
+            return "";
+        }
+    };
+
+    const normalizeDateInput = (value) => {
+        const digits = String(value || "")
+            .replace(/\D/g, "")
+            .slice(0, 8);
+
+        if (digits.length <= 2) return digits;
+        if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+        return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+    };
+
+    const parseDisplayDateToIso = (value) => {
+        if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return null;
+
+        const [day, month, year] = value.split("/");
+        const isoDate = `${year}-${month}-${day}`;
+        const parsedDate = new Date(isoDate);
+
+        if (Number.isNaN(parsedDate.getTime())) return null;
+        return isoDate;
+    };
 
     // Load report data
     const loadReportData = async (date) => {
@@ -310,10 +365,22 @@ const SalinityReport = () => {
 
     // Handle date change
     const handleDateChange = (e) => {
-        const date = e.target.value;
-        setSelectedDate(date);
-        if (date) {
-            loadReportData(date);
+        const formattedValue = normalizeDateInput(e.target.value);
+        setDateInputValue(formattedValue);
+
+        const isoDate = parseDisplayDateToIso(formattedValue);
+        if (isoDate) {
+            setSelectedDate(isoDate);
+            loadReportData(isoDate);
+        }
+    };
+
+    const handleDateBlur = () => {
+        if (!dateInputValue) return;
+
+        const isoDate = parseDisplayDateToIso(dateInputValue);
+        if (!isoDate && selectedDate) {
+            setDateInputValue(formatDateVietnamese(selectedDate));
         }
     };
 
@@ -340,9 +407,9 @@ const SalinityReport = () => {
 
     // Sort stations data
     const sortedStations = React.useMemo(() => {
-        if (!reportData?.stations || !sortConfig.key) return reportData?.stations || [];
+        if (!reportStations.length || !sortConfig.key) return reportStations;
 
-        return [...reportData.stations].sort((a, b) => {
+        return [...reportStations].sort((a, b) => {
             let aValue = a[sortConfig.key];
             let bValue = b[sortConfig.key];
 
@@ -380,7 +447,7 @@ const SalinityReport = () => {
             }
             return 0;
         });
-    }, [reportData?.stations, sortConfig]);
+    }, [reportStations, sortConfig]);
 
     // Format salinity value
     const formatSalinity = (value) => {
@@ -431,7 +498,7 @@ const SalinityReport = () => {
 
     // Prepare chart data - transposed structure
     const getChartData = () => {
-        if (!reportData?.stations) return null;
+        if (!reportStations.length) return null;
 
         // Create labels for the 4 data types
         const currentDateLabel = `Độ mặn ngày ${new Date(reportData.reportDate).toLocaleDateString("vi-VN")} (‰)`;
@@ -442,7 +509,7 @@ const SalinityReport = () => {
         const labels = [currentDateLabel, previousDateLabel, prevYearLabel, allYearsLabel];
 
         // Create datasets for each station
-        const datasets = reportData.stations.map((station, index) => {
+        const datasets = reportStations.map((station, index) => {
             // Calculate values for each data type
             const currentValue = station.currentSalinity ? parseFloat(station.currentSalinity) : 0;
             const previousValue = station.previousSalinity ? parseFloat(station.previousSalinity) : 0;
@@ -607,22 +674,6 @@ const SalinityReport = () => {
         aspectRatio: 1.4, // Adjusted for new layout
     });
 
-    // Format date to Vietnamese format
-    const formatDateVietnamese = (dateString) => {
-        if (!dateString) return "";
-        try {
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) return;
-
-            const day = date.getDate();
-            const month = date.getMonth() + 1;
-            const year = date.getFullYear();
-            return `NGÀY ${day.toString().padStart(2, "0")} THÁNG ${month.toString().padStart(2, "0")} NĂM ${year}`;
-        } catch (error) {
-            console.error("Error formatting date:", error);
-            return;
-        }
-    };
 
     // Get current month and year from selected date
     const getCurrentMonthYear = () => {
@@ -633,10 +684,10 @@ const SalinityReport = () => {
 
     // Get most common previous observation date
     const getPreviousObservationDateLabel = () => {
-        if (!reportData?.stations) return "Độ mặn lần trước (‰)";
+        if (!reportStations.length) return "Độ mặn lần trước (‰)";
 
         // Find the most common previous observation date
-        const dates = reportData.stations
+        const dates = reportStations
             .map((station) => station.previousObservationDate)
             .filter((date) => date && date !== null);
 
@@ -653,6 +704,10 @@ const SalinityReport = () => {
         const stationLocation = STATION_LOCATIONS.find((location) => location.name === stationName);
         return stationLocation ? stationLocation.location : stationName;
     };
+
+    useEffect(() => {
+        setDateInputValue(formatDateVietnamese(selectedDate));
+    }, [selectedDate]);
 
     useEffect(() => {
         if (selectedDate) {
@@ -672,12 +727,15 @@ const SalinityReport = () => {
                                     Chọn ngày báo cáo:
                                 </label>
                                 <input
-                                    type="date"
+                                    type="text"
                                     id="reportDate"
                                     className="form-control"
-                                    value={selectedDate}
+                                    placeholder="dd/mm/yyyy"
+                                    inputMode="numeric"
+                                    maxLength={10}
+                                    value={dateInputValue}
                                     onChange={handleDateChange}
-                                    max="2022-12-31" // Giới hạn đến data có sẵn
+                                    onBlur={handleDateBlur}
                                 />
                             </div>
                         </div>
@@ -768,16 +826,16 @@ const SalinityReport = () => {
                                         <div className="col-md-2">
                                             <div className="stat-item">
                                                 <div className="stat-value text-primary">
-                                                    {reportData.stations?.length || 0}
+                                                    {reportStations.length || 0}
                                                 </div>
-                                                <div className="stat-label">Điểm đo mặn</div>
+                                                <div className="stat-label">{stationCountLabel}</div>
                                             </div>
                                         </div>
                                         <div className="col-md-2">
                                             <div className="stat-item">
                                                 <div
                                                     className={`stat-value ${(() => {
-                                                        const stationsWithValues = reportData.stations
+                                                        const stationsWithValues = reportStations
                                                             ?.map((station) => ({
                                                                 ...station,
                                                                 value: parseFloat(station.currentSalinity)
@@ -804,7 +862,7 @@ const SalinityReport = () => {
                                                     })()}`}
                                                 >
                                                     {(() => {
-                                                        const validValues = reportData.stations
+                                                        const validValues = reportStations
                                                             ?.map((station) => station.currentSalinity)
                                                             .filter(
                                                                 (val) =>
@@ -835,7 +893,7 @@ const SalinityReport = () => {
                                             <div className="stat-item">
                                                 <div
                                                     className={`stat-value ${(() => {
-                                                        const stationsWithValues = reportData.stations
+                                                        const stationsWithValues = reportStations
                                                             ?.map((station) => ({
                                                                 ...station,
                                                                 value: parseFloat(station.previousSalinity)
@@ -862,7 +920,7 @@ const SalinityReport = () => {
                                                     })()}`}
                                                 >
                                                     {(() => {
-                                                        const validValues = reportData.stations
+                                                        const validValues = reportStations
                                                             ?.map((station) => station.previousSalinity)
                                                             .filter(
                                                                 (val) =>
@@ -889,7 +947,7 @@ const SalinityReport = () => {
                                             <div className="stat-item">
                                                 <div
                                                     className={`stat-value ${(() => {
-                                                        const stationsWithValues = reportData.stations
+                                                        const stationsWithValues = reportStations
                                                             ?.map((station) => {
                                                                 const max = calculateArrayMaximum(
                                                                     station.prevYearMonthlyData,
@@ -915,7 +973,7 @@ const SalinityReport = () => {
                                                     })()}`}
                                                 >
                                                     {(() => {
-                                                        const validValues = reportData.stations
+                                                        const validValues = reportStations
                                                             ?.map((station) => {
                                                                 const max = calculateArrayMaximum(
                                                                     station.prevYearMonthlyData,
@@ -942,7 +1000,7 @@ const SalinityReport = () => {
                                             <div className="stat-item">
                                                 <div
                                                     className={`stat-value ${(() => {
-                                                        const stationsWithValues = reportData.stations
+                                                        const stationsWithValues = reportStations
                                                             ?.map((station) => {
                                                                 const max = calculateArrayMaximum(
                                                                     station.allYearsMonthlyData,
@@ -968,7 +1026,7 @@ const SalinityReport = () => {
                                                     })()}`}
                                                 >
                                                     {(() => {
-                                                        const validValues = reportData.stations
+                                                        const validValues = reportStations
                                                             ?.map((station) => {
                                                                 const max = calculateArrayMaximum(
                                                                     station.allYearsMonthlyData,
@@ -1002,7 +1060,7 @@ const SalinityReport = () => {
                                         <span className="text-lowercase">
                                             {formatDateVietnamese(selectedDate)}
                                         </span>
-                                        tại 8 trạm trên sông rạch chính thuộc khu vực Thành phố Hồ Chí Minh
+                                        tại {reportStations.length} trạm trên sông rạch chính thuộc khu vực Thành phố Hồ Chí Minh
                                         được thống kê như sau:
                                     </p>
                                     <h5 className="pdf-table-title mb-3">
@@ -1035,7 +1093,7 @@ const SalinityReport = () => {
                                                         onClick={() => handleSort("stationName")}
                                                     >
                                                         <div className="d-flex align-items-center justify-content-center">
-                                                            <span>Tên điểm đo mặn</span>
+                                                            <span>{stationNameLabel}</span>
                                                             {getSortIcon("stationName")}
                                                         </div>
                                                     </th>
@@ -1183,7 +1241,7 @@ const SalinityReport = () => {
                                     như sau:
                                 </p>
                                 <div className="analysis-content">
-                                    {reportData.stations?.map((station) => (
+                                    {reportStations.map((station) => (
                                         <div key={station.stationCode} className="station-analysis">
                                             <strong>• {station.stationName}</strong>{" "}
                                             <span className="fst-italic">
@@ -1375,7 +1433,7 @@ const SalinityReport = () => {
                                             <tr>
                                                 <th style={{ width: "8%", textAlign: "center" }}>TT</th>
                                                 <th style={{ width: "20%", textAlign: "center" }}>
-                                                    Tên điểm đo mặn
+                                                    {stationNameLabel}
                                                 </th>
                                                 <th style={{ width: "52%", textAlign: "center" }}>Vị trí</th>
                                                 <th style={{ width: "20%", textAlign: "center" }}>

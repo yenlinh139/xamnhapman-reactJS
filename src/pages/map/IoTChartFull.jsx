@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import html2canvas from "html2canvas";
 import IoTBarChart from "./IoTBarChart";
 import { fetchIoTData, normalizeIoTDataRows } from "@components/map/mapDataServices";
+import { getSingleStationClassification } from "@common/salinityClassification";
 import "@styles/components/_hydrometChart.scss";
 
 const EMPTY_DATA = [];
@@ -88,6 +89,45 @@ const getDateOptionsFromRows = (rows) => {
         }));
 };
 
+const SALINITY_RISK_META = {
+    normal: {
+        label: "bình thường",
+        textColor: "#198754",
+        backgroundColor: "rgba(25, 135, 84, 0.12)",
+    },
+    warning: {
+        label: "rủi ro cấp 1",
+        textColor: "#b58105",
+        backgroundColor: "rgba(255, 193, 7, 0.18)",
+    },
+    "high-warning": {
+        label: "rủi ro cấp 2",
+        textColor: "#c75b12",
+        backgroundColor: "rgba(253, 126, 20, 0.16)",
+    },
+    critical: {
+        label: "rủi ro cấp 3",
+        textColor: "#dc3545",
+        backgroundColor: "rgba(220, 53, 69, 0.14)",
+    },
+    "no-data": {
+        label: "--",
+        textColor: "#6c757d",
+        backgroundColor: "rgba(108, 117, 125, 0.12)",
+    },
+};
+
+const getIoTSalinityRiskMeta = (value, stationCode = "") => {
+    const baseCode = String(stationCode || "").replace(/_IoT$/i, "").replace(/_iot$/i, "");
+    const classification = getSingleStationClassification(value, baseCode);
+    const riskMeta = SALINITY_RISK_META[classification.class] || SALINITY_RISK_META["no-data"];
+
+    return {
+        ...riskMeta,
+        description: classification.shortText || classification.description || "Khuyết số liệu",
+    };
+};
+
 const IoTQueryControls = ({ queryOptions, onChange, dateOptions }) => {
     return (
         <div
@@ -147,7 +187,7 @@ const IoTQueryControls = ({ queryOptions, onChange, dateOptions }) => {
 };
 
 // Component bảng số liệu IoT với 4 cột cảm biến
-const IoTExportPreviewTable = ({ data, groupBy = "none" }) => {
+const IoTExportPreviewTable = ({ data, groupBy = "none", stationCode = "" }) => {
     const safeData = Array.isArray(data) ? data : [];
     const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
@@ -257,32 +297,62 @@ const IoTExportPreviewTable = ({ data, groupBy = "none" }) => {
                     </tr>
                 </thead>
                 <tbody>
-                    {rows.map((row, idx) => (
-                        <tr key={`${row.Date || row.date_time}-${idx}`}>
-                            <td>{idx + 1}</td>
-                            <td>{toDisplayDateTime(row.Date || row.date_time, groupBy)}</td>
-                            <td className="text-end">
-                                {row.salt_value !== undefined && row.salt_value !== null
-                                    ? `${Number(row.salt_value).toFixed(4)}`
-                                    : "-"}
-                            </td>
-                            <td className="text-end">
-                                {row.distance_value !== undefined && row.distance_value !== null
-                                    ? `${Number(row.distance_value).toFixed(4)}`
-                                    : "-"}
-                            </td>
-                            <td className="text-end">
-                                {row.daily_rainfall_value !== undefined && row.daily_rainfall_value !== null
-                                    ? `${Number(row.daily_rainfall_value).toFixed(4)}`
-                                    : "-"}
-                            </td>
-                            <td className="text-end">
-                                {row.temp_value !== undefined && row.temp_value !== null
-                                    ? `${Number(row.temp_value).toFixed(1)}`
-                                    : "-"}
-                            </td>
-                        </tr>
-                    ))}
+                    {rows.map((row, idx) => {
+                        const hasSaltValue = row.salt_value !== undefined && row.salt_value !== null;
+                        const saltRisk = getIoTSalinityRiskMeta(row.salt_value, stationCode);
+
+                        return (
+                            <tr key={`${row.Date || row.date_time}-${idx}`}>
+                                <td>{idx + 1}</td>
+                                <td>{toDisplayDateTime(row.Date || row.date_time, groupBy)}</td>
+                                <td
+                                    className="text-end"
+                                    style={
+                                        hasSaltValue
+                                            ? {
+                                                  backgroundColor: saltRisk.backgroundColor,
+                                                  color: saltRisk.textColor,
+                                              }
+                                            : undefined
+                                    }
+                                >
+                                    {hasSaltValue ? (
+                                        <div className="d-flex justify-content-end align-items-center gap-2">
+                                            <span className="fw-semibold">{Number(row.salt_value).toFixed(4)}</span>
+                                            <span
+                                                className="badge rounded-pill"
+                                                title={saltRisk.description}
+                                                style={{
+                                                    backgroundColor: saltRisk.textColor,
+                                                    color: "#fff",
+                                                    minWidth: 38,
+                                                }}
+                                            >
+                                                {saltRisk.label}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        "-"
+                                    )}
+                                </td>
+                                <td className="text-end">
+                                    {row.distance_value !== undefined && row.distance_value !== null
+                                        ? `${Number(row.distance_value).toFixed(4)}`
+                                        : "-"}
+                                </td>
+                                <td className="text-end">
+                                    {row.daily_rainfall_value !== undefined && row.daily_rainfall_value !== null
+                                        ? `${Number(row.daily_rainfall_value).toFixed(4)}`
+                                        : "-"}
+                                </td>
+                                <td className="text-end">
+                                    {row.temp_value !== undefined && row.temp_value !== null
+                                        ? `${Number(row.temp_value).toFixed(1)}`
+                                        : "-"}
+                                </td>
+                            </tr>
+                        );
+                    })}
                 </tbody>
             </table>
         </div>
@@ -306,6 +376,7 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
 
     const stationName = iotData?.stationName || iotData?.stationInfo?.station_name || "Trạm IoT";
     const serialNumber = iotData?.serialNumber || iotData?.stationInfo?.serial_number || "N/A";
+    const stationCode = iotData?.stationCode || iotData?.stationInfo?.station_code || "";
 
     const dataPoints = useMemo(() => {
         const rawDataPoints = iotData?.dataPoints?.length ? iotData.dataPoints : iotData?.data;
@@ -656,61 +727,11 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                                     {data.length > 0 ? (
                                         <>
                                             <div style={{ flex: 1, minHeight: 0, overflow: "auto", paddingRight: 4 }}>
-                                        <div className="alert alert-info mb-3">
-                                            <h6 className="mb-2">Cấp độ rủi ro thiên tai do xâm nhập mặn:</h6>
-                                            <div className="row g-2 small">
-                                                <div className="col-6 col-md-3">
-                                                    <span
-                                                        className="badge rounded-pill me-2"
-                                                        style={{
-                                                            backgroundColor: "#28a745",
-                                                            color: "white",
-                                                        }}
-                                                    >
-                                                        Bình thường
-                                                    </span>
-                                                    <span className="text-muted">{"(< 1 ‰)"}</span>
-                                                </div>
-                                                <div className="col-6 col-md-3">
-                                                    <span
-                                                        className="badge rounded-pill me-2"
-                                                        style={{
-                                                            backgroundColor: "#ffc107",
-                                                            color: "black",
-                                                        }}
-                                                    >
-                                                        Rủi ro cấp 1
-                                                    </span>
-                                                    <span className="text-muted">(1-4 ‰)</span>
-                                                </div>
-                                                <div className="col-6 col-md-3">
-                                                    <span
-                                                        className="badge rounded-pill me-2"
-                                                        style={{
-                                                            backgroundColor: "#ff8c00",
-                                                            color: "white",
-                                                        }}
-                                                    >
-                                                        Rủi ro cấp 2
-                                                    </span>
-                                                    <span className="text-muted">(4-8 ‰)</span>
-                                                </div>
-                                                <div className="col-6 col-md-3">
-                                                    <span
-                                                        className="badge rounded-pill me-2"
-                                                        style={{
-                                                            backgroundColor: "#dc3545",
-                                                            color: "white",
-                                                        }}
-                                                    >
-                                                        Rủi ro cấp 3
-                                                    </span>
-                                                    <span className="text-muted">({"> 8 ‰"})</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <IoTExportPreviewTable data={data} groupBy={queryOptions.groupBy} />
+                                                <IoTExportPreviewTable
+                                                    data={data}
+                                                    groupBy={queryOptions.groupBy}
+                                                    stationCode={stationCode}
+                                                />
                                             </div>
 
                                         <div
