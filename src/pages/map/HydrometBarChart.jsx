@@ -88,10 +88,49 @@ const getParameterInfo = (data) => {
         }
     });
 
+    // Water level data (Htb, Hx, Hm parameters)
+    const waterParams = ["Htb", "Hx", "Hm"];
+    waterParams.forEach((param) => {
+        const waterKey = dataKeys.find((key) => key.startsWith(param) && (key === param || key.includes("_")));
+        if (waterKey && data[waterKey] !== null && data[waterKey] !== undefined && data[waterKey] !== "NULL") {
+            const value = parseFloat(data[waterKey]);
+            if (!isNaN(value)) {
+                let type, color;
+                switch (param) {
+                    case "Htb":
+                        type = "avg";
+                        color = "#28a745";
+                        break;
+                    case "Hx":
+                        type = "max";
+                        color = "#dc3545";
+                        break;
+                    case "Hm":
+                        type = "min";
+                        color = "#007bff";
+                        break;
+                    default:
+                        type = "avg";
+                        color = "#28a745";
+                }
+
+                result[param.toLowerCase()] = {
+                    key: waterKey,
+                    value,
+                    unit: "cm",
+                    category: "water",
+                    type,
+                    label: `Mực nước ${type === "avg" ? "trung bình" : type === "max" ? "cao nhất" : "thấp nhất"}`,
+                    color,
+                };
+            }
+        }
+    });
+
     return Object.keys(result).length > 0 ? result : null;
 };
 
-const CustomTooltip = ({ active, payload, label }) => {
+const CustomTooltip = ({ active, payload, hasWaterSeries }) => {
     if (active && payload?.length) {
         const data = payload[0].payload;
         const dateValue = data.date || data.Ngày;
@@ -127,15 +166,19 @@ const CustomTooltip = ({ active, payload, label }) => {
                     </div>
                 )}
 
-                {/* Temperature data */}
+                {/* Temperature or Water-level data */}
                 <div className="mb-2">
-                    <div className="small text-muted mb-1">🌡️ Nhiệt độ</div>
+                    <div className="small text-muted mb-1">
+                        {hasWaterSeries ? "🌊 Mực nước" : "🌡️ Nhiệt độ"}
+                    </div>
                     <div className="row g-1">
                         {data.ttb !== undefined && data.ttb !== null && (
                             <div className="col-4">
                                 <div className="p-1 bg-success bg-opacity-10 rounded text-center">
                                     <div className="small text-muted">trung bình</div>
-                                    <div className="fw-bold text-success small">{data.ttb.toFixed(1)}°C</div>
+                                    <div className="fw-bold text-success small">
+                                        {data.ttb.toFixed(1)}{hasWaterSeries ? "cm" : "°C"}
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -143,7 +186,9 @@ const CustomTooltip = ({ active, payload, label }) => {
                             <div className="col-4">
                                 <div className="p-1 bg-danger bg-opacity-10 rounded text-center">
                                     <div className="small text-muted">tối cao</div>
-                                    <div className="fw-bold text-danger small">{data.tx.toFixed(1)}°C</div>
+                                    <div className="fw-bold text-danger small">
+                                        {data.tx.toFixed(1)}{hasWaterSeries ? "cm" : "°C"}
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -151,7 +196,9 @@ const CustomTooltip = ({ active, payload, label }) => {
                             <div className="col-4">
                                 <div className="p-1 bg-info bg-opacity-10 rounded text-center">
                                     <div className="small text-muted">tối thấp</div>
-                                    <div className="fw-bold text-info small">{data.tm.toFixed(1)}°C</div>
+                                    <div className="fw-bold text-info small">
+                                        {data.tm.toFixed(1)}{hasWaterSeries ? "cm" : "°C"}
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -211,12 +258,21 @@ const HydrometBarChart = ({ data, height = 600 }) => {
 
     // Better loading and data validation
     const isLoading = !formattedData || formattedData.length === 0;
-    const hasValidData = formattedData.some(item => {
-        return (item.rainfall && item.rainfall > 0) || 
-               (item.ttb && item.ttb > 0) || 
-               (item.tx && item.tx > 0) || 
-               (item.tm && item.tm > 0);
-    });
+    const hasValidData = formattedData.some((item) =>
+        [item.rainfall, item.ttb, item.tx, item.tm].some(
+            (value) => value !== null && value !== undefined && Number.isFinite(Number(value)),
+        ),
+    );
+
+    const hasWaterSeries = data.some((row) =>
+        Object.keys(row || {}).some((key) => {
+            if (!key.startsWith("Htb_") && !key.startsWith("Hx_") && !key.startsWith("Hm_")) {
+                return false;
+            }
+            const value = row[key];
+            return value !== null && value !== undefined && value !== "" && value !== "NULL";
+        }),
+    );
     
     console.log('HydrometBarChart processed:', {
         formattedDataLength: formattedData.length,
@@ -333,17 +389,17 @@ const HydrometBarChart = ({ data, height = 600 }) => {
                             }}
                         />
 
-                        {/* Right Y Axis - Temperature */}
+                        {/* Right Y Axis - Temperature / Water level */}
                         <YAxis
                             yAxisId="temperature"
                             orientation="right"
                             domain={[Math.floor(minTemp - 2), Math.ceil(maxTemp + 2)]}
-                            tickFormatter={(value) => `${value}°C`}
+                            tickFormatter={(value) => `${value}${hasWaterSeries ? "cm" : "°C"}`}
                             tick={{ fontSize: height < 300 ? 10 : 16, fill: "#dc3545" }}
                             width={height < 300 ? 50 : 90}
                             tickMargin={height < 300 ? 5 : 15}
                             label={{
-                                value: "🌡️ Nhiệt độ (°C)",
+                                value: hasWaterSeries ? "🌊 Mực nước (cm)" : "🌡️ Nhiệt độ (°C)",
                                 angle: 90,
                                 position: "insideRight",
                                 style: {
@@ -355,7 +411,7 @@ const HydrometBarChart = ({ data, height = 600 }) => {
                             }}
                         />
 
-                        <Tooltip content={<CustomTooltip />} />
+                        <Tooltip content={<CustomTooltip hasWaterSeries={hasWaterSeries} />} />
 
                         {/* Legend */}
                         <Legend wrapperStyle={{ paddingTop: "20px" }} iconType="line" />
@@ -375,7 +431,7 @@ const HydrometBarChart = ({ data, height = 600 }) => {
                             yAxisId="temperature"
                             type="monotone"
                             dataKey="ttb"
-                            name="Nhiệt độ trung bình (°C)"
+                            name={hasWaterSeries ? "Mực nước trung bình (cm)" : "Nhiệt độ trung bình (°C)"}
                             stroke="#28a745"
                             strokeWidth={3}
                             dot={{ fill: "#28a745", strokeWidth: 1, r: 2, shape: "circle" }}
@@ -387,7 +443,7 @@ const HydrometBarChart = ({ data, height = 600 }) => {
                             yAxisId="temperature"
                             type="monotone"
                             dataKey="tx"
-                            name="Nhiệt độ tối cao (°C)"
+                            name={hasWaterSeries ? "Mực nước cao nhất (cm)" : "Nhiệt độ tối cao (°C)"}
                             stroke="#dc3545"
                             strokeWidth={3}
                             dot={{ fill: "#dc3545", strokeWidth: 1, r: 2, shape: "square" }}
@@ -399,7 +455,7 @@ const HydrometBarChart = ({ data, height = 600 }) => {
                             yAxisId="temperature"
                             type="monotone"
                             dataKey="tm"
-                            name="Nhiệt độ tối thấp (°C)"
+                            name={hasWaterSeries ? "Mực nước thấp nhất (cm)" : "Nhiệt độ tối thấp (°C)"}
                             stroke="#007bff"
                             strokeWidth={3}
                             dot={{ fill: "#007bff", strokeWidth: 1, r: 2, shape: "triangle" }}

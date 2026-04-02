@@ -116,13 +116,14 @@ export const handleFeatureHighlight = (
         }, 1000);
     }
     // Nếu là Polygon hoặc MultiPolygon
-    else if (highlightedFeature?.geometry?.type?.includes("MultiPolygon")) {
+    else if (["Polygon", "MultiPolygon"].includes(highlightedFeature?.geometry?.type)) {
         try {
             const geoJsonLayer = L.geoJSON(highlightedFeature, {
                 style: {
                     color: "red",
                     weight: 3,
-                    fillOpacity: 0.2,
+                    fillColor: "transparent",
+                    fillOpacity: 0,
                 },
             }).addTo(map);
 

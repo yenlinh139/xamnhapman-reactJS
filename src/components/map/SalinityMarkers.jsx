@@ -1,7 +1,7 @@
 import React from "react";
 import L from "leaflet";
 import { convertDMSToDecimal } from "@components/convertDMSToDecimal";
-import { fetchSalinityPoints, fetchSalinityData } from "@components/map/mapDataServices";
+import { fetchSalinityPoints } from "@components/map/mapDataServices";
 import { getSalinityIcon } from "@components/map/mapMarkers";
 import { getSingleStationClassification } from "../../common/salinityClassification";
 
@@ -39,13 +39,37 @@ export const getSalinityTooltipClass = (salinity, stationCode = null) => {
     }
 };
 
+const formatPopupDateValue = (value, fallback = "Chưa có dữ liệu") => {
+    if (!value) return fallback;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+        return String(value);
+    }
+    return parsed.toLocaleDateString("vi-VN");
+};
+
 export const createSalinityPopup = (point, latestSalinity, latestDate, trend, previousDate) => {
-  const numericSalinity = Number(latestSalinity);
-  const hasValidSalinity =
-    latestSalinity !== null && latestSalinity !== undefined && Number.isFinite(numericSalinity);
-  const salinityValue = hasValidSalinity ? numericSalinity : null;
+  const pointLatestValue = Number(point?.latest_value);
+  const fallbackLatestValue = Number(latestSalinity);
+  const salinityValue = Number.isFinite(pointLatestValue)
+    ? pointLatestValue
+    : Number.isFinite(fallbackLatestValue)
+      ? fallbackLatestValue
+      : null;
+
+  const previousValue = Number(point?.previous_value);
+  const hasValidSalinity = Number.isFinite(salinityValue);
   const formattedSalinity = hasValidSalinity ? salinityValue.toFixed(2) : "N/A";
+  // const formattedPreviousValue = Number.isFinite(previousValue) ? `${previousValue.toFixed(2)} ‰` : "N/A";
   const descriptionText = point.MoTa || point.PhanLoai || "Không có mô tả";
+  const latestDateText = latestDate || formatPopupDateValue(point?.latest_date, "Chưa có thời gian quan trắc");
+  const previousDateText = previousDate || formatPopupDateValue(point?.previous_date, "Chưa có dữ liệu");
+  const startDateText = formatPopupDateValue(point?.start_date, "Không xác định");
+  const endDateText = formatPopupDateValue(point?.end_date, "Không xác định");
+  const frequencyText = point?.TanSuat || "Không xác định";
+  const totalRecordsText = Number.isFinite(Number(point?.total_records))
+    ? Number(point.total_records).toLocaleString("vi-VN")
+    : "--";
 
   const latDecimal = convertDMSToDecimal(point?.ViDo);
   const lngDecimal = convertDMSToDecimal(point?.KinhDo);
@@ -58,10 +82,7 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
   const stationCodeForClick = String(point.KiHieu || "").replace(/'/g, "\\'");
   const stationNameForClick = String(point.TenDiem || "").replace(/'/g, "\\'");
 
-    // Get station code from point data
     const stationCode = point.KiHieu;
-
-    // Determine status and color based on new classification
     const classification = getSingleStationClassification(salinityValue, stationCode);
     let statusClass = `status-${classification.level}`;
     let statusText = classification.shortText;
@@ -86,7 +107,7 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
       <div class="popup-header">
         <div class="popup-title">
           <h4 class="popup-name">${point.TenDiem}</h4>
-          <span class="popup-type">Điểm đo độ mặn</span>
+          <span class="popup-type">Điểm đo mặn</span>
         </div>
         <div class="popup-status ${statusClass}">
           ${statusText}
@@ -95,11 +116,11 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
       
       <div class="popup-content">
         <div class="popup-main-value">
-          <span class="value-label">Độ mặn hiện tại</span>
+          <span class="value-label">Giá trị mới nhất</span>
           <span class="value-number" style="color: ${statusColor}">
             ${formattedSalinity} ‰
           </span>
-          <span class="value-date">${latestDate || "Chưa có thời gian quan trắc"}</span>
+          <span class="value-date">${latestDateText}</span>
         </div>
         
         ${
@@ -113,7 +134,7 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
               <span class="trend-text" style="color: ${trend.color}">
                 ${trend.text}
               </span>
-              <span class="trend-date">${previousDate}</span>
+              <span class="trend-date">${previousDateText}</span>
             </div>
           </div>
         `
@@ -135,7 +156,7 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
                 <span class="detail-value">${descriptionText}</span>
               </div>
             </div>
-            
+
             <div class="detail-item">
               <div class="detail-content py-2">
                 <strong class="detail-label">Kinh độ: </strong>
@@ -149,6 +170,30 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
                 <span class="detail-value">${latDisplay}</span>
               </div>
             </div>
+
+            <div class="detail-item">
+              <div class="detail-content py-2">
+                <strong class="detail-label">Tần suất: </strong>
+                <span class="detail-value">${frequencyText}</span>
+              </div>
+            </div>
+
+            <div class="detail-item">
+              <div class="detail-content py-2">
+                <strong class="detail-label">Thời gian: </strong>
+                <span class="detail-value">${startDateText} - ${endDateText}</span>
+              </div>
+            </div>
+
+            <div class="detail-item">
+              <div class="detail-content py-2">
+                <strong class="detail-label">Tổng bản ghi: </strong>
+                <span class="detail-value">${totalRecordsText}</span>
+              </div>
+            </div>
+
+            
+            
           </div>
         </div>
 

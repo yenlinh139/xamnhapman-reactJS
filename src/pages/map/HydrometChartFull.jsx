@@ -3,20 +3,22 @@ import axiosInstance from "@config/axios-config";
 import HydrometBarChart from "@pages/map/HydrometBarChart";
 import html2canvas from "html2canvas";
 import { getDisplayStationName, getFilenameSafeStationName } from "@common/stationMapping";
-import { useHydroSummary, useRainfallStats, useWaterLevelStats, useWeatherAlerts } from "@services/hydrometeorologyStatsService";
 import "@styles/components/_hydrometChart.scss";
 
 const ExportPreviewTable = ({ data }) => {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
     const sortedData = React.useMemo(() => {
-        if (!sortConfig.key) return data;
+        const dateKey = data[0]?.date ? "date" : "Ngày";
+        const effectiveSort = sortConfig.key
+            ? sortConfig
+            : { key: dateKey, direction: "desc" };
 
         const sorted = [...data].sort((a, b) => {
-            let aValue = a[sortConfig.key];
-            let bValue = b[sortConfig.key];
+            let aValue = a[effectiveSort.key];
+            let bValue = b[effectiveSort.key];
 
-            if (sortConfig.key === "date" || sortConfig.key === "Ngày") {
+            if (effectiveSort.key === "date" || effectiveSort.key === "Ngày") {
                 // Handle Vietnamese date format for sorting
                 const parseDate = (dateStr) => {
                     if (typeof dateStr === "string" && dateStr.includes("/")) {
@@ -33,10 +35,10 @@ const ExportPreviewTable = ({ data }) => {
             }
 
             if (aValue < bValue) {
-                return sortConfig.direction === "asc" ? -1 : 1;
+                return effectiveSort.direction === "asc" ? -1 : 1;
             }
             if (aValue > bValue) {
-                return sortConfig.direction === "asc" ? 1 : -1;
+                return effectiveSort.direction === "asc" ? 1 : -1;
             }
             return 0;
         });
@@ -66,15 +68,19 @@ const ExportPreviewTable = ({ data }) => {
     // Get all non-date columns for display
     const getDataColumns = () => {
         if (data.length === 0) return [];
-        const sampleRow = data[0];
-        return Object.keys(sampleRow).filter(
-            (key) =>
-                key !== "date" &&
-                key !== "Ngày" &&
-                sampleRow[key] !== null &&
-                sampleRow[key] !== undefined &&
-                sampleRow[key] !== "",
-        );
+
+        const allKeys = new Set();
+        data.forEach((row) => {
+            Object.keys(row || {}).forEach((key) => {
+                if (key === "date" || key === "Ngày") return;
+                const value = row[key];
+                if (value !== null && value !== undefined && value !== "" && value !== "NULL") {
+                    allKeys.add(key);
+                }
+            });
+        });
+
+        return Array.from(allKeys);
     };
 
     const columns = getDataColumns();
@@ -118,8 +124,8 @@ const ExportPreviewTable = ({ data }) => {
     };
 
     return (
-        <div className="table-responsive mb-3" style={{ maxHeight: "80vh", overflowY: "auto" }}>
-            <table className="table table-bordered table-sm table-striped">
+        <div className="table-responsive mb-3 map-data-table-wrap" style={{ maxHeight: "80vh", overflowY: "auto" }}>
+            <table className="table table-bordered table-sm table-striped map-data-table">
                 <thead className="table-light sticky-top">
                     <tr>
                         <th style={{ width: "60px" }}>#</th>
@@ -189,24 +195,6 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
     const [filteredData, setFilteredData] = useState([]);
     const [presetRange, setPresetRange] = useState("all");
     const [activeTab, setActiveTab] = useState("chart");
-    const [statsDateRange, setStatsDateRange] = useState({
-        startDate: '2022-09-01', // Tháng 9/2022 có dữ liệu
-        endDate: '2022-09-30'    // End của data có sẵn
-    });
-
-    // Statistics hooks
-    const { data: summaryStats, loading: summaryLoading } = useHydroSummary(statsDateRange.startDate, statsDateRange.endDate);
-    const { data: rainfallStats, loading: rainfallLoading } = useRainfallStats({
-        startDate: statsDateRange.startDate,
-        endDate: statsDateRange.endDate,
-        orderBy: 'total_desc'
-    });
-    const { data: waterStats, loading: waterLoading } = useWaterLevelStats({
-        startDate: statsDateRange.startDate,
-        endDate: statsDateRange.endDate,
-        orderBy: 'avg_desc'
-    });
-    const { alerts: weatherAlerts, loading: alertsLoading } = useWeatherAlerts('all', 7);
 
     // Helper function to convert date format to ISO (handle both DD/MM/YYYY and MM/DD/YYYY)
     const convertVietnameseDateToISO = (dateStr) => {
@@ -578,23 +566,23 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
 
     return (
         <div
-            className={`modal fade hydromet-chart-modal ${show ? "show d-block" : ""}`}
+            className={`modal fade map-data-modal hydromet-chart-modal ${show ? "show d-block" : ""}`}
             tabIndex="-1"
             style={{ backgroundColor: show ? "rgba(0,0,0,0.5)" : "transparent" }}
         >
             <div
                 className="modal-dialog modal-xl modal-dialog-centered"
-                style={{ maxWidth: "95%", height: "90vh" }}
+                style={{ maxWidth: "96%", height: "94vh" }}
             >
                 <div className="modal-content" style={{ height: "100%" }}>
-                    <div className="modal-header border-0 pb-0">
+                    <div className="modal-header border-0 py-2">
                         <div className="w-100 text-center" id="hydromet-chart-title">
                             <h5 className="modal-title mb-1 fw-bold">
-                                🌤️ Diễn biến khí tượng thủy văn - {displayStationName}
+                                Diễn biến khí tượng thủy văn - {displayStationName}
                             </h5>
                             {startDate && endDate && (
                                 <div className="text-muted small">
-                                    📅 Từ <strong>{startDate}</strong> đến <strong>{endDate}</strong>
+                                    Từ <strong>{startDate}</strong> đến <strong>{endDate}</strong>
                                 </div>
                             )}
                         </div>
@@ -606,71 +594,50 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                     </div>
 
                     <div className="modal-body">
-                        {/* Date Range Filter for Chart */}
-                        <div className="chart-filters mb-4 p-3 bg-light rounded">
-                            <h6 className="mb-3 text-primary">
-                                <i className="bi bi-calendar-range me-2"></i>
-                                Lọc theo khoảng thời gian
-                            </h6>
-
-                            {/* Custom Date Range */}
-                            <div className="custom-range">
-                                <div className="row g-2 align-items-center">
-                                    <div className="col-auto">
-                                        <label className="form-label small fw-bold mb-0">Từ ngày:</label>
-                                    </div>
-                                    <div className="col-auto">
-                                        <input
-                                            type="date"
-                                            className="form-control form-control-sm"
-                                            name="startDate"
-                                            value={chartDateRange.startDate}
-                                            onChange={handleChartDateRangeChange}
-                                            style={{ minWidth: "130px" }}
-                                        />
-                                    </div>
-                                    <div className="col-auto">
-                                        <label className="form-label small fw-bold mb-0">Đến ngày:</label>
-                                    </div>
-                                    <div className="col-auto">
-                                        <input
-                                            type="date"
-                                            className="form-control form-control-sm"
-                                            name="endDate"
-                                            value={chartDateRange.endDate}
-                                            onChange={handleChartDateRangeChange}
-                                            style={{ minWidth: "130px" }}
-                                        />
-                                    </div>
-                                    <div className="col-auto">
-                                        <button
-                                            type="button"
-                                            className="btn btn-outline-secondary btn-sm"
-                                            onClick={() => {
-                                                setPresetRange("all");
-                                                setFilteredChartData(data);
-                                                const firstDate = data[0]?.date || data[0]?.Ngày;
-                                                const lastDate =
-                                                    data[data.length - 1]?.date ||
-                                                    data[data.length - 1]?.Ngày;
-                                                if (firstDate && lastDate) {
-                                                    setChartDateRange({
-                                                        startDate: firstDate.includes("/")
-                                                            ? convertVietnameseDateToISO(firstDate)
-                                                            : firstDate.split("T")[0],
-                                                        endDate: lastDate.includes("/")
-                                                            ? convertVietnameseDateToISO(lastDate)
-                                                            : lastDate.split("T")[0],
-                                                    });
-                                                }
-                                            }}
-                                        >
-                                            <i className="bi bi-arrow-clockwise me-1"></i>
-                                            Reset
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                        <div className="hydromet-compact-toolbar mb-2">
+                            <span className="toolbar-label">Chọn giai đoạn</span>
+                            <label className="toolbar-field">
+                                <span>Từ</span>
+                                <input
+                                    type="date"
+                                    className="form-control form-control-sm"
+                                    name="startDate"
+                                    value={chartDateRange.startDate}
+                                    onChange={handleChartDateRangeChange}
+                                />
+                            </label>
+                            <label className="toolbar-field">
+                                <span>Đến</span>
+                                <input
+                                    type="date"
+                                    className="form-control form-control-sm"
+                                    name="endDate"
+                                    value={chartDateRange.endDate}
+                                    onChange={handleChartDateRangeChange}
+                                />
+                            </label>
+                            <button
+                                type="button"
+                                className="btn btn-outline-secondary btn-sm"
+                                onClick={() => {
+                                    setPresetRange("all");
+                                    setFilteredChartData(data);
+                                    const firstDate = data[0]?.date || data[0]?.Ngày;
+                                    const lastDate = data[data.length - 1]?.date || data[data.length - 1]?.Ngày;
+                                    if (firstDate && lastDate) {
+                                        setChartDateRange({
+                                            startDate: firstDate.includes("/")
+                                                ? convertVietnameseDateToISO(firstDate)
+                                                : firstDate.split("T")[0],
+                                            endDate: lastDate.includes("/")
+                                                ? convertVietnameseDateToISO(lastDate)
+                                                : lastDate.split("T")[0],
+                                        });
+                                    }
+                                }}
+                            >
+                                Reset
+                            </button>
                         </div>
 
                         {/* Tab Navigation */}
@@ -688,17 +655,6 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                     📊 Biểu đồ
                                 </button>
                                 <button
-                                    className={`nav-link ${activeTab === "stats" ? "active" : ""}`}
-                                    id="nav-stats-tab"
-                                    type="button"
-                                    role="tab"
-                                    aria-controls="stats"
-                                    aria-selected={activeTab === "stats"}
-                                    onClick={() => setActiveTab("stats")}
-                                >
-                                    📈 Thống kê
-                                </button>
-                                <button
                                     className={`nav-link ${activeTab === "export" ? "active" : ""}`}
                                     id="nav-export-tab"
                                     type="button"
@@ -712,17 +668,17 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                             </div>
                         </nav>
 
-                        <div className="tab-content mt-3">
+                        <div className="tab-content mt-2">
                             <div
                                 className={`tab-pane fade ${activeTab === "chart" ? "show active" : ""}`}
                                 id="chart"
                             >
                                 {filteredChartData.length > 0 ? (
-                                    <>
-                                        <div id="hydromet-chart">
-                                            <HydrometBarChart data={filteredChartData} height={500} />
+                                    <div className="map-chart-pane hydromet-pane">
+                                        <div id="hydromet-chart" className="map-chart-box hydromet-chart-box">
+                                            <HydrometBarChart data={filteredChartData} height="100%" />
                                         </div>
-                                        <div className="export-actions mt-3 d-flex justify-content-between align-items-center">
+                                        <div className="map-chart-footer export-actions mt-3 d-flex justify-content-between align-items-center">
                                             <div className="text-muted small">
                                                 📊 Hiển thị: <strong>{filteredChartData.length}</strong> /{" "}
                                                 <strong>{data.length}</strong> ngày có dữ liệu
@@ -736,7 +692,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                                 📸 {isLoggedIn ? "Tải ảnh biểu đồ" : "Đăng nhập để tải"}
                                             </button>
                                         </div>
-                                    </>
+                                    </div>
                                 ) : (
                                     <div className="no-data-state">
                                         <i className="bi bi-bar-chart text-muted"></i>
@@ -749,273 +705,13 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                 )}
                             </div>
 
-                            {/* Statistics Tab */}
-                            <div
-                                className={`tab-pane fade ${activeTab === "stats" ? "show active" : ""}`}
-                                id="stats"
-                            >
-                                {/* Date Range Filter for Stats */}
-                                <div className="stats-filters mb-4 p-3 bg-light rounded">
-                                    <h6 className="mb-3 text-primary">
-                                        <i className="bi bi-calendar-range me-2"></i>
-                                        Khoảng thời gian thống kê
-                                    </h6>
-                                    <div className="row g-2 align-items-center">
-                                        <div className="col-auto">
-                                            <label className="form-label small fw-bold mb-0">Từ ngày:</label>
-                                        </div>
-                                        <div className="col-auto">
-                                            <input
-                                                type="date"
-                                                className="form-control form-control-sm"
-                                                value={statsDateRange.startDate}
-                                                onChange={(e) => setStatsDateRange(prev => ({...prev, startDate: e.target.value}))}
-                                                style={{ minWidth: "130px" }}
-                                            />
-                                        </div>
-                                        <div className="col-auto">
-                                            <label className="form-label small fw-bold mb-0">Đến ngày:</label>
-                                        </div>
-                                        <div className="col-auto">
-                                            <input
-                                                type="date"
-                                                className="form-control form-control-sm"
-                                                value={statsDateRange.endDate}
-                                                onChange={(e) => setStatsDateRange(prev => ({...prev, endDate: e.target.value}))}
-                                                style={{ minWidth: "130px" }}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Statistics Content */}
-                                <div className="stats-content">
-                                    {/* Summary Statistics */}
-                                    {summaryLoading ? (
-                                        <div className="text-center p-4">
-                                            <div className="spinner-border text-primary" role="status">
-                                                <span className="visually-hidden">Đang tải...</span>
-                                            </div>
-                                            <p className="mt-2 text-muted">Đang tải thống kê tổng quan...</p>
-                                        </div>
-                                    ) : summaryStats ? (
-                                        <div className="summary-stats mb-4">
-                                            <h6 className="text-primary mb-3">📊 Thống kê tổng quan</h6>
-                                            <div className="row g-3">
-                                                {summaryStats.summary && (
-                                                    <div className="col-md-4">
-                                                        <div className="card h-100">
-                                                            <div className="card-body">
-                                                                <h6 className="card-title">🏢 Hệ thống</h6>
-                                                                <p className="card-text small mb-1">
-                                                                    Tổng trạm: <strong>{summaryStats.summary.total_stations || 0}</strong>
-                                                                </p>
-                                                                <p className="card-text small mb-1">
-                                                                    Dữ liệu KT: <strong>{summaryStats.summary.total_weather_records || 0}</strong>
-                                                                </p>
-                                                                <p className="card-text small mb-0">
-                                                                    Dữ liệu TV: <strong>{summaryStats.summary.total_hydro_records || 0}</strong>
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {summaryStats.weather && (
-                                                    <div className="col-md-4">
-                                                        <div className="card h-100">
-                                                            <div className="card-body">
-                                                                <h6 className="card-title">🌧️ Khí tượng</h6>
-                                                                {summaryStats.weather.rainfall && (
-                                                                    <>
-                                                                        <p className="card-text small mb-1">
-                                                                            Mưa TB: <strong>{summaryStats.weather.rainfall.average_total || 0}mm</strong>
-                                                                        </p>
-                                                                        <p className="card-text small mb-1">
-                                                                            Mưa max: <strong>{summaryStats.weather.rainfall.maximum_total || 0}mm</strong>
-                                                                        </p>
-                                                                    </>
-                                                                )}
-                                                                {summaryStats.weather.temperature && (
-                                                                    <p className="card-text small mb-0">
-                                                                        Nhiệt độ TB: <strong>{summaryStats.weather.temperature.average || 0}°C</strong>
-                                                                    </p>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {summaryStats.hydrology && (
-                                                    <div className="col-md-4">
-                                                        <div className="card h-100">
-                                                            <div className="card-body">
-                                                                <h6 className="card-title">🌊 Thủy văn</h6>
-                                                                {summaryStats.hydrology.water_level_nb && (
-                                                                    <>
-                                                                        <p className="card-text small mb-1">
-                                                                            Nhà Bè TB: <strong>{summaryStats.hydrology.water_level_nb.average || 0}cm</strong>
-                                                                        </p>
-                                                                        <p className="card-text small mb-1">
-                                                                            Nhà Bè Max: <strong>{summaryStats.hydrology.water_level_nb.maximum || 0}cm</strong>
-                                                                        </p>
-                                                                    </>
-                                                                )}
-                                                                {summaryStats.hydrology.water_level_pa && (
-                                                                    <p className="card-text small mb-0">
-                                                                        Phú An TB: <strong>{summaryStats.hydrology.water_level_pa.average || 0}cm</strong>
-                                                                    </p>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ) : null}
-
-                                    {/* Rainfall Statistics */}
-                                    {rainfallLoading ? (
-                                        <div className="text-center p-3">
-                                            <div className="spinner-border text-info" role="status" style={{width: "1.5rem", height: "1.5rem"}}>
-                                                <span className="visually-hidden">Đang tải...</span>
-                                            </div>
-                                            <p className="mt-2 text-muted small">Đang tải thống kê mưa...</p>
-                                        </div>
-                                    ) : rainfallStats && rainfallStats.length > 0 ? (
-                                        <div className="rainfall-stats mb-4">
-                                            <h6 className="text-primary mb-3">🌧️ Thống kê lượng mưa theo trạm</h6>
-                                            <div className="table-responsive">
-                                                <table className="table table-sm table-bordered">
-                                                    <thead className="table-light">
-                                                        <tr>
-                                                            <th>Trạm</th>
-                                                            <th>Tổng mưa (mm)</th>
-                                                            <th>TB/ngày (mm)</th>
-                                                            <th>Ngày mưa</th>
-                                                            <th>Tỷ lệ (%)</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {rainfallStats.slice(0, 10).map((station, idx) => (
-                                                            <tr key={idx}>
-                                                                <td className="fw-bold">{station.station_name || station.tenTram}</td>
-                                                                <td className="text-end">{parseFloat(station.total_rainfall || station.tongMua || 0).toFixed(1)}</td>
-                                                                <td className="text-end">{parseFloat(station.avg_rainfall || station.muaTrungBinh || 0).toFixed(2)}</td>
-                                                                <td className="text-end">{station.rainy_days || station.ngayMua || 0}</td>
-                                                                <td className="text-end">{parseFloat(station.rainy_days_percentage || station.phanTramNgayMua || 0).toFixed(1)}%</td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    ) : null}
-
-                                    {/* Water Level Statistics */}
-                                    {waterLoading ? (
-                                        <div className="text-center p-3">
-                                            <div className="spinner-border text-success" role="status" style={{width: "1.5rem", height: "1.5rem"}}>
-                                                <span className="visually-hidden">Đang tải...</span>
-                                            </div>
-                                            <p className="mt-2 text-muted small">Đang tải thống kê mực nước...</p>
-                                        </div>
-                                    ) : waterStats && waterStats.length > 0 ? (
-                                        <div className="water-stats mb-4">
-                                            <h6 className="text-primary mb-3">🌊 Thống kê mực nước theo trạm</h6>
-                                            <div className="table-responsive">
-                                                <table className="table table-sm table-bordered">
-                                                    <thead className="table-light">
-                                                        <tr>
-                                                            <th>Trạm</th>
-                                                            <th>TB (cm)</th>
-                                                            <th>Max (cm)</th>
-                                                            <th>Min (cm)</th>
-                                                            <th>Biên độ (cm)</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {waterStats.slice(0, 10).map((station, idx) => {
-                                                            const avg = parseFloat(station.avg_water_level || station.mucNuocTB || 0);
-                                                            const max = parseFloat(station.max_water_level || station.mucNuocMax || 0);
-                                                            const min = parseFloat(station.min_water_level || station.mucNuocMin || 0);
-                                                            const range = max - min;
-                                                            
-                                                            return (
-                                                                <tr key={idx}>
-                                                                    <td className="fw-bold">{station.station_name || station.tenTram}</td>
-                                                                    <td className="text-end">{avg.toFixed(1)}</td>
-                                                                    <td className="text-end">{max.toFixed(1)}</td>
-                                                                    <td className="text-end">{min.toFixed(1)}</td>
-                                                                    <td className="text-end">{range.toFixed(1)}</td>
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    ) : null}
-
-                                    {/* Weather Alerts */}
-                                    {alertsLoading ? (
-                                        <div className="text-center p-3">
-                                            <div className="spinner-border text-warning" role="status" style={{width: "1.5rem", height: "1.5rem"}}>
-                                                <span className="visually-hidden">Đang tải...</span>
-                                            </div>
-                                            <p className="mt-2 text-muted small">Đang tải cảnh báo...</p>
-                                        </div>
-                                    ) : weatherAlerts && weatherAlerts.length > 0 ? (
-                                        <div className="weather-alerts">
-                                            <h6 className="text-primary mb-3">⚠️ Cảnh báo gần đây (7 ngày)</h6>
-                                            <div className="alerts-list">
-                                                {weatherAlerts.slice(0, 5).map((alert, idx) => (
-                                                    <div key={idx} className="alert alert-warning alert-dismissible fade show" role="alert">
-                                                        <div className="d-flex justify-content-between">
-                                                            <div>
-                                                                <strong>{alert.alert_description || alert.description}</strong>
-                                                                <p className="mb-1 small">
-                                                                    {alert.value} {alert.unit} - {alert.category}
-                                                                    {alert.station_name && ` tại ${alert.station_name}`}
-                                                                </p>
-                                                                <p className="mb-0 small text-muted">
-                                                                    {alert.alert_date ? new Date(alert.alert_date).toLocaleDateString('vi-VN') : 'N/A'}
-                                                                </p>
-                                                            </div>
-                                                            <span className={`badge ${
-                                                                alert.severity === 'critical' ? 'bg-danger' :
-                                                                alert.severity === 'high' ? 'bg-warning' : 'bg-info'
-                                                            }`}>
-                                                                {alert.severity === 'critical' ? 'Nghiêm trọng' :
-                                                                alert.severity === 'high' ? 'Cao' : 'Trung bình'}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                                {weatherAlerts.length === 0 && (
-                                                    <div className="alert alert-success" role="alert">
-                                                        ✅ Không có cảnh báo nào trong 7 ngày qua
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="no-alerts text-center p-4">
-                                            <div className="text-success mb-2">
-                                                <i className="bi bi-check-circle" style={{fontSize: "2rem"}}></i>
-                                            </div>
-                                            <h6 className="text-success">✅ Không có cảnh báo</h6>
-                                            <p className="text-muted small">Hệ thống hoạt động bình thường trong 7 ngày qua</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
                             <div
                                 className={`tab-pane fade ${activeTab === "export" ? "show active" : ""}`}
                                 id="export"
                             >
                                 {data.length > 0 ? (
                                     <>
-                                        <div className="mb-3">
+                                        <div className="map-data-scroll mb-2">
                                             <ExportPreviewTable
                                                 data={filteredData.length > 0 ? filteredData : data}
                                             />

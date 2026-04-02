@@ -1,7 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
-import { NavLink } from "react-router-dom";
-import { ROUTES } from "@common/constants";
-import imageLogo from "@assets/logo.png";
+import AreaInterestSelector from "./AreaInterestSelector";
 import { getSingleStationClassification } from "@common/salinityClassification";
 import { convertDMSToDecimal, dmsToDecimal } from "@components/convertDMSToDecimal";
 import { mapLayers, irrigationLayers } from "@pages/map/dataLayers";
@@ -24,30 +22,44 @@ const DEFAULT_MONITORING_LAYERS = [
     "hydrometHydrologyStations",
 ];
 
+const BASE_MAP_OPTIONS = [
+    {
+        value: "Google Streets",
+        label: "Google Streets",
+        description: "Bản đồ đường phố",
+    },
+    {
+        value: "Google Satellite",
+        label: "Google Satellite",
+        description: "Ảnh vệ tinh Google",
+    },
+    {
+        value: "Esri Imagery",
+        label: "Esri Imagery",
+        description: "Ảnh vệ tinh Esri",
+    },
+];
+
 function LeftMenuMap({
     sidebarOpen,
     setSidebarOpen,
     onLayerToggle,
-    searchResults,
+    onBaseMapChange,
+    selectedBaseMap = "Google Streets",
     setSelectedLocation,
     setHighlightedFeature,
-    highlightedFeature,
     setIotData,
-    activeTab,
-    setActiveTab,
 }) {
     const [state, setState] = useState({
         openMenuIndex: null,
         enabledLayers: DEFAULT_MONITORING_LAYERS,
-        isLoadingSearchResults: true,
         openSalinityDropdown: false,
         openHydrometDropdown: true,
         openIrrigationDropdown: false,
+        openBaseMapDropdown: false,
         openIrrigationSubIndex: null,
     });
     const hasAppliedDefaultLayersRef = useRef(false);
-    const [districtList, setDistrictList] = useState([]);
-    const [selectedDistrict, setSelectedDistrict] = useState(null);
     const [iotModalOpen, setIotModalOpen] = useState(false);
     const [iotStationStats, setIotStationStats] = useState({ active: 0, total: 0, lastSync: null });
 
@@ -102,6 +114,13 @@ function LeftMenuMap({
         setState((prevState) => ({
             ...prevState,
             openHydrometDropdown: !prevState.openHydrometDropdown,
+        }));
+    };
+
+    const toggleBaseMapDropdown = () => {
+        setState((prevState) => ({
+            ...prevState,
+            openBaseMapDropdown: !prevState.openBaseMapDropdown,
         }));
     };
 
@@ -234,21 +253,6 @@ function LeftMenuMap({
         }
     };
 
-    useEffect(() => {
-        if (searchResults && searchResults.length > 0) {
-            setState((prevState) => ({
-                ...prevState,
-                isLoadingSearchResults: false,
-            }));
-            setActiveTab("search");
-        } else {
-            setState((prevState) => ({
-                ...prevState,
-                isLoadingSearchResults: false,
-            }));
-        }
-    }, [searchResults, setActiveTab]);
-
     // Tự động tải thống kê trạm IoT khi component mount
     useEffect(() => {
         const loadIoTStationStats = async () => {
@@ -294,17 +298,6 @@ function LeftMenuMap({
             : state.enabledLayers.filter((l) => l !== layer);
 
         onLayerToggle(layer, checked);
-
-        if (layer === "DiaPhanHuyen" && checked) {
-            try {
-                const res = await fetch(`${import.meta.env.VITE_BASE_URL}/districts`);
-                const data = await res.json();
-
-                setDistrictList(data);
-            } catch (error) {
-                console.error("Lỗi khi lấy danh sách huyện:", error);
-            }
-        }
 
         setState((prevState) => ({
             ...prevState,
@@ -738,19 +731,31 @@ function LeftMenuMap({
         }
     };
 
+    useEffect(() => {
+        const handleSearchResultSelect = (event) => {
+            const result = event?.detail;
+            if (!result) return;
+            handleClick(result);
+        };
+
+        window.addEventListener("map-search-result-select", handleSearchResultSelect);
+        return () => {
+            window.removeEventListener("map-search-result-select", handleSearchResultSelect);
+        };
+    }, [handleClick]);
+
     const enabledLayerSet = useMemo(() => new Set(state.enabledLayers), [state.enabledLayers]);
 
     const hasEnabledChildLayer = (layers = []) =>
         Array.isArray(layers) && layers.some((layer) => enabledLayerSet.has(layer));
 
     const renderTabContent = useMemo(() => {
-        if (activeTab === "Data") {
-            return (
+        return (
+            <>
                 <div className="tab-content-data">
                     {/* Monitoring Data Section */}
                     <div className="data-section">
                         <div className="section-header">
-                            <i className="fa-solid fa-chart-line section-icon"></i>
                             <h3 className="section-title">Dữ liệu chuyên đề</h3>
                         </div>
                         <div className="monitoring-layers">
@@ -1045,7 +1050,6 @@ function LeftMenuMap({
                     {/* GIS Data Section */}
                     <div className="data-section">
                         <div className="section-header">
-                            <i className="fa-solid fa-layer-group section-icon"></i>
                             <h3 className="section-title">{mapLayers.title}</h3>
                         </div>
                         <div className="gis-categories">
@@ -1141,231 +1145,72 @@ function LeftMenuMap({
                                     </div>
                                 );
                             })}
+
+                            <div className="category-item">
+                                <div
+                                    className={`category-header ${state.openBaseMapDropdown ? "active" : ""}`}
+                                    onClick={toggleBaseMapDropdown}
+                                >
+                                    <div className="category-info">
+                                        <i className="fa-solid fa-map category-icon"></i>
+                                        <span className="category-name">Nền bản đồ</span>
+                                    </div>
+                                    <i
+                                        className={`fa-solid fa-chevron-right expand-icon ${
+                                            state.openBaseMapDropdown ? "rotated" : ""
+                                        }`}
+                                    ></i>
+                                </div>
+
+                                {state.openBaseMapDropdown && (
+                                    <div className="category-layers basemap-layers">
+                                        {BASE_MAP_OPTIONS.map((option) => {
+                                            const optionId = `basemap-${option.value.toLowerCase().replace(/\s+/g, "-")}`;
+                                            return (
+                                                <div className="layer-item" key={option.value}>
+                                                    <div className="layer-toggle">
+                                                        <input
+                                                            type="radio"
+                                                            name="base-map-option"
+                                                            id={optionId}
+                                                            className="layer-checkbox basemap-radio"
+                                                            checked={selectedBaseMap === option.value}
+                                                            onChange={() => onBaseMapChange?.(option.value)}
+                                                        />
+                                                        <label htmlFor={optionId} className="layer-label">
+                                                            <div className="layer-info">
+                                                                <div className="layer-details">
+                                                                    <span className="layer-name">{option.label}</span>
+                                                                    <span className="layer-desc">
+                                                                        {option.description}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
-                    {/* District Selection */}
-                    {state.enabledLayers.includes("DiaPhanHuyen") && districtList.length > 0 && (
-                        <div className="data-section">
-                            <div className="section-header">
-                                <i className="fa-solid fa-map-location-dot section-icon"></i>
-                                <h3 className="section-title">Lọc theo huyện</h3>
-                            </div>
-                            <div className="district-selector">
-                                <select
-                                    className="district-select"
-                                    value={selectedDistrict || ""}
-                                    onChange={(e) => {
-                                        const district = districtList.find((d) => d.name === e.target.value);
-                                        setSelectedDistrict(e.target.value);
-                                        if (district) {
-                                            setSelectedLocation({
-                                                lat: district.centerLat,
-                                                lng: district.centerLng,
-                                                zoom: 12,
-                                            });
-                                        }
-                                    }}
-                                >
-                                    <option value="">-- Chọn huyện --</option>
-                                    {districtList.map((d, idx) => (
-                                        <option key={idx} value={d.name}>
-                                            {d.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        }
 
-        if (activeTab === "search") {
-            return (
-                <div className="tab-content-search">
-                    {state.isLoadingSearchResults ? (
-                        <div className="search-state">
-                            <div className="loading-spinner">
-                                <i className="fa-solid fa-spinner fa-spin"></i>
-                            </div>
-                            <p className="state-message">Đang tải dữ liệu...</p>
-                        </div>
-                    ) : Array.isArray(searchResults) && searchResults.length === 0 ? (
-                        <div className="search-state">
-                            <div className="empty-icon">
-                                <i className="fa-solid fa-magnifying-glass"></i>
-                            </div>
-                            <p className="state-message">Không tìm thấy kết quả.</p>
-                        </div>
-                    ) : Array.isArray(searchResults) ? (
-                        <div className="search-results">
-                            {searchResults.map((result, idx) => (
-                                <div
-                                    key={result.KiHieu || result.MaHuyen || result.MaXa || `search-result-${idx}`}
-                                    className={`result-card ${
-                                        highlightedFeature?.id === (result.KiHieu || result.MaHuyen || result.MaXa) ? "selected" : ""
-                                    }`}
-                                    onClick={() => handleClick(result)}
-                                >
-                                    {result.type === "diem_do_man" ? (
-                                        <div className="result-content salinity-result">
-                                            <div className="result-header">
-                                                <div className="result-icon">
-                                                    <i className="fa-solid fa-droplet"></i>
-                                                </div>
-                                                <div className="result-title">
-                                                    <h4 className="result-name">{result.TenDiem}</h4>
-                                                    <span className="result-type">Điểm đo mặn</span>
-                                                </div>
-                                            </div>
-                                            <div className="result-details">
-                                                <div className="detail-item">
-                                                    <span className="detail-label">Phân loại:</span>
-                                                    <span className="detail-value">{result.PhanLoai}</span>
-                                                </div>
-                                                <div className="detail-item">
-                                                    <span className="detail-label">Tọa độ:</span>
-                                                    <span className="detail-value">
-                                                        {result.ViDo}, {result.KinhDo}
-                                                    </span>
-                                                </div>
-                                                <div className="detail-item">
-                                                    <span className="detail-label">Thời gian:</span>
-                                                    <span className="detail-value">{result.ThoiGian}</span>
-                                                </div>
-                                                <div className="detail-item">
-                                                    <span className="detail-label">Tần suất:</span>
-                                                    <span className="detail-value">{result.TanSuat}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ) : result.type === "khi_tuong_thuy_van" ? (
-                                        <div className="result-content weather-result">
-                                            <div className="result-header">
-                                                <div className="result-icon">
-                                                    <i className="fa-solid fa-cloud-rain"></i>
-                                                </div>
-                                                <div className="result-title">
-                                                    <h4 className="result-name">{result.TenTram}</h4>
-                                                    <span className="result-type">Trạm khí tượng thủy văn</span>
-                                                </div>
-                                            </div>
-                                            <div className="result-details">
-                                                <div className="detail-item">
-                                                    <span className="detail-label">Ký hiệu:</span>
-                                                    <span className="detail-value">{result.KiHieu}</span>
-                                                </div>
-                                                <div className="detail-item">
-                                                    <span className="detail-label">Loại trạm:</span>
-                                                    <span className="detail-value">{result.LoaiTram}</span>
-                                                </div>
-                                                <div className="detail-item">
-                                                    <span className="detail-label">Tọa độ:</span>
-                                                    <span className="detail-value">
-                                                        {result.ViDo}, {result.KinhDo}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ) : result.tenxa ? (
-                                        <div className="result-content ward-result">
-                                            <div className="result-header">
-                                                <div className="result-icon">
-                                                    <i className="fa-solid fa-building"></i>
-                                                </div>
-                                                <div className="result-title">
-                                                    <h4 className="result-name">{result.tenxa}</h4>
-                                                    <span className="result-type">{result.tenhuyen}</span>
-                                                </div>
-                                            </div>
-                                            <div className="result-details">
-                                                <div className="detail-item">
-                                                    <span className="detail-label">Mã xã:</span>
-                                                    <span className="detail-value">{result.maxa}</span>
-                                                </div>
-                                                <div className="detail-item">
-                                                    <span className="detail-label">Diện tích:</span>
-                                                    <span className="detail-value">
-                                                        {result.dientichtunhien.toFixed(2)} ha
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        ) : result.type === "iot_station" ? (
-                                            <div className="result-content iot-result">
-                                                <div className="result-header">
-                                                    <div className="result-icon">
-                                                        <i className="fa-solid fa-tower-broadcast"></i>
-                                                    </div>
-                                                    <div className="result-title">
-                                                        <h4 className="result-name">{result.StationName}</h4>
-                                                        <span className="result-type">Trạm IoT</span>
-                                                    </div>
-                                                </div>
-                                                <div className="result-details">
-                                                    <div className="detail-item">
-                                                        <span className="detail-label">Mã serial:</span>
-                                                        <span className="detail-value">{result.SerialNumber}</span>
-                                                    </div>
-                                                    <div className="detail-item">
-                                                        <span className="detail-label">Mã trạm:</span>
-                                                        <span className="detail-value">{result.StationCode}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                    ) : (
-                                        <div className="result-content district-result">
-                                            <div className="result-header">
-                                                <div className="result-icon">
-                                                    <i className="fa-solid fa-city"></i>
-                                                </div>
-                                                <div className="result-title">
-                                                    <h4 className="result-name">{result.tenhuyen}</h4>
-                                                    <span className="result-type">Huyện</span>
-                                                </div>
-                                            </div>
-                                            <div className="result-details">
-                                                <div className="detail-item">
-                                                    <span className="detail-label">Mã huyện:</span>
-                                                    <span className="detail-value">{result.mahuyen}</span>
-                                                </div>
-                                                <div className="detail-item">
-                                                    <span className="detail-label">Diện tích:</span>
-                                                    <span className="detail-value">
-                                                        {result.dientichtunhien.toFixed(2)} ha
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="search-state">
-                            <div className="error-icon">
-                                <i className="fa-solid fa-exclamation-triangle"></i>
-                            </div>
-                            <p className="state-message">Dữ liệu không hợp lệ.</p>
-                        </div>
-                    )}
                 </div>
-            );
-        }
+            </>
+        );
     }, [
-        activeTab,
         state.openMenuIndex,
         state.enabledLayers,
         state.openSalinityDropdown,
         state.openHydrometDropdown,
         state.openIrrigationDropdown,
+        state.openBaseMapDropdown,
         state.openIrrigationSubIndex,
-        searchResults,
-        state.isLoadingSearchResults,
-        districtList,
-        selectedDistrict,
-        highlightedFeature,
+        selectedBaseMap,
+        onBaseMapChange,
     ]);
 
     return (
@@ -1384,38 +1229,14 @@ function LeftMenuMap({
 
             <div className={`sidebar ${sidebarOpen ? "" : "open"}`}>
                 <div className="sidebarHeader pt-3">
-                    <NavLink to={ROUTES.home}>
-                        <div className="logo-container">
-                            <img src={imageLogo} alt="logo" className="w-100" />
-                        </div>
-                    </NavLink>
+                    <AreaInterestSelector
+                        setSelectedLocation={setSelectedLocation}
+                        setHighlightedFeature={setHighlightedFeature}
+                    />
                     <div className="lineLeftMenu"></div>
                 </div>
 
-                <div className="d-flex border-bottom text-center">
-                    <button
-                        onClick={() => setActiveTab("Data")}
-                        className={`flex-fill py-2 fw-semibold text-uppercase text-sm border-0 bg-transparent ${
-                            activeTab === "Data"
-                                ? "text-dark border-bottom border-2 border-warning"
-                                : "text-secondary"
-                        }`}
-                    >
-                        LỚP DỮ LIỆU
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("search")}
-                        className={`flex-fill py-2 fw-semibold text-uppercase text-sm border-0 bg-transparent ${
-                            activeTab === "search"
-                                ? "text-dark border-bottom border-2 border-warning"
-                                : "text-secondary"
-                        }`}
-                    >
-                        TÌM KIẾM
-                    </button>
-                </div>
-
-                {/* Tab Content */}
+                {/* Sidebar Content */}
                 {renderTabContent}
             </div>
 

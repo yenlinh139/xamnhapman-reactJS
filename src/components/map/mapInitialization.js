@@ -56,7 +56,7 @@ export const createLegendControl = () => {
     legendContainer.onAdd = () => {
         const div = L.DomUtil.create("div");
         div.innerHTML = `
-      <div class="legend-container" id="legend-container">
+      <div class="legend-container legend-stats-container" id="legend-container">
         <div class="legend-header">
           <div class="legend-title-section">
             <i class="legend-icon fas fa-chart-bar"></i>
@@ -66,38 +66,24 @@ export const createLegendControl = () => {
             <span class="toggle-icon">−</span>
           </button>
         </div>
-        
+
         <div class="legend-content" id="legend-content">
           <div class="legend-search">
             <div class="search-header">
               <i class="search-icon fas fa-calendar-alt"></i>
               <span>Chọn ngày quan trắc</span>
             </div>
-            <input type="date" id="legend-date" class="legend-date-input" 
-                   placeholder="Chọn ngày thống kê" />
+            <input type="text" id="legend-date" class="legend-date-input"
+                   placeholder="dd/mm/yyyy" maxlength="10" autocomplete="off" />
           </div>
-          
+
           <div class="legend-section">
-            <h5 class="legend-section-title">Số liệu quan trắc</h5>
+            <h6 class="legend-section-title">Số liệu quan trắc</h6>
             <div class="legend-layers">
               <div class="legend-primary" id="legend-primary">
-                <!-- Dynamic data content will be inserted here -->
                 <div class="empty-state">
                   <i class="fas fa-calendar-day"></i>
                   <p>Chọn ngày để xem dữ liệu</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="legend-section">
-            <h5 class="legend-section-title">Chú giải</h5>
-            <div class="legend-summary" id="legend-summary">
-              <div class="legend-secondary" id="legend-secondary">
-                <!-- Dynamic layer content will be inserted here -->
-                <div class="empty-state">
-                  <i class="fas fa-layer-group"></i>
-                  <p>Chưa có lớp dữ liệu được chọn</p>
                 </div>
               </div>
             </div>
@@ -106,9 +92,10 @@ export const createLegendControl = () => {
       </div>
     `;
 
-        // Add toggle functionality
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.disableScrollPropagation(div);
+
         setTimeout(() => {
-            // Toggle expand/collapse functionality
             const toggleBtn = document.getElementById("legend-toggle");
             const content = document.getElementById("legend-content");
             const toggleIcon = toggleBtn?.querySelector(".toggle-icon");
@@ -121,31 +108,17 @@ export const createLegendControl = () => {
                     toggleBtn.setAttribute("aria-expanded", isCollapsed.toString());
                 });
             }
-          // Handle date input with dd/mm/yyyy format and default value
-          const dateInput = document.getElementById("legend-date");
-          if (dateInput) {
-            // Use fixed ISO string to avoid timezone shift (UTC conversion can subtract one day)
-            const isoDate = "2025-03-08";
-            dateInput.value = isoDate;
 
-            // Format display as dd/mm/yyyy
-            const formatDateDisplay = (isoDateStr) => {
-              if (!isoDateStr) return '';
-              const [year, month, day] = isoDateStr.split('-');
-              return `${day}/${month}/${year}`;
-            };
-
-            // Create a wrapper to show formatted date
-            const dateWrapper = dateInput.parentElement;
-            const dateDisplay = document.createElement('div');
-            dateDisplay.style.cssText = `
-              font-size: 13px;
-              color: #6c757d;
-              margin-top: 4px;
-              font-weight: 500;
-            `;
-            
-          }
+            const dateInput = document.getElementById("legend-date");
+            if (dateInput) {
+                dateInput.value = "08/03/2025";
+                dateInput.addEventListener("input", (e) => {
+                    let v = e.target.value.replace(/\D/g, "").slice(0, 8);
+                    if (v.length > 4) v = v.slice(0, 2) + "/" + v.slice(2, 4) + "/" + v.slice(4);
+                    else if (v.length > 2) v = v.slice(0, 2) + "/" + v.slice(2);
+                    e.target.value = v;
+                });
+            }
         }, 100);
 
         return div;
@@ -154,31 +127,115 @@ export const createLegendControl = () => {
     return legendContainer;
 };
 
+export const createExplanationControl = () => {
+    const explanationControl = L.control({ position: "bottomright" });
+
+    explanationControl.onAdd = () => {
+        const div = L.DomUtil.create("div");
+        div.innerHTML = `
+      <div class="legend-container legend-explanation-container" id="legend-explanation-container" >
+        <button
+          type="button"
+          class="legend-header legend-header-button"
+          id="legend-explanation-toggle"
+          aria-label="Thu gọn chú giải"
+          aria-expanded="true"
+        >
+          <div class="legend-title-section">
+            <i class="legend-icon fas fa-layer-group"></i>
+            <h4 class="legend-title">CHÚ GIẢI</h4>
+          </div>
+          <span class="legend-toggle explanation-toggle" aria-hidden="true">
+            <span class="toggle-icon">−</span>
+          </span>
+        </button>
+
+        <div class="legend-content legend-content-static" id="legend-explanation-content">
+          <div class="legend-section legend-section-compact">
+            <div class="legend-summary" id="legend-summary">
+              <div class="legend-secondary" id="legend-secondary">
+                <div class="empty-state">
+                  <i class="fas fa-layer-group"></i>
+                  <p>Chưa có lớp dữ liệu được chọn</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.disableScrollPropagation(div);
+
+        setTimeout(() => {
+            const container = document.getElementById("legend-explanation-container");
+            const toggleBtn = document.getElementById("legend-explanation-toggle");
+            const content = document.getElementById("legend-explanation-content");
+            const toggleIcon = toggleBtn?.querySelector(".toggle-icon");
+            const toggleControl = toggleBtn?.querySelector(".explanation-toggle");
+
+            if (container && toggleBtn && content && toggleIcon && toggleControl) {
+                const setCollapsed = (collapsed) => {
+                    container.classList.toggle("is-collapsed", collapsed);
+                    content.style.display = collapsed ? "none" : "block";
+                    toggleIcon.textContent = "−";
+                    toggleControl.style.display = collapsed ? "none" : "flex";
+                    toggleBtn.setAttribute("aria-expanded", String(!collapsed));
+                    toggleBtn.setAttribute(
+                        "aria-label",
+                        collapsed ? "Mở chú giải" : "Thu gọn chú giải",
+                    );
+                };
+
+                setCollapsed(false);
+                toggleBtn.addEventListener("click", () => {
+                    const collapsed = container.classList.contains("is-collapsed");
+                    setCollapsed(!collapsed);
+                });
+            }
+        }, 0);
+
+        return div;
+    };
+
+    return explanationControl;
+};
+
 export const initializeMap = (container) => {
-    const mapInstance = L.map(container, {
-        center: [10.747890979236143, 106.74911060545153],
-        zoom: 10,
-        zoomControl: false,
-    });
+    if (!container) {
+        console.error("Map initialization skipped: container is not available");
+        return { mapInstance: null };
+    }
+
+    let mapInstance;
+    try {
+        mapInstance = L.map(container, {
+            center: [10.747890979236143, 106.74911060545153],
+            zoom: 10,
+            zoomControl: false,
+        });
+    } catch (error) {
+        console.error("Map initialization failed:", error);
+        return { mapInstance: null };
+    }
 
     const baseMaps = createBaseMaps();
-    const overlayMaps = {};
+    const defaultBaseMapName = "Google Streets";
 
     // Add default base layer
-    baseMaps["Google Streets"].addTo(mapInstance);
+    baseMaps[defaultBaseMapName].addTo(mapInstance);
 
     // Add WMS layer
     const wmsLayer = createWMSLayer();
     wmsLayer.addTo(mapInstance);
 
-    // Add legend control
+    // Add statistic/search panel and separate legend panel.
     const legendControl = createLegendControl();
     legendControl.addTo(mapInstance);
 
-    // Add layer control
-    const layerControl = L.control
-        .layers(baseMaps, overlayMaps, { position: "bottomright" })
-        .addTo(mapInstance);
+    const explanationControl = createExplanationControl();
+    explanationControl.addTo(mapInstance);
 
     // Add locate control
     L.control
@@ -322,5 +379,11 @@ export const initializeMap = (container) => {
         })
         .addTo(mapInstance);
 
-    return { mapInstance, layerControl, overlayMaps };
+    return {
+        mapInstance,
+        baseMaps,
+        defaultBaseMapName,
+        wmsLayer,
+        overlayMaps: {},
+    };
 };

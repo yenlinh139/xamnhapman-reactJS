@@ -285,22 +285,33 @@ export const fetchSalinityStationPositions = async (salinityData) => {
     return Promise.all(promises);
 };
 
-// Cập nhật hàm fetchHydrometeorologyStationPositions để sử dụng API mới
-export const fetchHydrometeorologyStationPositions = async () => {
+// Fetch station positions for hydromet values.
+// If searchRows are provided, use them directly; otherwise fallback to latest API.
+export const fetchHydrometeorologyStationPositions = async (searchRows = null) => {
     try {
-        // Lấy dữ liệu mới nhất thay vì lấy tất cả dữ liệu
-        const latestData = await fetchLatestHydrometData();
-        
-        if (!latestData || latestData.length === 0) {
+        let sourceRows = Array.isArray(searchRows) ? searchRows : [];
+
+        if (sourceRows.length === 0) {
+            // Backward-compatible fallback for non-search flows.
+            const latestData = await fetchLatestHydrometData();
+            sourceRows = Array.isArray(latestData) ? latestData : [];
+        }
+
+        if (sourceRows.length === 0) {
             return [];
         }
 
-        const dataItem = latestData[0];
-        const date = dataItem?.Ngày;
+        const dataItem = sourceRows[0];
+        const date = dataItem?.Ngày || dataItem?.Ngay || dataItem?.date || dataItem?.Date;
 
         // Lọc ra các ký hiệu có dữ liệu
         const kiHieuList = Object.keys(dataItem).filter(
-            (key) => key !== "Ngày" && key !== "id" && 
+            (key) =>
+                    key !== "Ngày" &&
+                    key !== "Ngay" &&
+                    key !== "date" &&
+                    key !== "Date" &&
+                    key !== "id" &&
                     dataItem[key] !== "NULL" && 
                     dataItem[key] !== null && 
                     dataItem[key] !== undefined

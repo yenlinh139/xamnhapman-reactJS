@@ -21,7 +21,7 @@ import { handleLocationChange, handleFeatureHighlight } from "@components/map/ma
 import { handleLayerLabelToggle, handleZoomChange, clearAllLabels } from "@components/map/mapLabels";
 import {
     fetchSalinityData,
-    fetchSalinityStationPositions,
+    fetchSalinityPoints,
     fetchHydrometeorologyStationPositions,
     fetchIoTStations,
 } from "@components/map/mapDataServices";
@@ -33,7 +33,15 @@ import {
     updateLegendVisibility 
 } from "@components/map/mapStyles";
 
-const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFeature, iotData, onMapReady }, ref) => {
+const MapboxMap = forwardRef(({
+    selectedLayers,
+    selectedBaseMap = "Google Streets",
+    selectedLocation,
+    highlightedFeature,
+    setHighlightedFeature,
+    iotData,
+    onMapReady,
+}, ref) => {
     const mapContainer = useRef(null);
     const [map, setMap] = useState(null);
     const overlayLayers = useRef({});
@@ -47,6 +55,9 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
     const [internalIotData, setInternalIotData] = useState(null);
     const highlightedLayerRef = useRef(null);
     const highlightedMarkerRef = useRef(null);
+    const baseMapsRef = useRef({});
+    const activeBaseMapRef = useRef("Google Streets");
+    const boundaryLayerRef = useRef(null);
 
     // Expose map instance through ref
     const onMapReadyRef = useRef(onMapReady);
@@ -54,6 +65,42 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
     useEffect(() => {
         onMapReadyRef.current = onMapReady;
     }, [onMapReady]);
+
+    useEffect(() => {
+        if (!map || !selectedBaseMap) return;
+
+        const availableBaseMaps = baseMapsRef.current || {};
+        const nextBaseLayer = availableBaseMaps[selectedBaseMap];
+        if (!nextBaseLayer) return;
+
+        const currentBaseMapName = activeBaseMapRef.current;
+        if (currentBaseMapName === selectedBaseMap) return;
+
+        const currentBaseLayer = availableBaseMaps[currentBaseMapName];
+        if (currentBaseLayer && map.hasLayer(currentBaseLayer)) {
+            map.removeLayer(currentBaseLayer);
+        }
+
+        nextBaseLayer.addTo(map);
+
+        if (typeof nextBaseLayer.bringToBack === "function") {
+            nextBaseLayer.bringToBack();
+        }
+
+        if (boundaryLayerRef.current && typeof boundaryLayerRef.current.bringToFront === "function") {
+            boundaryLayerRef.current.bringToFront();
+        }
+
+        Object.values(overlayLayers.current || {}).forEach((layerData) => {
+            const actualLayer = layerData?.layer;
+            if (actualLayer && typeof actualLayer.bringToFront === "function") {
+                actualLayer.bringToFront();
+            }
+        });
+
+        activeBaseMapRef.current = selectedBaseMap;
+    }, [map, selectedBaseMap]);
+
     useImperativeHandle(ref, () => ({
         getMap: () => map,
         flyTo: (coords, zoom, options) => {
@@ -240,13 +287,24 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
     useEffect(() => {
         if (map || !mapContainer.current) return;
 
-        const { mapInstance } = initializeMap(mapContainer.current);
+        const {
+            mapInstance,
+            baseMaps = {},
+            defaultBaseMapName = "Google Streets",
+            wmsLayer = null,
+        } = initializeMap(mapContainer.current);
+        if (!mapInstance) {
+            return;
+        }
+
+        baseMapsRef.current = baseMaps;
+        activeBaseMapRef.current = defaultBaseMapName;
+        boundaryLayerRef.current = wmsLayer;
+
         setMap(mapInstance);
         if (typeof onMapReadyRef.current === "function") {
             onMapReadyRef.current(mapInstance);
         }
-
-        
 
         // Listen for location found and error events
         mapInstance.on('locationfound', (e) => {
@@ -475,6 +533,10 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
     useEffect(() => {
         if (!map) return;
 
+        let dateInputRef = null;
+        let dateChangeHandlerRef = null;
+        let initRetryTimer = null;
+
         // Define the function to clear date search data and markers
         window.clearDateSearchData = () => {
             // Clear all summary points and markers from the map
@@ -515,21 +577,29 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
             ToastCommon(TOAST.SUCCESS, "Đã xóa dữ liệu tìm kiếm thành công");
         };
 
-        setTimeout(() => {
+        const initializeLegendDateSearch = (retryCount = 0) => {
             const dateInput = document.getElementById("legend-date");
-            if (!dateInput) return;
+            if (!dateInput) {
+                if (retryCount < 10) {
+                    initRetryTimer = setTimeout(() => initializeLegendDateSearch(retryCount + 1), 120);
+                }
+                return;
+            }
+
+            dateInputRef = dateInput;
 
             // Date input processing
 
             // Configure date input events
 
             const handleLegendDateChange = async () => {
-                const rawDate = dateInput.value; // yyyy-mm-dd
+                const inputVal = dateInput.value.trim(); // dd/mm/yyyy
                 const legendPrimary = document.getElementById("legend-primary");
-                if (!/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) return;
+                if (!/^\d{2}\/\d{2}\/\d{4}$/.test(inputVal)) return;
 
-                const [year, month, day] = rawDate.split("-");
+                const [day, month, year] = inputVal.split("/");
                 if (parseInt(year, 10) < 1000) return;
+                const rawDate = `${year}-${month}-${day}`; // yyyy-MM-dd for API
                 const selectedDateLabel = `${day}/${month}/${year}`;
 
                 try {
@@ -552,8 +622,179 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                         }
                     });
 
-                    const response = await axiosInstance.get(`search-date/${rawDate}`);
-                    const data = response.data;
+                    let response;
+                    try {
+                        response = await axiosInstance.get(`/search-date/${encodeURIComponent(rawDate)}`);
+                    } catch (primaryError) {
+                        const statusCode = primaryError?.response?.status;
+                        if (statusCode === 404) {
+                            response = await axiosInstance.get(`/search-Date/${encodeURIComponent(rawDate)}`);
+                        } else {
+                            throw primaryError;
+                        }
+                    }
+
+                    const data = response?.data || {};
+
+                    const buildSalinityStationsFromSearchDate = async (rows = []) => {
+                        const toNumber = (...values) => {
+                            for (const value of values) {
+                                if (value === null || value === undefined || value === "" || value === "NULL") {
+                                    continue;
+                                }
+                                const normalized = String(value).replace(",", ".").trim();
+                                const numeric = Number.parseFloat(normalized);
+                                if (Number.isFinite(numeric)) {
+                                    return numeric;
+                                }
+                            }
+                            return null;
+                        };
+
+                        const normalizedRows = Array.isArray(rows) ? rows : [];
+                        if (normalizedRows.length === 0) {
+                            return [];
+                        }
+
+                        const salinityPoints = await fetchSalinityPoints();
+                        const salinityPointMap = (Array.isArray(salinityPoints) ? salinityPoints : []).reduce(
+                            (acc, point) => {
+                                const key = String(point?.KiHieu || "").toUpperCase();
+                                if (key) {
+                                    acc[key] = point;
+                                }
+                                return acc;
+                            },
+                            {},
+                        );
+
+                        // Case A: row-wise payload already has station coordinates/fields
+                        const rowWiseStations = normalizedRows
+                            .map((row, index) => {
+                                const vido = toNumber(
+                                    row?.vido,
+                                    row?.ViDo,
+                                    row?.latitude,
+                                    row?.lat,
+                                    row?.y,
+                                );
+                                const kinhdo = toNumber(
+                                    row?.kinhdo,
+                                    row?.KinhDo,
+                                    row?.longitude,
+                                    row?.lng,
+                                    row?.x,
+                                );
+
+                                if (!Number.isFinite(vido) || !Number.isFinite(kinhdo)) {
+                                    return null;
+                                }
+
+                                const rawValue = toNumber(
+                                    row?.value,
+                                    row?.DoMan,
+                                    row?.do_man,
+                                    row?.GiaTri,
+                                    row?.salinity,
+                                    row?.Salinity,
+                                );
+                                const kiHieu =
+                                    row?.kiHieu ||
+                                    row?.KiHieu ||
+                                    row?.station_code ||
+                                    row?.maTram ||
+                                    row?.MaTram ||
+                                    `salinity-${index}`;
+
+                                return {
+                                    position: {
+                                        vido,
+                                        kinhdo,
+                                    },
+                                    name:
+                                        row?.tenDiem ||
+                                        row?.TenDiem ||
+                                        row?.station_name ||
+                                        row?.name ||
+                                        kiHieu,
+                                    value: Number.isFinite(rawValue) ? rawValue.toFixed(2) : "--",
+                                    rawValue,
+                                    unit: row?.unit || row?.donVi || row?.DonVi || "‰",
+                                    kiHieu,
+                                    color: getSalinityColor(rawValue, kiHieu),
+                                    date: row?.date || row?.Ngay || row?.Ngày || row?.Date,
+                                    phanLoai: row?.PhanLoai || row?.phanLoai || "--",
+                                    tanSuat: row?.TanSuat || row?.tanSuat || row?.tan_suat || "--",
+                                };
+                            })
+                            .filter(Boolean);
+
+                        if (rowWiseStations.length > 0) {
+                            return rowWiseStations;
+                        }
+
+                        // Case B: wide payload like { Ngày, CRT, CTT, ... }
+                        const latestValuesByCode = {};
+                        normalizedRows.forEach((row) => {
+                            Object.entries(row || {}).forEach(([key, raw]) => {
+                                const upperKey = String(key || "").toUpperCase();
+                                if (
+                                    !upperKey ||
+                                    upperKey === "ID" ||
+                                    upperKey === "NGÀY" ||
+                                    upperKey === "NGAY" ||
+                                    upperKey === "DATE"
+                                ) {
+                                    return;
+                                }
+
+                                const valueNumber = toNumber(raw);
+                                if (!Number.isFinite(valueNumber)) {
+                                    return;
+                                }
+
+                                latestValuesByCode[upperKey] = {
+                                    value: valueNumber,
+                                    date: row?.Ngày || row?.Ngay || row?.date || row?.Date,
+                                };
+                            });
+                        });
+
+                        return Object.entries(latestValuesByCode)
+                            .map(([kiHieu, info]) => {
+                                const point = salinityPointMap[kiHieu];
+                                if (!point) {
+                                    return null;
+                                }
+
+                                const vido = convertDMSToDecimal(point?.ViDo);
+                                const kinhdo = convertDMSToDecimal(point?.KinhDo);
+                                if (!Number.isFinite(vido) || !Number.isFinite(kinhdo)) {
+                                    return null;
+                                }
+
+                                return {
+                                    position: {
+                                        vido,
+                                        kinhdo,
+                                    },
+                                    name: point?.TenDiem || kiHieu,
+                                    value: info.value.toFixed(2),
+                                    rawValue: info.value,
+                                    unit: "‰",
+                                    kiHieu,
+                                    color: getSalinityColor(info.value, kiHieu),
+                                    date: info.date,
+                                    phanLoai: point?.PhanLoai || "--",
+                                    tanSuat: point?.TanSuat || "--",
+                                };
+                            })
+                            .filter(Boolean);
+                    };
+
+                    const salinityStationsFromSearchDate = await buildSalinityStationsFromSearchDate(
+                        data.salinityData,
+                    );
 
                     // Check if we have any data at all
                     const hasData =
@@ -575,20 +816,8 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                         return;
                     }
 
-                    // Process hydrometeorology data if available
-                    if (data.meteorologyData?.length || data.hydrologyData?.length) {
-                        const hydrometeorologyPositions = await fetchHydrometeorologyStationPositions(
-                            data.meteorologyData || data.hydrologyData,
-                        );
-
-                        renderHydrometeorologySummaryPoints(map, hydrometeorologyPositions);
-                    }
-
-                    // Process salinity data if available
-                    if (data.salinityData?.length) {
-                        const salinityPositions = await fetchSalinityStationPositions(data.salinityData);
-                        renderSalinitySummaryPoints(map, salinityPositions);
-                    }
+                    // Search-date should only update the legend/list.
+                    // Do not render temporary search-result markers on the map.
 
                     // Update legend UI with new structure
                     const legendSummary = document.getElementById("legend-summary");
@@ -605,231 +834,20 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                         };
 
                         const handleClickSearchDate = (station) => {
-                            // Kiểm tra xem station có tọa độ hợp lệ không
-                            if (station && station.position) {
-                                const { vido, kinhdo } = station.position;
-
-                                // Có thể zoom đến vị trí trạm trên bản đồ
-                                if (map && vido && kinhdo) {
-                                    map.setView([vido, kinhdo], 14);
-
-                                    // Determine station type and create appropriate popup
-                                    let popupContent;
-                                    if (station.isIoT || station.serial_number) {
-                                        popupContent = `
-                                            <div class="modern-popup iot-custom-popup enhanced">
-                                                <div class="popup-header">
-                                                    <div class="popup-title">
-                                                        <h4 class="popup-name">${station.stationName || station.name || "Trạm IoT"}</h4>
-                                                        <span class="popup-type">Trạm IoT</span>
-                                                    </div>
-                                                </div>
-
-                                                <div class="popup-content">
-                                                    <div class="popup-main-value">
-                                                        <span class="value-label">Độ mặn hiện tại</span>
-                                                        <span class="value-number" style="color: #7c3aed">
-                                                            ${station.salt_value || "--"} ${station.salt_unit || "‰"}
-                                                        </span>
-                                                        <span class="value-date">${station.date_time || "Ngày tìm kiếm"}</span>
-                                                    </div>
-
-                                                    <div class="popup-details">
-                                                        <div class="detail-grid">
-                                                            <div class="detail-item">
-                                                                <div class="detail-content">
-                                                                    <strong class="detail-label">Serial:</strong>
-                                                                    <span class="detail-value">${station.serial_number || "N/A"}</span>
-                                                                </div>
-                                                            </div>
-                                                            <div class="detail-item">
-                                                                <div class="detail-content">
-                                                                    <strong class="detail-label">Mực nước:</strong>
-                                                                    <span class="detail-value">${station.distance_value || "--"} ${station.distance_unit || "m"}</span>
-                                                                </div>
-                                                            </div>
-                                                            <div class="detail-item">
-                                                                <div class="detail-content">
-                                                                    <strong class="detail-label">Nhiệt độ:</strong>
-                                                                    <span class="detail-value">${station.temp_value || "--"} ${station.temp_unit || "°C"}</span>
-                                                                </div>
-                                                            </div>
-                                                            <div class="detail-item">
-                                                                <div class="detail-content">
-                                                                    <strong class="detail-label">Lượng mưa:</strong>
-                                                                    <span class="detail-value">${station.daily_rainfall_value || "--"} ${station.daily_rainfall_unit || "mm"}</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        `;
-                                    } else if (station.kiHieu) {
-                                        // This is a salinity station
-                                        const classification = getSalinityRiskLevel(
-                                            station.value,
-                                            station.kiHieu,
-                                        );
-                                        const statusColor = getSalinityColor(
-                                            parseFloat(station.value || 0),
-                                            station.kiHieu,
-                                        );
-                                        const statusClass = classification.level
-                                            ? `status-${classification.level}`
-                                            : "status-no-data";
-
-                                        popupContent = `
-                                            <div class="modern-popup salinity-popup enhanced">
-                                                <div class="popup-header">
-                                                    <div class="popup-title">
-                                                        <h4 class="popup-name">${station.name || "Trạm quan trắc"}</h4>
-                                                        <span class="popup-type">Điểm đo độ mặn</span>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="popup-content">
-                                                    <div class="popup-main-value">
-                                                        <span class="value-label">Độ mặn hiện tại</span>
-                                                        <span class="value-number" style="color: ${statusColor}">
-                                                            ${station.value || "--"} ${station.unit || "‰"}
-                                                        </span>
-                                                        <span class="value-date">Ngày tìm kiếm</span>
-                                                    </div>
-                                                    
-                                                    <div class="popup-details">
-                                                        <div class="detail-grid">
-                                                            <div class="detail-item">
-                                                                <div class="detail-content">
-                                                                    <strong class="detail-label">Mã trạm:</strong>
-                                                                    <span class="detail-value">${station.kiHieu || "N/A"}</span>
-                                                                </div>
-                                                            </div>
-                                                            
-                                                            <div class="detail-item">
-                                                                <div class="detail-content">
-                                                                    <strong class="detail-label">Vĩ độ:</strong>
-                                                                    <span class="detail-value">${vido.toFixed(6)}</span>
-                                                                </div>
-                                                            </div>
-                                                            
-                                                            <div class="detail-item">
-                                                                <div class="detail-content">
-                                                                    <strong class="detail-label">Kinh độ:</strong>
-                                                                    <span class="detail-value">${kinhdo.toFixed(6)}</span>
-                                                                </div>
-                                                            </div>
-                                                            
-                                                            <div class="detail-item">
-                                                                <div class="detail-content">
-                                                                    <strong class="detail-label">Mức rủi ro:</strong>
-                                                                    <span class="detail-value" style="color: ${statusColor}; font-weight: 600;">
-                                                                        ${classification || "Không xác định"}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div class="popup-actions">
-                                                        <button class="action-btn primary" onclick="window.openChartDetails('${station.kiHieu || station.name}')">
-                                                            Xem biểu đồ chi tiết
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        `;
-                                    } else {
-                                        // This is a hydrometeorology station
-                                        const hasData = station.values && station.values.length > 0;
-                                        const primaryParam = hasData ? station.values[0] : null;
-
-                                        popupContent = `
-                                            <div class="modern-popup hydromet-popup enhanced">
-                                                <div class="popup-header">
-                                                    <div class="popup-title">
-                                                        <h4 class="popup-name">${station.name || "Trạm quan trắc"}</h4>
-                                                        <span class="popup-type">Trạm khí tượng thủy văn</span>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="popup-content">
-                                                    ${
-                                                        hasData && primaryParam
-                                                            ? `
-                                                        <div class="popup-main-value">
-                                                            <span class="value-label">${primaryParam.paramName || "Thông số chính"}</span>
-                                                            <span class="value-number" style="color: #0066cc">
-                                                                ${primaryParam.value} ${primaryParam.unit}
-                                                            </span>
-                                                            <span class="value-date">Ngày tìm kiếm</span>
-                                                        </div>
-                                                        
-                                                        ${
-                                                            station.values.length > 1
-                                                                ? `
-                                                            <div class="multi-param-grid">
-                                                                ${station.values
-                                                                    .slice(1)
-                                                                    .map(
-                                                                        (param) => `
-                                                                    <div class="param-item">
-                                                                        <div class="param-content">
-                                                                            <span class="param-label">${param.paramName}</span>
-                                                                            <span class="param-value" style="background-color: rgba(13, 110, 253, 0.1); padding: 2px 6px; border-radius: 10px; font-weight: 500;">
-                                                                                ${param.value} ${param.unit}
-                                                                            </span>
-                                                                        </div>
-                                                                    </div>
-                                                                `,
-                                                                    )
-                                                                    .join("")}
-                                                            </div>
-                                                        `
-                                                                : ""
-                                                        }
-                                                    `
-                                                            : `
-                                                        <div class="no-data-message">
-                                                            <i class="no-data-icon">📊</i>
-                                                            <span>Chưa có dữ liệu quan trắc</span>
-                                                        </div>
-                                                    `
-                                                    }
-                                                    
-                                                    <div class="popup-details">
-                                                        <div class="detail-grid">
-                                                            <div class="detail-item">
-                                                                <div class="detail-content">
-                                                                    <strong class="detail-label">Vĩ độ:</strong>
-                                                                    <span class="detail-value">${vido.toFixed(6)}</span>
-                                                                </div>
-                                                            </div>
-                                                            
-                                                            <div class="detail-item">
-                                                                <div class="detail-content">
-                                                                    <strong class="detail-label">Kinh độ:</strong>
-                                                                    <span class="detail-value">${kinhdo.toFixed(6)}</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div class="popup-actions">
-                                                        <button class="action-btn primary" onclick="window.openHydrometDetails('${station.name}')">
-                                                            Xem biểu đồ chi tiết
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        `;
-                                    }
-
-                                    L.popup().setLatLng([vido, kinhdo]).setContent(popupContent).openOn(map);
-                                }
-                            } else {
+                            if (!station?.position || !map) {
                                 console.warn("Không có thông tin tọa độ hợp lệ cho trạm:", station);
+                                return;
                             }
+
+                            const { vido, kinhdo } = station.position;
+                            if (!Number.isFinite(vido) || !Number.isFinite(kinhdo)) {
+                                console.warn("Tọa độ trạm không hợp lệ:", station);
+                                return;
+                            }
+
+                            // Click from search result should only zoom, no popup.
+                            map.setView([vido, kinhdo], 14);
+                            map.closePopup();
                         };
 
                         // Process stations data for better display in the legend
@@ -847,6 +865,24 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                                 const formatIoTNumber = (value, digits) => {
                                     const numeric = Number.parseFloat(value);
                                     return Number.isFinite(numeric) ? numeric.toFixed(digits) : "--";
+                                };
+
+                                const parseCoordinateValue = (rawValue) => {
+                                    if (rawValue === null || rawValue === undefined || rawValue === "") {
+                                        return NaN;
+                                    }
+
+                                    const rawText = String(rawValue).trim();
+
+                                    // DMS strings like 10°47'34.77"N must be parsed by dmsToDecimal,
+                                    // parseFloat would incorrectly return only the leading degree number.
+                                    if (/[°'"NSEW]/i.test(rawText)) {
+                                        return dmsToDecimal(rawText);
+                                    }
+
+                                    const normalized = rawText.replace(",", ".");
+                                    const numeric = Number.parseFloat(normalized);
+                                    return Number.isFinite(numeric) ? numeric : dmsToDecimal(rawText);
                                 };
 
                                 // Keep only the latest row per station to avoid duplicated entries in legend.
@@ -882,7 +918,7 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                                                 station.station_name === row.station_name,
                                         );
 
-                                        const latitude = Number(
+                                        const latitude = parseCoordinateValue(
                                             matchedStation?.vido_decimal ??
                                                 matchedStation?.latitude ??
                                                 matchedStation?.vido ??
@@ -892,7 +928,7 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                                                 row?.ViDo ??
                                                 NaN,
                                         );
-                                        const longitude = Number(
+                                        const longitude = parseCoordinateValue(
                                             matchedStation?.kinhdo_decimal ??
                                                 matchedStation?.longitude ??
                                                 matchedStation?.kinhdo ??
@@ -944,21 +980,8 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                             }
 
                             // Process salinity data
-                            if (data.salinityData?.length > 0) {
-                                const salinityPositions = await fetchSalinityStationPositions(
-                                    data.salinityData,
-                                );
-                                stationsInfo.salinityData = salinityPositions.map((station) => ({
-                                    position: {
-                                        vido: convertDMSToDecimal(station.position[0].ViDo),
-                                        kinhdo: convertDMSToDecimal(station.position[0].KinhDo),
-                                    },
-                                    name: station.position[0].TenDiem,
-                                    value: parseFloat(station.value).toFixed(2),
-                                    unit: "‰",
-                                    kiHieu: station.kiHieu,
-                                    color: getSalinityColor(parseFloat(station.value), station.kiHieu),
-                                }));
+                            if (salinityStationsFromSearchDate.length > 0) {
+                                stationsInfo.salinityData = salinityStationsFromSearchDate;
                             }
 
                             const groupHydrometStations = (positions) => {
@@ -1087,7 +1110,7 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                                                             <div class="station-params">
                                                                 <div class="param-item">
                                                                     <span class="param-value" style="color: ${station.color}; background-color: rgba(124,58,237,0.10); padding: 2px 6px; border-radius: 10px; font-weight: 600;">
-                                                                        Độ mặn: ${station.salt_value || "--"} "‰"
+                                                                        Độ mặn: </br> ${station.salt_value || "--"} ‰
                                                                     </span>
                                                                 </div>
                                                                 <div class="param-item">
@@ -1286,20 +1309,35 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
                 }
             };
 
+            dateChangeHandlerRef = handleLegendDateChange;
             dateInput.addEventListener("change", handleLegendDateChange);
+            dateInput.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") handleLegendDateChange();
+            });
 
-            // Always fetch API immediately on mount with default date.
-            if (!dateInput.value || !/^\d{4}-\d{2}-\d{2}$/.test(dateInput.value)) {
-                dateInput.value = "2025-03-08";
+            // Set default date and fetch immediately so "Số liệu quan trắc" is populated on first load.
+            if (!dateInput.value || !/^\d{2}\/\d{2}\/\d{4}$/.test(dateInput.value)) {
+                dateInput.value = "08/03/2025";
             }
+
             handleLegendDateChange();
-        }, 0);
+        };
+
+        initializeLegendDateSearch();
 
         // Cleanup function
         return () => {
             // Remove global function when component unmounts
             if (window.clearDateSearchData) {
                 delete window.clearDateSearchData;
+            }
+
+            if (initRetryTimer) {
+                clearTimeout(initRetryTimer);
+            }
+
+            if (dateInputRef && dateChangeHandlerRef) {
+                dateInputRef.removeEventListener("change", dateChangeHandlerRef);
             }
         };
     }, [map]);
@@ -1389,18 +1427,34 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
         });
 
         salinityPositions.forEach((station) => {
-            const point = station.position[0];
-            const lat = convertDMSToDecimal(point.ViDo);
-            const lng = convertDMSToDecimal(point.KinhDo);
-            const value = parseFloat(station.value);
-            const date = new Date(station.date).toLocaleDateString("vi-VN");
+            const sourcePoint = station?.position?.[0] || null;
+            const hasDirectPosition =
+                station?.position &&
+                Number.isFinite(station.position.vido) &&
+                Number.isFinite(station.position.kinhdo);
+
+            const lat = hasDirectPosition
+                ? station.position.vido
+                : convertDMSToDecimal(sourcePoint?.ViDo);
+            const lng = hasDirectPosition
+                ? station.position.kinhdo
+                : convertDMSToDecimal(sourcePoint?.KinhDo);
+
+            const value = parseFloat(station?.rawValue ?? station?.value);
+            const date = station?.date
+                ? new Date(station.date).toLocaleDateString("vi-VN")
+                : "Ngày tìm kiếm";
+            const pointName = sourcePoint?.TenDiem || station?.name || station?.kiHieu || "Điểm đo mặn";
+            const phanLoai = sourcePoint?.PhanLoai || station?.phanLoai || "--";
+            const thoiGian = sourcePoint?.ThoiGian || station?.date || "--";
+            const tanSuat = sourcePoint?.TanSuat || station?.tanSuat || "--";
 
             // Use new classification system
             const color = getSalinityColor(value, station.kiHieu);
             const riskLevel = getSalinityRiskLevel(value, station.kiHieu);
 
             if (lat == null || lng == null || isNaN(lat) || isNaN(lng)) {
-                console.warn(`⚠️ Không thể chuyển tọa độ tại điểm ${point.TenDiem}`);
+                console.warn(`⚠️ Không thể chuyển tọa độ tại điểm ${pointName}`);
                 return;
             }
 
@@ -1418,7 +1472,7 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
             latLngs.push([lat, lng]);
 
             const tooltipClass = getSalinityTooltipClass(value || 0);
-            marker.bindTooltip(point.TenDiem, {
+            marker.bindTooltip(pointName, {
                 permanent: true,
                 direction: "top",
                 offset: [0, -10],
@@ -1427,71 +1481,8 @@ const MapboxMap = forwardRef(({ selectedLayers, selectedLocation, highlightedFea
             });
 
             marker.on("click", () => {
-                const popupHTML = `
-          <div class="modern-popup">
-            <div class="popup-header">
-              <div class="popup-title">
-                <h4 class="popup-name">${point.TenDiem}</h4>
-                <span class="popup-type">Điểm đo độ mặn</span>
-              </div>
-              <div class="popup-status ${
-                  color === "#28a745"
-                      ? "status-normal"
-                      : color === "#ffc107"
-                        ? "status-warning"
-                        : color === "#fd7e14"
-                          ? "status-high-warning"
-                          : color === "#dc3545"
-                            ? "status-critical"
-                            : "status-no-data"
-              }">
-                ${riskLevel}
-              </div>
-            </div>
-            
-            <div class="popup-content">
-              <div class="popup-main-value">
-                <span class="value-label">Độ mặn</span>
-                <span class="value-number" style="color: ${color}">
-                  ${!isNaN(value) ? `${value.toFixed(2)} ‰` : "N/A"}
-                </span>
-              </div>
-              
-              <div class="popup-details">
-                <div class="detail-grid">
-                  <div class="detail-item">
-                    <div class="detail-content py-2">
-                      <strong class="detail-label">Ngày quan trắc: </strong>
-                      <span class="detail-value">${date}</span>
-                    </div>
-                  </div>
-                  <div class="detail-item">
-                    <div class="detail-content py-2">
-                      <strong class="detail-label">Phân loại: </strong>
-                      <span class="detail-value">${point.PhanLoai}</span>
-                    </div>
-                  </div>
-                  
-                  <div class="detail-item">
-                    <div class="detail-content py-2">
-                      <strong class="detail-label font-weight">Thời gian: </strong>
-                      <span class="detail-value">${point.ThoiGian}</span>
-                    </div>
-                  </div>
-                  
-                  <div class="detail-item">
-                    <div class="detail-content py-2">
-                      <strong class="detail-label">Tần suất đo: </strong>
-                      <span class="detail-value">${point.TanSuat}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        `;
-
-                marker.bindPopup(popupHTML).openPopup();
+                mapInstance.setView([lat, lng], Math.max(mapInstance.getZoom(), 14));
+                mapInstance.closePopup();
             });
         });
     };
