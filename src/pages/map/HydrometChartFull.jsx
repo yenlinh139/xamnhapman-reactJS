@@ -689,7 +689,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                                 disabled={!isLoggedIn}
                                                 title={!isLoggedIn ? "Bạn cần đăng nhập để tải xuống biểu đồ" : ""}
                                             >
-                                                📸 {isLoggedIn ? "Tải ảnh biểu đồ" : "Đăng nhập để tải"}
+                                                {isLoggedIn ? "Tải ảnh biểu đồ" : "Đăng nhập để tải"}
                                             </button>
                                         </div>
                                     </div>

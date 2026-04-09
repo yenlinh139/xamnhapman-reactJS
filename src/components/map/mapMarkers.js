@@ -11,7 +11,7 @@ export const getSalinityIcon = (value = null, stationCode = null) => {
                 iconColor = "#28a745"; // Green
                 break;
             case "warning":
-                iconColor = "#ffc107"; // Yellow
+                iconColor = "#ffe600"; // Yellow
                 break;
             case "high-warning":
                 iconColor = "#fd7e14"; // Orange
@@ -27,7 +27,7 @@ export const getSalinityIcon = (value = null, stationCode = null) => {
     return L.divIcon({
         className: "custom-salinity-icon",
         html: `
-              <i class="fa-solid fa-droplet glow-icon" style="color: #003366; font-size: 1.5rem;"></i>
+              <i class="fa-solid fa-droplet glow-icon" style="color: ${iconColor}; font-size: 1.5rem; "></i>
         `,
         iconSize: [20, 20],
         iconAnchor: [10, 10],

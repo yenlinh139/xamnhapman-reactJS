@@ -177,9 +177,9 @@ const IoTQueryControls = ({ queryOptions, onChange, dateOptions }) => {
                     onChange={onChange}
                     style={{ minWidth: 112 }}
                 >
-                    <option value="none">Mặc định</option>
-                    <option value="date">Theo ngày</option>
-                    <option value="hour">Theo giờ</option>
+                    <option value="none">5 phút</option>
+                    <option value="date">Ngày</option>
+                    <option value="hour">Giờ</option>
                 </select>
             </div>
         </div>
@@ -272,7 +272,7 @@ const IoTExportPreviewTable = ({ data, groupBy = "none", stationCode = "" }) => 
                             onClick={() => handleSort("distance_value")}
                         >
                             <div className="d-flex align-items-center justify-content-between">
-                                <span>Mực nước (m)</span>
+                                <span>Mực nước (cm)</span>
                                 {getSortIcon("distance_value")}
                             </div>
                         </th>
@@ -281,7 +281,7 @@ const IoTExportPreviewTable = ({ data, groupBy = "none", stationCode = "" }) => 
                             onClick={() => handleSort("daily_rainfall_value")}
                         >
                             <div className="d-flex align-items-center justify-content-between">
-                                <span>Lượng mưa hàng ngày (mm)</span>
+                                <span>Lượng mưa (mm)</span>
                                 {getSortIcon("daily_rainfall_value")}
                             </div>
                         </th>
@@ -670,6 +670,7 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                                                     data={data}
                                                     height="100%"
                                                     groupBy={queryOptions.groupBy}
+                                                    stationCode={stationCode}
                                                 />
                                             </div>
                                             <div

@@ -1327,7 +1327,7 @@ button:hover,
     background: rgba(0, 0, 0, 0.8) !important;
     border: none !important;
     border-radius: 7px !important;
-    color: white !important;
+    color: white;
     font-size: 11px !important;
     font-weight: 500 !important;
     line-height: 1.2 !important;
@@ -1341,37 +1341,37 @@ button:hover,
 
     /* Salinity level based colors - Updated for new 5-level classification */
     &.tooltip-normal {
-        background: rgba(40, 167, 69, 0.9) !important; /* Green for normal (< 1‰) */
+        background: #ADEBB3 !important; /* Green for normal (< 1‰) */
         &::before {
-            border-top-color: rgba(40, 167, 69, 0.9) !important;
+            border-top-color: #ADEBB3 !important;
         }
     }
 
     &.tooltip-warning {
-        background: rgba(255, 193, 7, 0.9) !important; /* Yellow for risk level 1 (Nhà Bè 1-4‰) */
+        background: #FFFFC5 !important; /* Yellow for risk level 1 (Nhà Bè 1-4‰) */
         &::before {
-            border-top-color: rgba(255, 193, 7, 0.9) !important;
+            border-top-color: #FFFFC5 !important;
         }
     }
 
     &.tooltip-high-warning {
-        background: rgba(253, 126, 20, 0.9) !important; /* Orange for risk level 2 (other stations 1-4‰) */
+        background: #FFD1B3 !important; /* Orange for risk level 2 (other stations 1-4‰) */
         &::before {
-            border-top-color: rgba(253, 126, 20, 0.9) !important;
+            border-top-color: #FFD1B3 !important;
         }
     }
 
     &.tooltip-critical {
-        background: rgba(220, 53, 69, 0.9) !important; /* Red for risk level 3 (> 4‰) */
+        background: #FFA896 !important; /* Red for risk level 3 (> 4‰) */
         &::before {
-            border-top-color: rgba(220, 53, 69, 0.9) !important;
+            border-top-color: #FFA896 !important;
         }
     }
 
     &.tooltip-no-data {
-        background: rgba(108, 117, 125, 0.9) !important; /* Gray for no data */
+        background: rgba(108, 117, 125) !important; /* Gray for no data */
         &::before {
-            border-top-color: rgba(108, 117, 125, 0.9) !important;
+            border-top-color: rgba(108, 117, 125) !important;
         }
     }
 }
@@ -1975,14 +1975,18 @@ button:hover,
     z-index: 10;
     
     &.active {
-        background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
-        box-shadow: 
-            0 0 0 0 rgba(168, 85, 247, 0.7),
-            0 0 20px rgba(168, 85, 247, 0.6),
-            0 4px 12px rgba(147, 51, 234, 0.4),
+        background: linear-gradient(
+            135deg,
+            var(--risk-accent-color, #a855f7) 0%,
+            var(--risk-color, #7c3aed) 100%
+        );
+        box-shadow:
+            0 0 0 0 var(--risk-glow-color, rgba(168, 85, 247, 0.7)),
+            0 0 20px var(--risk-glow-color, rgba(168, 85, 247, 0.6)),
+            0 4px 12px var(--risk-shadow-color, rgba(147, 51, 234, 0.4)),
             inset 0 -2px 6px rgba(0, 0, 0, 0.1);
         animation: markerGlow 1.5s ease-in-out infinite;
-        
+
         .iot-icon {
             color: white;
             filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
@@ -2032,18 +2036,18 @@ button:hover,
 
 @keyframes markerGlow {
     0%, 100% {
-        box-shadow: 
-            0 0 0 0 rgba(168, 85, 247, 0.7),
-            0 0 20px rgba(168, 85, 247, 0.6),
-            0 4px 12px rgba(147, 51, 234, 0.4),
+        box-shadow:
+            0 0 0 0 var(--risk-glow-color, rgba(168, 85, 247, 0.7)),
+            0 0 20px var(--risk-glow-color, rgba(168, 85, 247, 0.6)),
+            0 4px 12px var(--risk-shadow-color, rgba(147, 51, 234, 0.4)),
             inset 0 -2px 6px rgba(0, 0, 0, 0.1);
         transform: scale(1);
     }
     50% {
-        box-shadow: 
-            0 0 0 8px rgba(168, 85, 247, 0.3),
-            0 0 30px rgba(168, 85, 247, 0.8),
-            0 8px 20px rgba(147, 51, 234, 0.5),
+        box-shadow:
+            0 0 0 8px var(--risk-glow-color, rgba(168, 85, 247, 0.3)),
+            0 0 30px var(--risk-glow-color, rgba(168, 85, 247, 0.8)),
+            0 8px 20px var(--risk-shadow-color, rgba(147, 51, 234, 0.5)),
             inset 0 -2px 6px rgba(0, 0, 0, 0.1);
         transform: scale(1.08);
     }
@@ -2253,15 +2257,23 @@ button:hover,
 
 .leaflet-draw-actions {
     border: none;
+    border-radius: 10px;
+    overflow: hidden;
     box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
     z-index: 1200;
 }
 
 .leaflet-draw-actions a {
+    min-width: 118px;
+    height: 36px;
+    line-height: 36px;
+    padding: 0 12px;
+    white-space: nowrap;
     background: rgba(255, 255, 255, 0.98);
     color: #1e293b;
     border: none;
     border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    font-weight: 600;
     transition: all 0.2s ease;
 }
 
@@ -2287,15 +2299,24 @@ button:hover,
 }
 
 .leaflet-measure-tooltip {
-    background: linear-gradient(135deg, #0f172a, #1e293b);
-    color: #ffffff;
-    border: none;
-    border-radius: 999px;
+    background: linear-gradient(135deg, #0f172a, #1e293b) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 999px !important;
     font-weight: 600;
     font-size: 12px;
     letter-spacing: 0.2px;
+    white-space: nowrap;
+    text-align: center;
     box-shadow: 0 10px 18px rgba(15, 23, 42, 0.28);
-    padding: 4px 10px;
+    padding: 0 !important;
+}
+
+.leaflet-measure-tooltip .leaflet-tooltip-content {
+    margin: 0 !important;
+    padding: 4px 8px !important;
+    color: #ffffff !important;
+    line-height: 1.25;
 }
 
 .leaflet-measure-tooltip::before {

@@ -43,11 +43,53 @@ const updateMeasurementTooltip = (layer) => {
     label = `Khoảng cách: ${formatDistance(distance)}`;
   }
 
-  layer.bindTooltip(label, {
+  const tooltipOptions = {
     permanent: true,
-    direction: "center",
+    direction: isPolygon ? "center" : "top",
+    offset: isPolygon ? [0, 0] : [0, -6],
+    opacity: 1,
+    interactive: false,
     className: "leaflet-measure-tooltip",
-  });
+  };
+
+  const tooltipCenter = typeof layer.getBounds === "function" ? layer.getBounds().getCenter() : null;
+  const existingTooltip = typeof layer.getTooltip === "function" ? layer.getTooltip() : null;
+
+  if (existingTooltip) {
+    existingTooltip.setContent(label);
+    if (tooltipCenter) {
+      existingTooltip.setLatLng(tooltipCenter);
+    }
+  } else {
+    layer.bindTooltip(label, tooltipOptions);
+    if (tooltipCenter && layer.getTooltip()) {
+      layer.getTooltip().setLatLng(tooltipCenter);
+    }
+  }
+
+  if (typeof layer.openTooltip === "function") {
+    layer.openTooltip();
+  }
+};
+
+const setMeasurementInteractionMode = (mapInstance, isActive) => {
+    if (!mapInstance) return;
+
+    const container = mapInstance.getContainer?.();
+    if (container) {
+        container.style.cursor = isActive ? "crosshair" : "";
+    }
+
+    ["scrollWheelZoom", "doubleClickZoom", "boxZoom"].forEach((handlerName) => {
+        const handler = mapInstance[handlerName];
+        if (!handler) return;
+
+        if (isActive) {
+            handler.disable();
+        } else {
+            handler.enable();
+        }
+    });
 };
 
 export const createLegendControl = () => {
@@ -214,6 +256,11 @@ export const initializeMap = (container) => {
             center: [10.747890979236143, 106.74911060545153],
             zoom: 10,
             zoomControl: false,
+            preferCanvas: true,
+            zoomSnap: 0.5,
+            zoomDelta: 0.5,
+            wheelPxPerZoomLevel: 140,
+            wheelDebounceTime: 60,
         });
     } catch (error) {
         console.error("Map initialization failed:", error);
@@ -253,36 +300,59 @@ export const initializeMap = (container) => {
     mapInstance.addLayer(drawnItems);
 
     if (L.Control?.Draw) {
+        if (L.drawLocal?.draw?.toolbar?.actions) {
+            L.drawLocal.draw.toolbar.actions.title = "Hủy thao tác đo";
+            L.drawLocal.draw.toolbar.actions.text = "Hủy";
+        }
+        if (L.drawLocal?.draw?.toolbar?.finish) {
+            L.drawLocal.draw.toolbar.finish.title = "Hoàn tất phép đo";
+            L.drawLocal.draw.toolbar.finish.text = "Hoàn tất";
+        }
+        if (L.drawLocal?.draw?.toolbar?.undo) {
+            L.drawLocal.draw.toolbar.undo.title = "Xóa điểm vừa tạo";
+            L.drawLocal.draw.toolbar.undo.text = "Xóa điểm cuối";
+        }
         if (L.drawLocal?.draw?.toolbar?.buttons) {
             L.drawLocal.draw.toolbar.buttons.polyline = "Đo khoảng cách";
             L.drawLocal.draw.toolbar.buttons.polygon = "Đo diện tích";
         }
+        if (L.drawLocal?.draw?.handlers?.polyline) {
+            L.drawLocal.draw.handlers.polyline.error = "<strong>Lỗi:</strong> Đường đo không hợp lệ.";
+            if (L.drawLocal.draw.handlers.polyline.tooltip) {
+                L.drawLocal.draw.handlers.polyline.tooltip.start = "Nhấp lên bản đồ để bắt đầu đo khoảng cách";
+                L.drawLocal.draw.handlers.polyline.tooltip.cont = "Nhấp để thêm điểm tiếp theo";
+                L.drawLocal.draw.handlers.polyline.tooltip.end = "Nhấp điểm cuối hoặc chọn ‘Hoàn tất’ để kết thúc";
+            }
+        }
+        if (L.drawLocal?.draw?.handlers?.polygon?.tooltip) {
+            L.drawLocal.draw.handlers.polygon.tooltip.start = "Nhấp lên bản đồ để bắt đầu đo diện tích";
+            L.drawLocal.draw.handlers.polygon.tooltip.cont = "Nhấp để tiếp tục thêm điểm cho vùng đo";
+            L.drawLocal.draw.handlers.polygon.tooltip.end = "Nhấp vào điểm đầu hoặc chọn ‘Hoàn tất’ để đóng vùng";
+        }
+        if (L.drawLocal?.draw?.handlers?.simpleshape?.tooltip) {
+            L.drawLocal.draw.handlers.simpleshape.tooltip.end = "Thả chuột để hoàn tất";
+        }
         if (L.drawLocal?.edit?.toolbar?.buttons) {
             L.drawLocal.edit.toolbar.buttons.edit = "Chỉnh sửa vùng đo";
+            L.drawLocal.edit.toolbar.buttons.editDisabled = "Không có vùng đo để chỉnh sửa";
             L.drawLocal.edit.toolbar.buttons.remove = "Xóa vùng đo";
+            L.drawLocal.edit.toolbar.buttons.removeDisabled = "Không có vùng đo để xóa";
         }
-
-      if (L.drawLocal?.draw?.toolbar?.actions) {
-        L.drawLocal.draw.toolbar.actions.title = "Hủy thao tác vẽ";
-        L.drawLocal.draw.toolbar.actions.text = "Hủy";
-      }
-      if (L.drawLocal?.edit?.toolbar?.actions) {
-        L.drawLocal.edit.toolbar.actions.save.title = "Lưu thay đổi";
-        L.drawLocal.edit.toolbar.actions.save.text = "Lưu";
-        L.drawLocal.edit.toolbar.actions.cancel.title = "Thoát chế độ chỉnh sửa/xóa";
-        L.drawLocal.edit.toolbar.actions.cancel.text = "Thoát";
-        L.drawLocal.edit.toolbar.actions.clearAll.title = "Xóa toàn bộ vùng đo";
-        L.drawLocal.edit.toolbar.actions.clearAll.text = "Xóa tất cả";
-      }
-
-      if (L.drawLocal?.edit?.handlers?.remove?.tooltip) {
-        L.drawLocal.edit.handlers.remove.tooltip.text = "Nhấn vào đối tượng để xóa";
-      }
-      if (L.drawLocal?.edit?.handlers?.edit?.tooltip) {
-        L.drawLocal.edit.handlers.edit.tooltip.text = "Kéo điểm để chỉnh sửa";
-        L.drawLocal.edit.handlers.edit.tooltip.subtext =
-          "Nhấn Lưu để áp dụng hoặc Thoát để hủy";
-      }
+        if (L.drawLocal?.edit?.toolbar?.actions) {
+            L.drawLocal.edit.toolbar.actions.save.title = "Lưu thay đổi";
+            L.drawLocal.edit.toolbar.actions.save.text = "Lưu";
+            L.drawLocal.edit.toolbar.actions.cancel.title = "Thoát chế độ chỉnh sửa/xóa";
+            L.drawLocal.edit.toolbar.actions.cancel.text = "Thoát";
+            L.drawLocal.edit.toolbar.actions.clearAll.title = "Xóa toàn bộ vùng đo";
+            L.drawLocal.edit.toolbar.actions.clearAll.text = "Xóa tất cả";
+        }
+        if (L.drawLocal?.edit?.handlers?.remove?.tooltip) {
+            L.drawLocal.edit.handlers.remove.tooltip.text = "Nhấn vào đối tượng để xóa";
+        }
+        if (L.drawLocal?.edit?.handlers?.edit?.tooltip) {
+            L.drawLocal.edit.handlers.edit.tooltip.text = "Kéo các điểm để chỉnh sửa";
+            L.drawLocal.edit.handlers.edit.tooltip.subtext = "Nhấn Lưu để áp dụng hoặc Thoát để hủy";
+        }
 
         const drawControl = new L.Control.Draw({
             position: "topleft",
@@ -290,22 +360,29 @@ export const initializeMap = (container) => {
                 polyline: {
                     shapeOptions: {
                         color: "#0d6efd",
-                        weight: 3,
+                        weight: 4,
+                        opacity: 0.95,
+                        lineCap: "round",
+                        lineJoin: "round",
                     },
                     metric: true,
                     feet: false,
                     nautic: false,
                     showLength: true,
+                    guidelineDistance: 16,
                     repeatMode: false,
                 },
                 polygon: {
-                    allowIntersection: false,
+                    allowIntersection: true,
                     showArea: true,
                     metric: true,
+                    guidelineDistance: 16,
                     shapeOptions: {
                         color: "#198754",
                         weight: 2,
-                        fillOpacity: 0.2,
+                        opacity: 0.95,
+                        lineJoin: "round",
+                        fillOpacity: 0.18,
                     },
                     repeatMode: false,
                 },
@@ -329,33 +406,54 @@ export const initializeMap = (container) => {
         });
         mapInstance.addControl(drawControl);
 
+        const activateMeasurementMode = () => {
+            setMeasurementInteractionMode(mapInstance, true);
+        };
+
+        const deactivateMeasurementMode = () => {
+            setMeasurementInteractionMode(mapInstance, false);
+        };
+
         const exitDrawModes = () => {
-          // Disable any active draw/edit mode.
-          drawControl?._toolbars?.draw?.disable();
-          drawControl?._toolbars?.edit?.disable();
+            // Disable any active draw/edit mode.
+            drawControl?._toolbars?.draw?.disable();
+            drawControl?._toolbars?.edit?.disable();
+            deactivateMeasurementMode();
         };
 
         const onEscKey = (event) => {
-          if (event.key === "Escape") {
-            exitDrawModes();
-          }
+            if (event.key === "Escape") {
+                exitDrawModes();
+            }
         };
 
         document.addEventListener("keydown", onEscKey);
         mapInstance.on("unload", () => {
-          document.removeEventListener("keydown", onEscKey);
+            document.removeEventListener("keydown", onEscKey);
+            deactivateMeasurementMode();
         });
+
+        mapInstance.on(L.Draw.Event.DRAWSTART, activateMeasurementMode);
+        mapInstance.on(L.Draw.Event.EDITSTART, activateMeasurementMode);
+        mapInstance.on(L.Draw.Event.DELETESTART, activateMeasurementMode);
+
+        mapInstance.on(L.Draw.Event.DRAWSTOP, deactivateMeasurementMode);
+        mapInstance.on(L.Draw.Event.EDITSTOP, deactivateMeasurementMode);
+        mapInstance.on(L.Draw.Event.DELETESTOP, deactivateMeasurementMode);
+        mapInstance.on(L.Draw.Event.DELETED, deactivateMeasurementMode);
 
         mapInstance.on(L.Draw.Event.CREATED, (event) => {
             const { layer } = event;
             drawnItems.addLayer(layer);
             updateMeasurementTooltip(layer);
+            deactivateMeasurementMode();
         });
 
         mapInstance.on(L.Draw.Event.EDITED, (event) => {
             event.layers.eachLayer((layer) => {
                 updateMeasurementTooltip(layer);
             });
+            deactivateMeasurementMode();
         });
     } else {
         console.warn("Leaflet.Draw chưa được nạp, bỏ qua control đo đạc.");

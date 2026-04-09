@@ -31,12 +31,12 @@ const BASE_MAP_OPTIONS = [
     {
         value: "Google Satellite",
         label: "Google Satellite",
-        description: "Ảnh vệ tinh Google",
+        description: "Bản đồ vệ tinh",
     },
     {
-        value: "Esri Imagery",
-        label: "Esri Imagery",
-        description: "Ảnh vệ tinh Esri",
+        value: "Google Hybrid",
+        label: "Google Hybrid",
+        description: "Bản đồ lai",
     },
 ];
 
@@ -94,6 +94,21 @@ function LeftMenuMap({
         }));
 
         onLayerToggle("iotStations", checked);
+    };
+
+    const handleMonitoringDataVisibilityToggle = () => {
+        const shouldEnableAll = !DEFAULT_MONITORING_LAYERS.every((layer) => state.enabledLayers.includes(layer));
+
+        setState((prevState) => ({
+            ...prevState,
+            enabledLayers: shouldEnableAll
+                ? [...new Set([...prevState.enabledLayers, ...DEFAULT_MONITORING_LAYERS])]
+                : prevState.enabledLayers.filter((layer) => !DEFAULT_MONITORING_LAYERS.includes(layer)),
+        }));
+
+        DEFAULT_MONITORING_LAYERS.forEach((layerName) => {
+            onLayerToggle(layerName, shouldEnableAll);
+        });
     };
 
     const toggleSalinityDropdown = () => {
@@ -755,8 +770,8 @@ function LeftMenuMap({
                 <div className="tab-content-data">
                     {/* Monitoring Data Section */}
                     <div className="data-section">
-                        <div className="section-header">
-                            <h3 className="section-title">Dữ liệu chuyên đề</h3>
+                        <div className="section-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                            <h3 className="section-title mb-0">Dữ liệu chuyên đề</h3>
                         </div>
                         <div className="monitoring-layers">
                             {/* Salinity Monitoring Dropdown */}
@@ -1153,7 +1168,7 @@ function LeftMenuMap({
                                 >
                                     <div className="category-info">
                                         <i className="fa-solid fa-map category-icon"></i>
-                                        <span className="category-name">Nền bản đồ</span>
+                                        <span className="category-name">Nền Google</span>
                                     </div>
                                     <i
                                         className={`fa-solid fa-chevron-right expand-icon ${

@@ -126,6 +126,11 @@ function Header() {
                                     </li>
                                 </>
                             )}
+                            {!isLoggedIn && (
+                                <li className="text-center">
+                                    <NavLink to={ROUTES.login}>ĐĂNG NHẬP</NavLink>
+                                </li>
+                            )}
                         </ul>
                     </nav>
                 </div>
