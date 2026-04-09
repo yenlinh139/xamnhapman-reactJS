@@ -68,13 +68,43 @@ const buildIoTChartPayload = (station, iotResponse) => {
     };
 };
 
-// Map classification class to popup status CSS class and color
+// Map classification class to popup/icon styles with stronger colors for better visibility
 const RISK_CLASS_MAP = {
-    'normal':       { statusClass: 'status-normal',       color: '#28a745' },
-    'warning':      { statusClass: 'status-warning',      color: '#ffc107' },
-    'high-warning': { statusClass: 'status-high-warning', color: '#fd7e14' },
-    'critical':     { statusClass: 'status-critical',     color: '#dc3545' },
-    'no-data':      { statusClass: 'status-no-data',      color: '#6c757d' },
+    normal: {
+        statusClass: 'status-normal',
+        color: '#228b22',
+        accentColor: '#16a34a',
+        glowColor: 'rgba(34, 139, 34, 0.72)',
+        shadowColor: 'rgba(21, 128, 61, 0.42)',
+    },
+    warning: {
+        statusClass: 'status-warning',
+        color: '#d97706',
+        accentColor: '#f59e0b',
+        glowColor: 'rgba(217, 119, 6, 0.72)',
+        shadowColor: 'rgba(180, 83, 9, 0.42)',
+    },
+    'high-warning': {
+        statusClass: 'status-high-warning',
+        color: '#c2410c',
+        accentColor: '#ea580c',
+        glowColor: 'rgba(194, 65, 12, 0.72)',
+        shadowColor: 'rgba(154, 52, 18, 0.42)',
+    },
+    critical: {
+        statusClass: 'status-critical',
+        color: '#b91c1c',
+        accentColor: '#ef4444',
+        glowColor: 'rgba(185, 28, 28, 0.75)',
+        shadowColor: 'rgba(153, 27, 27, 0.42)',
+    },
+    'no-data': {
+        statusClass: 'status-no-data',
+        color: '#6b7280',
+        accentColor: '#9ca3af',
+        glowColor: 'rgba(107, 114, 128, 0.55)',
+        shadowColor: 'rgba(75, 85, 99, 0.35)',
+    },
 };
 
 // Helper: get risk classification for IoT station based on latest salt value
@@ -88,23 +118,32 @@ const getIoTRiskClassification = (station) => {
     return getSingleStationClassification(saltValue, baseCode);
 };
 
-// Create custom IoT icon - single fixed color regardless of risk level.
-// Keep riskClass parameter for API compatibility with callers.
-export const getIoTIcon = (status, totalRecords, _riskClass = 'no-data') => {
-    const markerColor = '#7c3aed';
+// Create custom IoT icon using the same risk palette as the salinity markers.
+export const getIoTIcon = (status, totalRecords, riskClass = 'no-data') => {
+    const normalizedRiskClass = String(riskClass || 'no-data');
+    const riskStyle = RISK_CLASS_MAP[normalizedRiskClass] || RISK_CLASS_MAP['no-data'];
+    const isInactive =
+        String(status || '').toLowerCase() === 'inactive' || Number(totalRecords || 0) <= 0;
+
+    const markerStyle = isInactive ? RISK_CLASS_MAP['no-data'] : riskStyle;
+    const markerStateClass = isInactive ? 'inactive' : 'active';
+
     return L.divIcon({
         className: "custom-iot-marker",
         html: `
             <div class="iot-marker-container">
-                <div class="iot-marker active" style="--risk-color: ${markerColor}">
+                <div
+                    class="iot-marker ${markerStateClass}"
+                    style="--risk-color: ${markerStyle.color}; --risk-accent-color: ${markerStyle.accentColor}; --risk-glow-color: ${markerStyle.glowColor}; --risk-shadow-color: ${markerStyle.shadowColor};"
+                >
                     <div class="iot-icon">
                         <i class="fa-solid fa-tower-broadcast"></i>
                     </div>
                     <div class="iot-signal">
-                            <div class="signal-ring ring-1"></div>
-                            <div class="signal-ring ring-2"></div>
-                            <div class="signal-ring ring-3"></div>
-                        </div>
+                        <div class="signal-ring ring-1"></div>
+                        <div class="signal-ring ring-2"></div>
+                        <div class="signal-ring ring-3"></div>
+                    </div>
                 </div>
             </div>
         `,

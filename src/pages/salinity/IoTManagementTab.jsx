@@ -567,8 +567,8 @@ const IoTManagementTab = ({ userInfo }) => {
                                     <th>Tên trạm</th>
                                     <th>Serial</th>
                                     <th>Độ mặn (‰)</th>
-                                    <th>Mực nước (m)</th>
-                                    <th>Mưa ngày (mm)</th>
+                                    <th>Mực nước (cm)</th>
+                                    <th>Lượng mưa (mm)</th>
                                     <th>Nhiệt độ (°C)</th>
                                     {userInfo && <th style={{ width: 160 }}>Thao tác</th>}
                                 </tr>
@@ -666,7 +666,7 @@ const IoTManagementTab = ({ userInfo }) => {
                                             />
                                         </div>
                                         <div className="col-md-6">
-                                            <label className="form-label">Mực nước (m)</label>
+                                            <label className="form-label">Mực nước (cm)</label>
                                             <input
                                                 type="number"
                                                 step="0.0001"
@@ -676,7 +676,7 @@ const IoTManagementTab = ({ userInfo }) => {
                                             />
                                         </div>
                                         <div className="col-md-6">
-                                            <label className="form-label">Lượng mưa ngày (mm)</label>
+                                            <label className="form-label">Lượng mưa (mm)</label>
                                             <input
                                                 type="number"
                                                 step="0.0001"

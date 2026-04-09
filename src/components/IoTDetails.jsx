@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { InfoCircle, X, BarChart } from "react-bootstrap-icons";
 import IoTBarChart from "@pages/map/IoTBarChart";
+import { getSingleStationClassification } from "@common/salinityClassification";
 
 const IoTDetails = ({ iotData, onClose, onOpenFullChart }) => {
     const [selectedDate, setSelectedDate] = useState("");
@@ -20,6 +21,7 @@ const IoTDetails = ({ iotData, onClose, onOpenFullChart }) => {
     }
 
     const { stationName, serialNumber, summary } = iotData;
+    const stationCode = iotData?.stationCode || iotData?.stationInfo?.station_code || "";
 
     const selectedDataPoint = dataPoints.find((item) => {
         // Sử dụng Date hoặc date_time tùy vào data structure
@@ -38,22 +40,20 @@ const IoTDetails = ({ iotData, onClose, onOpenFullChart }) => {
         ? new Date(dataPoints[dataPoints.length - 1].Date || dataPoints[dataPoints.length - 1].date_time).toLocaleDateString("vi-VN") 
         : null;
 
-    // Function to get risk level based on value
     const getRiskLevel = (value) => {
-        if (value === null || value === undefined || isNaN(value)) {
-            return { level: "Khuyết số liệu", color: "#6c757d", bgColor: "#f8f9fa" };
-        }
-        
-        const numValue = parseFloat(value);
-        
-        if (numValue < 1) {
-            return { level: "Bình thường", color: "#155724", bgColor: "#d4edda" };
-        } else if (numValue <= 4) {
-            return { level: "Rủi ro cấp 1", color: "#856404", bgColor: "#fff3cd" };
-        } else if (numValue <= 8) {
-            return { level: "Rủi ro cấp 2", color: "#bd4502", bgColor: "#fed7aa" };
-        } else {
-            return { level: "Rủi ro cấp 3", color: "#721c24", bgColor: "#f8d7da" };
+        const classification = getSingleStationClassification(value, stationCode);
+
+        switch (classification.class) {
+            case "normal":
+                return { level: "Bình thường", color: "#155724", bgColor: "#d4edda" };
+            case "warning":
+                return { level: "Rủi ro cấp 1", color: "#856404", bgColor: "#fff3cd" };
+            case "high-warning":
+                return { level: "Rủi ro cấp 2", color: "#bd4502", bgColor: "#fed7aa" };
+            case "critical":
+                return { level: "Rủi ro cấp 3", color: "#721c24", bgColor: "#f8d7da" };
+            default:
+                return { level: "Khuyết số liệu", color: "#6c757d", bgColor: "#f8f9fa" };
         }
     };
 
@@ -115,7 +115,7 @@ const IoTDetails = ({ iotData, onClose, onOpenFullChart }) => {
             {/* Chart */}
             <div onClick={onOpenFullChart} style={{ cursor: "pointer" }} className="hover-shadow rounded">
                 <div className="chart-wrapper rounded shadow-sm border p-2 bg-light">
-                    <IoTBarChart data={dataPoints} height={250} />
+                    <IoTBarChart data={dataPoints} height={250} stationCode={stationCode} />
                 </div>
                 <p className="text-center mt-2 text-primary small">
                     Click để xem chi tiết (có thể xuất dữ liệu)
@@ -355,7 +355,7 @@ const IoTDetails = ({ iotData, onClose, onOpenFullChart }) => {
                                                         }}
                                                     >
                                                         <small className="text-muted d-block">
-                                                            🌧️ Lượng mưa hàng ngày
+                                                            Lượng mưa
                                                         </small>
                                                         <div className="fw-semibold text-success">
                                                             {selectedDataPoint.daily_rainfall_value}{" "}

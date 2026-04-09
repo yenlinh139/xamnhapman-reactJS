@@ -41,9 +41,6 @@ function SignUp({ onSwitchTab }) {
     return (
         <div className="signUp">
             <form onSubmit={(e) => e.preventDefault()}>
-                <label className="labelLogin" aria-hidden="true">
-                    Đăng ký
-                </label>
                 <input
                     className="inputLogin"
                     type="text"

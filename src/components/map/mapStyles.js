@@ -223,15 +223,15 @@ export const createBaseMaps = () => {
             attribution: "© Google",
         }),
 
-        "Google Satellite": L.tileLayer("https://mt1.google.com/vt/lyrs=y&hl=vi&x={x}&y={y}&z={z}", {
+        "Google Satellite": L.tileLayer("https://mt1.google.com/vt/lyrs=s&hl=vi&x={x}&y={y}&z={z}", {
             maxZoom: 20,
             attribution: "© Google",
         }),
 
-        "Esri Imagery": L.tileLayer(
-            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-            { maxZoom: 20, attribution: "Map tiles by Esri" },
-        ),
+        "Google Hybrid": L.tileLayer("https://mt1.google.com/vt/lyrs=y&hl=vi&x={x}&y={y}&z={z}", {
+            maxZoom: 20,
+            attribution: "© Google",
+        }),
     };
 };
 

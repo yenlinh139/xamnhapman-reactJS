@@ -240,7 +240,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
             titleDiv.style.marginBottom = "20px";
             titleDiv.innerHTML = `
                 <h5 style="font-weight: bold; margin-bottom: 8px; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    🧂 Diễn biến độ mặn - ${displayStationName}
+                    Diễn biến độ mặn - ${displayStationName}
                 </h5>
                 ${
                     startDate && endDate
@@ -307,7 +307,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                     <div className="modal-header border-0 pb-0">
                         <div className="w-100 text-center">
                             <h5 className="modal-title mb-1 fw-bold">
-                                🧂 Diễn biến độ mặn - {displayStationName}
+                                Diễn biến độ mặn - {displayStationName}
                             </h5>
                             {startDate && endDate && (
                                 <div className="text-muted small">
@@ -366,7 +366,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                                 disabled={!isLoggedIn}
                                                 title={!isLoggedIn ? "Bạn cần đăng nhập để tải xuống biểu đồ" : ""}
                                             >
-                                                📸 {isLoggedIn ? "Tải ảnh biểu đồ" : "Đăng nhập để tải"}
+                                                {isLoggedIn ? "Tải ảnh biểu đồ" : "Đăng nhập để tải"}
                                             </button>
                                         </div>
                                     </div>

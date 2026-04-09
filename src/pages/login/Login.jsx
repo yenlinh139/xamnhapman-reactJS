@@ -48,9 +48,6 @@ const Login = ({ onSwitchTab }) => {
         <>
             <div className="login">
                 <form onSubmit={(e) => e.preventDefault()}>
-                    <label className="labelLogin" aria-hidden="true">
-                        Đăng nhập
-                    </label>
                     <input
                         className="inputLogin"
                         type="email"
