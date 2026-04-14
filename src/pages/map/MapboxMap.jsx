@@ -1098,14 +1098,25 @@ const MapboxMap = forwardRef(
                                     positions.forEach((pos) => {
                                         if (!pos.position || !pos.position[0]) return;
 
-                                        const key = pos.position[0].KiHieu;
+                                        const stationInfo = pos.position[0];
+                                        const key =
+                                            stationInfo?.KiHieu ||
+                                            stationInfo?.StationCode ||
+                                            stationInfo?.MaTram ||
+                                            pos?.kiHieu;
                                         if (!grouped[key]) {
                                             grouped[key] = {
+                                                stationCode: key,
                                                 position: {
-                                                    vido: dmsToDecimal(pos.position[0].ViDo),
-                                                    kinhdo: dmsToDecimal(pos.position[0].KinhDo),
+                                                    vido: dmsToDecimal(stationInfo?.ViDo),
+                                                    kinhdo: dmsToDecimal(stationInfo?.KinhDo),
                                                 },
-                                                name: pos.position[0].TenTam,
+                                                name:
+                                                    stationInfo?.TenTram ||
+                                                    stationInfo?.TenTam ||
+                                                    stationInfo?.StationName ||
+                                                    key ||
+                                                    "Trạm KTTV",
                                                 values: [],
                                             };
                                         }
@@ -1113,10 +1124,13 @@ const MapboxMap = forwardRef(
                                         const prefix = pos.kiHieu.split("_")[0];
                                         const unitData = prefixUnitMap()[prefix] || {};
                                         const unit = unitData.donvi || "";
+                                        const numericValue = Number.parseFloat(pos.value);
 
                                         grouped[key].values.push({
                                             paramName: unitData.label || pos.kiHieu,
-                                            value: parseFloat(pos.value).toFixed(2),
+                                            value: Number.isFinite(numericValue)
+                                                ? numericValue.toFixed(2)
+                                                : "--",
                                             unit,
                                         });
                                     });
@@ -1147,248 +1161,218 @@ const MapboxMap = forwardRef(
                             const updateLegendWithStations = async () => {
                                 const stationsInfo = await processStationsData();
 
-                                // Create array with all three data types to ensure they are all displayed
-                                const allDataTypes = [
-                                    "salinityData",
-                                    "iotData",
-                                    "meteorologyData",
-                                    "hydrologyData",
-                                ];
+                                const summaryTypeTags = ["salinityData", "iotData", "kttvData"]
+                                    .filter((key) => {
+                                        if (key === "kttvData") {
+                                            return (
+                                                (stationsInfo.meteorologyData?.length || 0) > 0 ||
+                                                (stationsInfo.hydrologyData?.length || 0) > 0
+                                            );
+                                        }
 
-                                const summaryTypeTags = allDataTypes
-                                    .filter((key) => (data[key]?.length || 0) > 0)
+                                        return (stationsInfo[key]?.length || 0) > 0;
+                                    })
                                     .map((key) => {
                                         if (key === "salinityData") return "Điểm đo mặn";
                                         if (key === "iotData") return "Trạm IoT";
-                                        if (key === "meteorologyData") return "KTTV - Khí tượng";
-                                        if (key === "hydrologyData") return "KTTV - Thủy văn";
+                                        if (key === "kttvData") return "KTTV";
                                         return key;
                                     })
                                     .map((label) => `<span class="summary-type-tag">${label}</span>`)
                                     .join("");
+
+                                const parseNumeric = (value) => {
+                                    if (value === null || value === undefined || value === "" || value === "--") {
+                                        return null;
+                                    }
+
+                                    const normalized = String(value).replace(",", ".").trim();
+                                    const numeric = Number.parseFloat(normalized);
+                                    return Number.isFinite(numeric) ? numeric : null;
+                                };
+
+                                const kttvStations = [
+                                    ...(stationsInfo.meteorologyData || []).map((station) => ({
+                                        ...station,
+                                        sourceType: "Khí tượng",
+                                        sourceClass: "meteo",
+                                    })),
+                                    ...(stationsInfo.hydrologyData || []).map((station) => ({
+                                        ...station,
+                                        sourceType: "Thủy văn",
+                                        sourceClass: "hydro",
+                                    })),
+                                ];
+
+                                const salinityStations = Array.isArray(stationsInfo.salinityData)
+                                    ? [...stationsInfo.salinityData]
+                                    : [];
+
+                                const formatAvg = (values, digits = 1) => {
+                                    if (!values.length) return "--";
+                                    const avg = values.reduce((sum, value) => sum + value, 0) / values.length;
+                                    return avg.toFixed(digits);
+                                };
+
+                                const rawIotRows = Array.isArray(data.iotData) ? data.iotData : [];
+                                const rawKttvRows = [
+                                    ...(Array.isArray(data.meteorologyData) ? data.meteorologyData : []),
+                                    ...(Array.isArray(data.hydrologyData) ? data.hydrologyData : []),
+                                ];
+
+                                const salinitySorted = [...(stationsInfo.salinityData || [])]
+                                    .map((station) => ({
+                                        ...station,
+                                        numericValue: parseNumeric(station.rawValue ?? station.value),
+                                    }))
+                                    .filter((station) => station.numericValue !== null)
+                                    .sort((left, right) => right.numericValue - left.numericValue);
+
+                                const iotSorted = [...(stationsInfo.iotData || [])]
+                                    .map((station) => ({
+                                        ...station,
+                                        numericSalt: parseNumeric(station.salt_value),
+                                        numericTemp: parseNumeric(station.temp_value),
+                                        numericWater: parseNumeric(station.distance_value),
+                                        numericRain: parseNumeric(station.daily_rainfall_value),
+                                    }))
+                                    .sort((left, right) => (right.numericSalt ?? -Infinity) - (left.numericSalt ?? -Infinity));
+
+                                const kttvMetricItems = kttvStations.flatMap((station) =>
+                                    (station.values || [])
+                                        .map((param) => ({
+                                            station,
+                                            paramName: param.paramName,
+                                            unit: param.unit,
+                                            numericValue: parseNumeric(param.value),
+                                        }))
+                                        .filter((item) => item.numericValue !== null),
+                                );
+
+                                const salinityTop = salinitySorted[0] || null;
+                                const iotTop = iotSorted[0] || null;
+                                const kttvTopMetric = [...kttvMetricItems].sort(
+                                    (left, right) => right.numericValue - left.numericValue,
+                                )[0] || null;
+
+                                const renderTile = (title, value, accent = false, note = "") => `
+                                    <div class="group-stat-tile ${accent ? "is-alert" : ""}">
+                                        <p class="group-stat-title">${title}</p>
+                                        <p class="group-stat-value">${value}</p>
+                                        ${note ? `<p class="group-stat-note">${note}</p>` : ""}
+                                    </div>
+                                `;
+
+                                const renderGroupCard = (title, tilesHtml) => `
+                                    <div class="stat-item">
+                                        <div class="stat-label stat-group-title">${title}</div>
+                                        <div class="group-stat-grid">${tilesHtml}</div>
+                                    </div>
+                                `;
+
+                                const sections = [];
+
+                                if (stationsInfo.salinityData?.length > 0) {
+                                    const salinityAvg = formatAvg(
+                                        salinitySorted.map((item) => item.numericValue),
+                                        2,
+                                    );
+                                    const salinityHighRisk = salinitySorted.filter((item) => item.numericValue >= 4).length;
+
+                                    sections.push(
+                                        renderGroupCard(
+                                            `ĐIỂM ĐO MẶN (${stationsInfo.salinityData.length})`,
+                                            [
+                                                renderTile("Độ mặn TB", `${salinityAvg} ‰`, false, "giá trị trung bình"),
+                                                renderTile("Điểm >= 4‰", String(salinityHighRisk), salinityHighRisk > 0, "điểm cần chú ý"),
+                                                renderTile(
+                                                    "Cao nhất",
+                                                    salinityTop ? `${salinityTop.numericValue.toFixed(2)} ‰` : "--",
+                                                    salinityTop && salinityTop.numericValue > 4,
+                                                    salinityTop?.name || "không có dữ liệu",
+                                                ),
+                                                renderTile(
+                                                    "Tổng điểm",
+                                                    String(stationsInfo.salinityData.length),
+                                                    false,
+                                                    "điểm có số liệu",
+                                                ),
+                                            ].join(""),
+                                        ),
+                                    );
+                                }
+
+                                if (stationsInfo.iotData?.length > 0) {
+                                    const iotSaltValues = iotSorted
+                                        .map((station) => station.numericSalt)
+                                        .filter((value) => value !== null);
+                                    const iotTempValues = iotSorted
+                                        .map((station) => station.numericTemp)
+                                        .filter((value) => value !== null);
+                                    const iotRainValues = iotSorted
+                                        .map((station) => station.numericRain)
+                                        .filter((value) => value !== null);
+                                    const iotHighSaltCount = iotSorted.filter((station) => (station.numericSalt || 0) >= 4)
+                                        .length;
+
+                                    sections.push(
+                                        renderGroupCard(
+                                            `TRẠM IOT (${stationsInfo.iotData.length})`,
+                                            [
+                                                renderTile("Độ mặn TB", `${formatAvg(iotSaltValues, 2)} ‰`, false, "toàn nhóm"),
+                                                renderTile("Mặn cao", String(iotHighSaltCount), iotHighSaltCount > 0, ">= 4‰"),
+                                                renderTile("Nhiệt độ TB", `${formatAvg(iotTempValues, 1)} °C`, false, "trung bình"),
+                                                renderTile("Mưa TB", `${formatAvg(iotRainValues, 1)} mm`, false, "trung bình"),
+                                            ].join(""),
+                                        ),
+                                    );
+                                }
+
+                                if (kttvStations.length > 0) {
+                                    const stationNameCount = new Set(
+                                        kttvStations.map((station) => station.name).filter((name) => Boolean(name)),
+                                    ).size;
+                                    const meteoStationCount = (stationsInfo.meteorologyData || []).length;
+                                    const hydroStationCount = (stationsInfo.hydrologyData || []).length;
+                                    const topKttvLabel = kttvTopMetric
+                                        ? `${kttvTopMetric.station.name} · ${kttvTopMetric.paramName}: ${kttvTopMetric.numericValue.toFixed(2)} ${kttvTopMetric.unit}`
+                                        : "--";
+
+                                    sections.push(
+                                        renderGroupCard(
+                                            `KTTV (${kttvStations.length})`,
+                                            [
+                                                renderTile("Tổng trạm", String(stationNameCount || kttvStations.length), false, "đang có số liệu"),
+                                                renderTile("Khí tượng", String(meteoStationCount), false, "nhóm con"),
+                                                renderTile("Thủy văn", String(hydroStationCount), false, "nhóm con"),
+                                                renderTile("Nổi bật", topKttvLabel, false, "chỉ tiêu lớn nhất"),
+                                            ].join(""),
+                                        ),
+                                    );
+                                }
 
                                 legendPrimary.innerHTML = `
                               <div class="data-summary-card">
                                 <div class="summary-header">
                                   <div class="d-flex justify-content-between align-items-center w-100">
                                     <h6 class="summary-date mb-0">📅 ${formattedDate}</h6>
-                                                                        <div class="summary-type-tags">${summaryTypeTags || '<span class="summary-type-tag">Không có dữ liệu</span>'}</div>
                                   </div>
                                 </div>
-                               <div class="summary-stats">
-                                ${allDataTypes
-                                    .map((key) => {
-                                        const label = labelMapping[key] || key;
-
-                                        // Salinity data
-                                        if (key === "salinityData" && stationsInfo.salinityData?.length > 0) {
-                                            return `
-                                                <div class="stat-item" >
-                                                    <div class="station-list">
-                                                        ${stationsInfo.salinityData
-                                                            .map(
-                                                                (station) => `
-                                                        <div class="station-item" data-station="${station.kiHieu}" data-position='${JSON.stringify(station)}' role="button" tabindex="0">
-                                                            <span class="station-name">${station.name}</span>
-                                                            <span class="station-value" style="color: ${station.color}; font-weight: 600; background-color: rgba(${
-                                                                station.color === "#28a745"
-                                                                    ? "40,167,69,0.1" // Green
-                                                                    : station.color === "#ffc107"
-                                                                      ? "255,193,7,0.1" // Yellow
-                                                                      : station.color === "#fd7e14"
-                                                                        ? "253,126,20,0.1" // Orange
-                                                                        : station.color === "#dc3545"
-                                                                          ? "220,53,69,0.1" // Red
-                                                                          : "108,117,125,0.1" // Gray for no-data
-                                                            }); padding: 3px 8px; border-radius: 12px;">
-                                                            ${station.value} ${station.unit}
-                                                            </span>
-                                                        </div>
-                                                        `,
-                                                            )
-                                                            .join("")}
-                                                    </div>
-                                                </div>
-                                            `;
-                                        } else if (key === "iotData" && stationsInfo.iotData?.length > 0) {
-                                            return `
-                                                <div class="stat-item">
-                                                    <div class="station-list">
-                                                        ${stationsInfo.iotData
-                                                            .map(
-                                                                (station) => `
-                                                        <div class="station-item" data-station="${station.serial_number}" data-position='${JSON.stringify(station)}' role="button" tabindex="0">
-                                                            <span class="station-name">${station.name}</span>
-                                                            <div class="station-params">
-                                                                <div class="param-item">
-                                                                    <span class="param-value" style="color: ${station.color}; background-color: rgba(124,58,237,0.10); padding: 2px 6px; border-radius: 10px; font-weight: 600;">
-                                                                        Độ mặn: </br> ${station.salt_value || "--"} ‰
-                                                                    </span>
-                                                                </div>
-                                                                <div class="param-item">
-                                                                    <span class="param-value" style="background-color: rgba(245, 158, 11, 0.12); padding: 2px 6px; border-radius: 10px; font-weight: 600; color: #b45309;">
-                                                                        Nhiệt độ: ${station.temp_value || "--"} ${station.temp_unit || "°C"}
-                                                                    </span>
-                                                                </div>
-                                                                <div class="param-item">
-                                                                    <span class="param-value" style="background-color: rgba(13, 110, 253, 0.12); padding: 2px 6px; border-radius: 10px; font-weight: 600; color: #0d6efd;">
-                                                                        Mực nước: ${station.distance_value || "--"} ${station.distance_unit || "m"}
-                                                                    </span>
-                                                                </div>
-                                                                <div class="param-item">
-                                                                    <span class="param-value" style="background-color: rgba(40, 167, 69, 0.12); padding: 2px 6px; border-radius: 10px; font-weight: 600; color: #2e7d32;">
-                                                                        Lượng mưa: ${station.daily_rainfall_value || "--"} ${station.daily_rainfall_unit || "mm"}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        `,
-                                                            )
-                                                            .join("")}
-                                                    </div>
-                                                </div>
-                                            `;
-                                        }
-
-                                        // Meteorology data
-                                        else if (
-                                            key === "meteorologyData" &&
-                                            stationsInfo.meteorologyData?.length > 0
-                                        ) {
-                                            return `
-                                                <div class="stat-item">
-                                                <div class="station-list">
-                                                    ${stationsInfo.meteorologyData
-                                                        .map(
-                                                            (station) => `
-                                                    <div class="station-item" data-station="${station.name}" data-position='${JSON.stringify(station)}' role="button" tabindex="0">
-                                                        <span class="station-name">${station.name}</span>
-                                                        <div class="station-params">
-                                                        ${station.values
-                                                            .map(
-                                                                (param) => `
-                                                            <div class="param-item">
-                                                            <span class="param-value" style="background-color: rgba(13, 110, 253, 0.1); padding: 2px 6px; border-radius: 10px; font-weight: 500;">
-                                                                ${param.value} ${param.unit}
-                                                            </span>
-                                                            </div>
-                                                        `,
-                                                            )
-                                                            .join("")}
-                                                        </div>
-                                                    </div>
-                                                    `,
-                                                        )
-                                                        .join("")}
-                                                </div>
-                                                </div>
-                                            `;
-                                        }
-
-                                        // Hydrology data
-                                        else if (
-                                            key === "hydrologyData" &&
-                                            stationsInfo.hydrologyData?.length > 0
-                                        ) {
-                                            return `
-                                                <div class="stat-item">
-                                                <div class="station-list">
-                                                    ${stationsInfo.hydrologyData
-                                                        .map(
-                                                            (station) => `
-                                                    <div class="station-item" data-station="${station.name}" data-position='${JSON.stringify(station)}' role="button" tabindex="0">
-                                                        <span class="station-name">${station.name}</span>
-                                                        <div class="station-params">
-                                                        ${station.values
-                                                            .map(
-                                                                (param) => `
-                                                            <div class="param-item">
-                                                            <span class="param-value" style="background-color: rgba(25, 135, 84, 0.1); padding: 2px 6px; border-radius: 10px; font-weight: 500;">
-                                                                ${param.value} ${param.unit}
-                                                            </span>
-                                                            </div>
-                                                        `,
-                                                            )
-                                                            .join("")}
-                                                        </div>
-                                                    </div>
-                                                    `,
-                                                        )
-                                                        .join("")}
-                                                </div>
-                                                </div>
-                                            `;
-                                        }
-
-                                        return "";
-                                    })
-                                    .filter(Boolean)
-                                    .join("")}
+                                <div class="summary-stats">
+                                  ${sections.join("")}
                                 </div>
                               </div>
                             `;
+
+                                // Summary-only mode: no modal details from this legend panel.
                             };
-
-                            // Gắn event listeners sau khi update legend
-                            const attachEventListeners = () => {
-                                const items = legendPrimary.querySelectorAll(".station-item[data-position]");
-
-                                items.forEach((el) => {
-                                    // Remove existing listeners to prevent duplicates
-                                    el.removeEventListener("click", handleStationClick);
-                                    el.removeEventListener("mouseenter", handleStationMouseEnter);
-                                    el.removeEventListener("mouseleave", handleStationMouseLeave);
-
-                                    // Add new listeners
-                                    el.addEventListener("click", handleStationClick);
-                                    el.addEventListener("mouseenter", handleStationMouseEnter);
-                                    el.addEventListener("mouseleave", handleStationMouseLeave);
-
-                                    // Set cursor style
-                                    el.style.cursor = "pointer";
-                                });
-                            };
-
-                            const handleStationClick = (event) => {
-                                event.preventDefault();
-                                event.stopPropagation();
-
-                                try {
-                                    const raw = event.currentTarget.getAttribute("data-position");
-
-                                    if (raw) {
-                                        const station = JSON.parse(raw);
-                                        handleClickSearchDate(station);
-                                    } else {
-                                        console.warn("Không tìm thấy data-position attribute");
-                                    }
-                                } catch (e) {
-                                    console.error("❌ Lỗi khi parse data-position:", e);
-                                    console.error(
-                                        "Raw data:",
-                                        event.currentTarget.getAttribute("data-position"),
-                                    );
-                                }
-                            };
-
-                            const handleStationMouseEnter = function () {
-                                this.style.backgroundColor = "rgba(0, 123, 255, 0.1)";
-                            };
-
-                            const handleStationMouseLeave = function () {
-                                this.style.backgroundColor = "transparent";
-                            };
-
-                            // Update legend and then attach event listeners
+                            // Update legend and then render summary cards
                             updateLegendWithStations()
                                 .then(() => {
-                                    // Wait a bit for DOM to be fully updated
-                                    setTimeout(attachEventListeners, 50);
+                                    // no-op
                                 })
                                 .catch((error) => {
                                     console.error("Error updating legend:", error);
-                                    // Try to attach listeners anyway
-                                    setTimeout(attachEventListeners, 50);
                                 });
                         }
                     } catch (error) {
