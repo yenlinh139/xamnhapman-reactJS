@@ -959,6 +959,49 @@ button:hover,
             }
         }
 
+        .summary-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 6px;
+            padding: 8px 8px 2px;
+        }
+
+        .summary-kpi-item {
+            margin: 0;
+            border: 1px solid #e5eaf0;
+            border-radius: 8px;
+            padding: 7px;
+            background: #f8fafd;
+            min-height: 76px;
+
+            &.is-alert {
+                border-color: #f3c2c7;
+                background: #fff6f7;
+            }
+        }
+
+        .summary-kpi-label {
+            margin: 0;
+            font-size: 10px;
+            font-weight: 600;
+            color: #5b6878;
+        }
+
+        .summary-kpi-value {
+            margin: 2px 0 0;
+            font-size: 15px;
+            font-weight: 700;
+            color: #1f2a37;
+            line-height: 1.25;
+        }
+
+        .summary-kpi-hint {
+            margin: 2px 0 0;
+            font-size: 10px;
+            color: #64748b;
+            line-height: 1.35;
+        }
+
         .summary-stats {
             padding: 6px;
             display: flex;
@@ -1025,6 +1068,15 @@ button:hover,
                     }
                 }
 
+                .stat-group-title {
+                    display: block;
+                    font-size: 10px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.4px;
+                    color: #334155;
+                    background: #eef2f7;
+                }
+
                 .stat-value {
                     font-size: 12px;
                     font-weight: 500;
@@ -1034,8 +1086,77 @@ button:hover,
                     display: block;
                 }
 
+                .iot-overview-grid {
+                    display: grid;
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    gap: 5px;
+                    padding: 6px;
+                    border-bottom: 1px dashed #d5dee8;
+
+                    .iot-overview-item {
+                        background: #f1f5f9;
+                        border: 1px solid #dce5ef;
+                        border-radius: 6px;
+                        padding: 5px 6px;
+
+                        &.is-alert {
+                            border-color: #f5c4cb;
+                            background: #fff5f6;
+                        }
+
+                        .iot-overview-label {
+                            margin: 0;
+                            font-size: 10px;
+                            color: #5b6878;
+                            font-weight: 600;
+                            line-height: 1.2;
+                        }
+
+                        .iot-overview-value {
+                            margin: 2px 0 0;
+                            font-size: 12px;
+                            font-weight: 700;
+                            color: #1f2a37;
+                            line-height: 1.2;
+                        }
+                    }
+                }
+
                 .station-list {
                     padding: 6px;
+
+                    &.station-list-compact {
+                        padding-top: 2px;
+                    }
+
+                    .stat-summary-empty {
+                        margin: 0;
+                        padding: 8px;
+                        border-radius: 6px;
+                        background: #f8fafc;
+                        color: #64748b;
+                        font-size: 11px;
+                    }
+
+                    .station-item-compact {
+                        padding: 7px 8px;
+                        background: #f8fafc;
+
+                        .station-name {
+                            max-width: 130px;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                            white-space: nowrap;
+                        }
+
+                        .station-value {
+                            font-size: 10px;
+                            padding: 2px 8px;
+                            border-radius: 999px;
+                            background: rgba(37, 99, 235, 0.1);
+                            color: #1d4ed8;
+                        }
+                    }
 
                     .station-item {
                         display: flex;
@@ -1077,9 +1198,67 @@ button:hover,
                             flex: 1;
                         }
 
+                        .station-sub-value {
+                            margin: 2px 0 0;
+                            font-size: 10px;
+                            font-weight: 500;
+                            color: #64748b;
+
+                            .station-source-tag {
+                                display: inline-block;
+                                border-radius: 999px;
+                                padding: 1px 7px;
+                                font-size: 10px;
+                                font-weight: 600;
+                                border: 1px solid transparent;
+
+                                &.meteo {
+                                    color: #2563eb;
+                                    background: rgba(37, 99, 235, 0.1);
+                                    border-color: rgba(37, 99, 235, 0.25);
+                                }
+
+                                &.hydro {
+                                    color: #0f766e;
+                                    background: rgba(15, 118, 110, 0.1);
+                                    border-color: rgba(15, 118, 110, 0.25);
+                                }
+                            }
+                        }
+
                         .station-value {
                             font-size: 11px;
                             font-weight: 600;
+                        }
+
+                        .station-quick-metrics {
+                            display: flex;
+                            flex-direction: column;
+                            align-items: flex-end;
+                            gap: 3px;
+                        }
+
+                        .station-quick-chip {
+                            display: inline-flex;
+                            align-items: center;
+                            justify-content: center;
+                            border-radius: 999px;
+                            padding: 2px 8px;
+                            font-size: 10px;
+                            font-weight: 700;
+                            white-space: nowrap;
+                        }
+
+                        .station-quick-chip-salt {
+                            color: #6d28d9;
+                            background: rgba(124, 58, 237, 0.12);
+                            border: 1px solid rgba(124, 58, 237, 0.2);
+                        }
+
+                        .station-quick-chip-temp {
+                            color: #b45309;
+                            background: rgba(245, 158, 11, 0.14);
+                            border: 1px solid rgba(245, 158, 11, 0.25);
                         }
 
                         .station-params {
@@ -1096,6 +1275,117 @@ button:hover,
                                 }
                             }
                         }
+                    }
+                }
+
+                .stat-summary-stack {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    padding: 6px;
+                }
+
+                .stat-summary-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 8px;
+                    border: 1px solid #dbe3ee;
+                    background: #f8fafd;
+                    border-radius: 7px;
+                    padding: 6px 8px;
+                }
+
+                .stat-summary-title {
+                    margin: 0;
+                    font-size: 10px;
+                    color: #64748b;
+                    font-weight: 600;
+                    line-height: 1.2;
+                    flex: 1;
+                }
+
+                .stat-summary-value {
+                    margin: 0;
+                    font-size: 12px;
+                    font-weight: 700;
+                    color: #0f172a;
+                    line-height: 1.25;
+                    text-align: right;
+                    white-space: nowrap;
+                }
+
+                .group-stat-grid {
+                    display: grid;
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    gap: 6px;
+                    padding: 6px;
+                }
+
+                .group-stat-tile {
+                    min-height: 76px;
+                    border: 1px solid #dbe3ee;
+                    border-radius: 10px;
+                    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+                    padding: 8px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+
+                    &.is-alert {
+                        border-color: #f1c2c8;
+                        background: linear-gradient(180deg, #fff7f8 0%, #fffafa 100%);
+                    }
+                }
+
+                .group-stat-title {
+                    margin: 0;
+                    font-size: 10px;
+                    line-height: 1.15;
+                    font-weight: 700;
+                    color: #64748b;
+                }
+
+                .group-stat-value {
+                    margin: 4px 0 0;
+                    font-size: 15px;
+                    line-height: 1.1;
+                    font-weight: 800;
+                    color: #0f172a;
+                    word-break: break-word;
+                }
+
+                .group-stat-note {
+                    margin: 4px 0 0;
+                    font-size: 10px;
+                    line-height: 1.25;
+                    color: #94a3b8;
+                }
+
+                .legend-detail-btn {
+                    margin: 0 6px 6px;
+                    align-self: flex-end;
+                    border: 1px solid rgba(37, 99, 235, 0.2);
+                    background: rgba(37, 99, 235, 0.08);
+                    color: #1d4ed8;
+                    border-radius: 999px;
+                    padding: 5px 10px;
+                    font-size: 11px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition:
+                        transform 0.15s ease,
+                        background-color 0.15s ease,
+                        border-color 0.15s ease;
+
+                    &:hover {
+                        transform: translateY(-1px);
+                        background: rgba(37, 99, 235, 0.12);
+                        border-color: rgba(37, 99, 235, 0.3);
+                    }
+
+                    &:active {
+                        transform: translateY(0);
                     }
                 }
             }
