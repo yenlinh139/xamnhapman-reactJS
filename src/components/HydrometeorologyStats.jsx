@@ -13,6 +13,7 @@ import {
     getDateRangePresets,
     formatDate,
 } from "@services/hydrometeorologyStatsService";
+import LocalizedDateInput from "@components/common/LocalizedDateInput";
 
 // ================================
 // REACT COMPONENTS
@@ -632,15 +633,13 @@ export const DateRangeSelector = ({ onDateRangeChange, className = "" }) => {
 
                 {useCustom && (
                     <div className="custom-inputs">
-                        <input
-                            type="date"
+                        <LocalizedDateInput
                             value={customRange.startDate}
                             onChange={(e) => handleCustomRangeChange("startDate", e.target.value)}
                             disabled={!useCustom}
                         />
                         <span>đến</span>
-                        <input
-                            type="date"
+                        <LocalizedDateInput
                             value={customRange.endDate}
                             onChange={(e) => handleCustomRangeChange("endDate", e.target.value)}
                             disabled={!useCustom}

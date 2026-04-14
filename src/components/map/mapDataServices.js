@@ -228,6 +228,66 @@ export const fetchHydrometData = async (kiHieu, options = {}) => {
     }
 };
 
+export const fetchReservoirPoints = async () => {
+    try {
+        const response = await axiosInstance.get("/reservoir-points");
+        return asArray(response.data);
+    } catch (error) {
+        console.error("Error fetching reservoir points:", error);
+        return [];
+    }
+};
+
+export const fetchReservoirOverview = async (code, options = {}) => {
+    try {
+        if (!code) return null;
+
+        const { limit, startDate, endDate } = options;
+        const params = new URLSearchParams();
+        if (limit) params.append("limit", String(limit));
+        if (startDate) params.append("startDate", startDate);
+        if (endDate) params.append("endDate", endDate);
+
+        const query = params.toString();
+        const response = await axiosInstance.get(`/reservoir-overview/${encodeURIComponent(code)}${query ? `?${query}` : ""}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching reservoir overview:", error);
+        return null;
+    }
+};
+
+export const fetchReservoirData = async (kiHieu, options = {}) => {
+    try {
+        if (!kiHieu) return [];
+
+        const { startDate, endDate, limit } = options;
+        const params = new URLSearchParams();
+        if (startDate) params.append("startDate", startDate);
+        if (endDate) params.append("endDate", endDate);
+        if (limit) params.append("limit", String(limit));
+
+        const query = params.toString();
+        const url = `/reservoir-data/${encodeURIComponent(kiHieu)}${query ? `?${query}` : ""}`;
+
+        const response = await axiosInstance.get(url);
+        return asArray(response.data?.data || response.data);
+    } catch (error) {
+        console.error("Error fetching reservoir data:", error);
+        return [];
+    }
+};
+
+export const fetchReservoirLatest = async () => {
+    try {
+        const response = await axiosInstance.get("/reservoir-latest");
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching reservoir latest:", error);
+        return [];
+    }
+};
+
 // API mới để lấy dữ liệu mới nhất (tối ưu cho hiển thị map)
 export const fetchLatestHydrometData = async () => {
     try {
@@ -578,12 +638,13 @@ export const fetchAllIoTData = async (options = {}) => {
 // API lấy dữ liệu IoT theo serial_number và thời gian
 export const fetchIoTData = async (serialNumber, options = {}) => {
     try {
-        const { startDate, endDate, groupBy = "none" } = options;
+        const { startDate, endDate, groupBy = "none", limit } = options;
 
         const params = new URLSearchParams();
         if (startDate) params.append("startDate", startDate);
         if (endDate) params.append("endDate", endDate);
         params.append("groupBy", groupBy);
+        if (limit) params.append("limit", String(limit));
 
         const response = await axiosInstance.get(`/iot/data/${serialNumber}?${params.toString()}`);
         return response.data;

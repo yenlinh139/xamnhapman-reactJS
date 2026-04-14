@@ -5,6 +5,7 @@ import html2canvas from "html2canvas";
 import { getDisplayStationName, getFilenameSafeStationName } from "@common/stationMapping";
 import { getSingleStationClassification } from "@common/salinityClassification";
 import "@styles/components/_hydrometChart.scss";
+import LocalizedDateInput from "@components/common/LocalizedDateInput";
 
 const ExportPreviewTable = ({ data, kiHieu }) => {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
@@ -56,7 +57,7 @@ const ExportPreviewTable = ({ data, kiHieu }) => {
     };
 
     return (
-        <div className="table-responsive mb-3 map-data-table-wrap" style={{ maxHeight: 300 }}>
+        <div className="table-responsive mb-3 map-data-table-wrap">
             <table className="table table-bordered table-sm table-striped map-data-table">
                 <thead className="table-light">
                     <tr>
@@ -128,6 +129,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
         endDate: "",
     });
     const [filteredData, setFilteredData] = useState([]);
+    const [activeTab, setActiveTab] = useState("chart");
 
     useEffect(() => {
         if (show && salinityData) {
@@ -137,6 +139,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
             );
 
             setData(validSalinityData);
+            setFilteredData(validSalinityData);
             if (validSalinityData.length > 0) {
                 setExportRange({
                     startDate: validSalinityData[0].date.split("T")[0],
@@ -145,12 +148,22 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
             }
         } else {
             setData([]);
+            setFilteredData([]);
             setExportRange({ startDate: "", endDate: "" });
         }
     }, [show, salinityData]);
 
     useEffect(() => {
-        if (!show) setData([]);
+        if (!show) {
+            setData([]);
+            setFilteredData([]);
+        }
+    }, [show]);
+
+    useEffect(() => {
+        if (show) {
+            setActiveTab("chart");
+        }
     }, [show]);
 
     const handleDateRangeChange = (e) => {
@@ -320,46 +333,64 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                         ></button>
                     </div>
 
-                    <div className="modal-body">
-                        <ul className="nav nav-tabs mb-3" role="tablist">
-                            <li className="nav-item">
-                                <button
-                                    className="nav-link active"
-                                    id="chart-tab"
-                                    data-bs-toggle="tab"
-                                    data-bs-target="#chart"
-                                    type="button"
-                                >
-                                    Biểu đồ
-                                </button>
-                            </li>
-                            <li className="nav-item">
-                                <button
-                                    className="nav-link"
-                                    id="export-tab"
-                                    data-bs-toggle="tab"
-                                    data-bs-target="#export"
-                                    type="button"
-                                >
-                                    Số liệu
-                                </button>
-                            </li>
-                        </ul>
+                    <div className="modal-body d-flex flex-column" style={{ minHeight: 0 }}>
+                        <div className="chartfull-topbar mb-2">
+                            <ul className="nav nav-tabs mb-0" role="tablist">
+                                <li className="nav-item">
+                                    <button
+                                        className={`nav-link ${activeTab === "chart" ? "active" : ""}`}
+                                        id="chart-tab"
+                                        type="button"
+                                        onClick={() => setActiveTab("chart")}
+                                    >
+                                        Biểu đồ
+                                    </button>
+                                </li>
+                                <li className="nav-item">
+                                    <button
+                                        className={`nav-link ${activeTab === "export" ? "active" : ""}`}
+                                        id="export-tab"
+                                        type="button"
+                                        onClick={() => setActiveTab("export")}
+                                    >
+                                        Dữ liệu
+                                    </button>
+                                </li>
+                            </ul>
 
-                        <div className="tab-content">
-                            <div className="tab-pane fade show active" id="chart">
-                                {data.length > 0 ? (
-                                    <div className="map-chart-pane">
+                            <div className="chartfull-topbar-controls">
+                                <span className="small text-muted fw-semibold">Giai đoạn:</span>
+                                <LocalizedDateInput
+                                    className="form-control form-control-sm"
+                                    name="startDate"
+                                    value={exportRange.startDate}
+                                    onChange={handleDateRangeChange}
+                                    style={{ width: 145, minWidth: 145 }}
+                                />
+                                <span className="small text-muted">-</span>
+                                <LocalizedDateInput
+                                    className="form-control form-control-sm"
+                                    name="endDate"
+                                    value={exportRange.endDate}
+                                    onChange={handleDateRangeChange}
+                                    style={{ width: 145, minWidth: 145 }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="tab-content" style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+                            <div className={`tab-pane fade ${activeTab === "chart" ? "show active" : ""} h-100`} id="chart">
+                                {filteredData.length > 0 ? (
+                                    <div className="map-chart-pane h-100">
                                         <div id="salinity-chart" className="map-chart-box">
-                                            <SalinityBarChart data={data} height={350} />
+                                            <SalinityBarChart data={filteredData} height="100%" />
                                         </div>
-                                        <div className="map-chart-footer mt-3 d-flex justify-content-between align-items-center">
+                                        <div className="map-chart-footer mt-1 d-flex justify-content-between align-items-center">
                                             <div className="text-muted small">
-                                                Hiển thị: <strong>{data.length}</strong> ngày có dữ liệu hợp
-                                                lệ
+                                                Hiển thị: <strong>{filteredData.length}</strong> bản ghi
                                             </div>
                                             <button
-                                                className={`btn ${isLoggedIn ? "btn-primary" : "btn-secondary"}`}
+                                                className={`btn btn-sm ${isLoggedIn ? "btn-outline-primary" : "btn-outline-secondary"}`}
                                                 onClick={downloadChart}
                                                 disabled={!isLoggedIn}
                                                 title={
@@ -368,7 +399,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                                         : ""
                                                 }
                                             >
-                                                {isLoggedIn ? "Tải ảnh biểu đồ" : "Đăng nhập để tải"}
+                                                Tải biểu đồ
                                             </button>
                                         </div>
                                     </div>
@@ -377,52 +408,22 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                 )}
                             </div>
 
-                            <div className="tab-pane fade" id="export">
-                                {data.length > 0 ? (
-                                    <>
-                                        <div className="map-data-scroll">
-                                            <div className="mb-4">
-                                                <div className="row g-3 align-items-end">
-                                                    <div className="col-12 col-md-3">
-                                                        <h6 className="mb-2 mb-md-0">Chọn giai đoạn:</h6>
-                                                    </div>
-                                                    <div className="col-6 col-md-4">
-                                                        <label className="form-label">Từ ngày:</label>
-                                                        <input
-                                                            type="date"
-                                                            className="form-control"
-                                                            name="startDate"
-                                                            value={exportRange.startDate}
-                                                            onChange={handleDateRangeChange}
-                                                        />
-                                                    </div>
-                                                    <div className="col-6 col-md-4">
-                                                        <label className="form-label">Đến ngày:</label>
-                                                        <input
-                                                            type="date"
-                                                            className="form-control"
-                                                            name="endDate"
-                                                            value={exportRange.endDate}
-                                                            onChange={handleDateRangeChange}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-
+                            <div className={`tab-pane fade ${activeTab === "export" ? "show active" : ""} h-100`} id="export">
+                                {filteredData.length > 0 ? (
+                                    <div className="h-100 d-flex flex-column" style={{ minHeight: 0 }}>
+                                        <div className="map-data-scroll" style={{ flex: 1, minHeight: 0 }}>
                                             <ExportPreviewTable
-                                                data={filteredData.length > 0 ? filteredData : data}
+                                                data={filteredData}
                                                 kiHieu={kiHieu}
                                             />
                                         </div>
 
                                         <div className="d-flex gap-2 justify-content-between align-items-center">
                                             <div className="text-muted small">
-                                                {filteredData.length > 0
-                                                    ? `Hiển thị ${filteredData.length} bản ghi`
-                                                    : `Tổng số ${data.length} bản ghi`}
+                                                Hiển thị {filteredData.length} bản ghi
                                             </div>
                                             <button
-                                                className={`btn ${isLoggedIn ? "btn-success" : "btn-secondary"}`}
+                                                className={`btn btn-sm ${isLoggedIn ? "btn-outline-success" : "btn-outline-secondary"}`}
                                                 onClick={handleExportExcel}
                                                 disabled={
                                                     !exportRange.startDate ||
@@ -435,10 +436,10 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                                         : ""
                                                 }
                                             >
-                                                📥 {isLoggedIn ? "Tải Excel" : "Đăng nhập để tải"}
+                                                Tải dữ liệu
                                             </button>
                                         </div>
-                                    </>
+                                    </div>
                                 ) : (
                                     <p className="text-muted">Không có dữ liệu để hiển thị.</p>
                                 )}

@@ -54,7 +54,7 @@ function LeftMenuMap({
         openMenuIndex: null,
         enabledLayers: DEFAULT_MONITORING_LAYERS,
         openSalinityDropdown: false,
-        openHydrometDropdown: true,
+        openHydrometDropdown: false,
         openIrrigationDropdown: false,
         openBaseMapDropdown: false,
         openIrrigationSubIndex: null,
@@ -1009,6 +1009,37 @@ function LeftMenuMap({
                                         {irrigationLayers.items.map((menu, index) => {
                                             const uniqueIndex = `irrigation-${index}`;
                                             const isOpen = state.openIrrigationSubIndex === uniqueIndex;
+                                            const isSingleLayer = Array.isArray(menu.layers) && menu.layers.length === 1;
+
+                                            if (isSingleLayer) {
+                                                const singleLayer = menu.layers[0];
+                                                return (
+                                                    <div className="layer-item" key={uniqueIndex}>
+                                                        <div className="layer-toggle">
+                                                            <input
+                                                                type="checkbox"
+                                                                id={`layer-${singleLayer}`}
+                                                                className="layer-checkbox"
+                                                                checked={state.enabledLayers.includes(singleLayer)}
+                                                                onChange={(e) =>
+                                                                    handleLayerToggle(
+                                                                        singleLayer,
+                                                                        e.target.checked,
+                                                                    )
+                                                                }
+                                                            />
+                                                            <label
+                                                                htmlFor={`layer-${singleLayer}`}
+                                                                className="layer-label"
+                                                            >
+                                                                <span className="layer-name">
+                                                                    {menu.nameItem?.[0] || menu.name || singleLayer}
+                                                                </span>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
 
                                             return (
                                                 <div className="subcategory-item" key={uniqueIndex}>

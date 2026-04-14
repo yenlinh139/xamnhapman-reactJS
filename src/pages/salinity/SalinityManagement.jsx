@@ -19,6 +19,7 @@ import {
 import "../../styles/components/_salinityManagement.scss";
 import { ToastCommon } from "@/components/ToastCommon";
 import { TOAST } from "@/common/constants";
+import LocalizedDateInput from "@components/common/LocalizedDateInput";
 
 const DEFAULT_FILTER_DATE_RANGE = {
     startDate: "2007-05-06",
@@ -390,58 +391,30 @@ const SalinityManagement = () => {
                                     <div className="filter-left">
                                         <div className="filter-group">
                                             <label htmlFor="startDate">Từ ngày:</label>
-                                            <input
-                                                type="text"
+                                            <LocalizedDateInput
                                                 id="startDate"
-                                                value={inputDateFilter.startDate}
+                                                className="filter-input"
+                                                value={parseDisplayDateToIso(inputDateFilter.startDate) || ""}
                                                 onChange={(e) =>
                                                     setInputDateFilter((prev) => ({
                                                         ...prev,
-                                                        startDate: normalizeDateInputText(e.target.value),
+                                                        startDate: formatDateDisplay(e.target.value),
                                                     }))
                                                 }
-                                                onBlur={() =>
-                                                    setInputDateFilter((prev) => ({
-                                                        ...prev,
-                                                        startDate: parseDisplayDateToIso(prev.startDate)
-                                                            ? formatDateDisplay(
-                                                                  parseDisplayDateToIso(prev.startDate),
-                                                              )
-                                                            : prev.startDate,
-                                                    }))
-                                                }
-                                                className="filter-input"
-                                                placeholder="dd/mm/yyyy"
-                                                inputMode="numeric"
-                                                maxLength={10}
                                             />
                                         </div>
                                         <div className="filter-group">
                                             <label htmlFor="endDate">Đến ngày:</label>
-                                            <input
-                                                type="text"
+                                            <LocalizedDateInput
                                                 id="endDate"
-                                                value={inputDateFilter.endDate}
+                                                className="filter-input"
+                                                value={parseDisplayDateToIso(inputDateFilter.endDate) || ""}
                                                 onChange={(e) =>
                                                     setInputDateFilter((prev) => ({
                                                         ...prev,
-                                                        endDate: normalizeDateInputText(e.target.value),
+                                                        endDate: formatDateDisplay(e.target.value),
                                                     }))
                                                 }
-                                                onBlur={() =>
-                                                    setInputDateFilter((prev) => ({
-                                                        ...prev,
-                                                        endDate: parseDisplayDateToIso(prev.endDate)
-                                                            ? formatDateDisplay(
-                                                                  parseDisplayDateToIso(prev.endDate),
-                                                              )
-                                                            : prev.endDate,
-                                                    }))
-                                                }
-                                                className="filter-input"
-                                                placeholder="dd/mm/yyyy"
-                                                inputMode="numeric"
-                                                maxLength={10}
                                             />
                                         </div>
                                         <div className="filter-actions d-flex gap-2 flex-wrap">

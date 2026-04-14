@@ -7,6 +7,7 @@ import axiosInstance from "@config/axios-config";
 import { fetchAllIoTData, fetchIoTStations } from "@components/map/mapDataServices";
 import { ToastCommon } from "@/components/ToastCommon";
 import { TOAST } from "@/common/constants";
+import LocalizedDateInput from "@components/common/LocalizedDateInput";
 
 const formatDateDisplay = (dateString) => {
     if (!dateString) return "";
@@ -471,55 +472,31 @@ const IoTManagementTab = ({ userInfo }) => {
 
                         <div className="filter-group filter-group-date">
                             <label htmlFor="iotStartDate">Từ ngày:</label>
-                            <input
-                                type="text"
+                            <LocalizedDateInput
                                 id="iotStartDate"
-                                value={inputDateFilter.startDate}
+                                className="filter-input"
+                                value={parseDisplayDateToIso(inputDateFilter.startDate) || ""}
                                 onChange={(e) =>
                                     setInputDateFilter((prev) => ({
                                         ...prev,
-                                        startDate: normalizeDateInputText(e.target.value),
+                                        startDate: formatDateDisplay(e.target.value),
                                     }))
                                 }
-                                onBlur={() =>
-                                    setInputDateFilter((prev) => ({
-                                        ...prev,
-                                        startDate: parseDisplayDateToIso(prev.startDate)
-                                            ? formatDateDisplay(parseDisplayDateToIso(prev.startDate))
-                                            : prev.startDate,
-                                    }))
-                                }
-                                className="filter-input"
-                                placeholder="dd/mm/yyyy"
-                                inputMode="numeric"
-                                maxLength={10}
                             />
                         </div>
 
                         <div className="filter-group filter-group-date">
                             <label htmlFor="iotEndDate">Đến ngày:</label>
-                            <input
-                                type="text"
+                            <LocalizedDateInput
                                 id="iotEndDate"
-                                value={inputDateFilter.endDate}
+                                className="filter-input"
+                                value={parseDisplayDateToIso(inputDateFilter.endDate) || ""}
                                 onChange={(e) =>
                                     setInputDateFilter((prev) => ({
                                         ...prev,
-                                        endDate: normalizeDateInputText(e.target.value),
+                                        endDate: formatDateDisplay(e.target.value),
                                     }))
                                 }
-                                onBlur={() =>
-                                    setInputDateFilter((prev) => ({
-                                        ...prev,
-                                        endDate: parseDisplayDateToIso(prev.endDate)
-                                            ? formatDateDisplay(parseDisplayDateToIso(prev.endDate))
-                                            : prev.endDate,
-                                    }))
-                                }
-                                className="filter-input"
-                                placeholder="dd/mm/yyyy"
-                                inputMode="numeric"
-                                maxLength={10}
                             />
                         </div>
 

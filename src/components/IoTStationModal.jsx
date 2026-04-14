@@ -1,5 +1,51 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { fetchIoTStations } from "./map/mapDataServices";
+
+const toIsoDateOnly = (value) => {
+    if (!value) return "";
+
+    const raw = String(value).trim();
+    if (!raw) return "";
+
+    const vnDateMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (vnDateMatch) {
+        const [, dd, mm, yyyy] = vnDateMatch;
+        const day = Number(dd);
+        const month = Number(mm);
+        const year = Number(yyyy);
+        const parsedVn = new Date(year, month - 1, day);
+
+        if (
+            !Number.isNaN(parsedVn.getTime()) &&
+            parsedVn.getDate() === day &&
+            parsedVn.getMonth() + 1 === month &&
+            parsedVn.getFullYear() === year
+        ) {
+            return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        }
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return "";
+
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, "0");
+    const day = String(parsed.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+};
+
+const clampDate = (value, minDate, maxDate) => {
+    if (!value) return "";
+    if (minDate && value < minDate) return minDate;
+    if (maxDate && value > maxDate) return maxDate;
+    return value;
+};
+
+const getDaysAgoIso = (days) => {
+    const date = new Date();
+    date.setDate(date.getDate() - days);
+    return toIsoDateOnly(date);
+};
 
 const IoTStationModal = ({ isOpen, onClose, onSubmit }) => {
     const [selectedStation, setSelectedStation] = useState("");
@@ -8,6 +54,35 @@ const IoTStationModal = ({ isOpen, onClose, onSubmit }) => {
     const [loading, setLoading] = useState(false);
     const [stations, setStations] = useState([]);
     const [loadingStations, setLoadingStations] = useState(false);
+
+    const todayIso = useMemo(() => toIsoDateOnly(new Date()), []);
+
+    const selectedStationInfo = useMemo(
+        () => stations.find((s) => s.serial_number === selectedStation) || null,
+        [stations, selectedStation],
+    );
+
+    const stationStartDate = useMemo(() => {
+        const rawStart =
+            selectedStationInfo?.start_time ||
+            selectedStationInfo?.startTime ||
+            selectedStationInfo?.StartTime ||
+            selectedStationInfo?.first_data_time ||
+            selectedStationInfo?.firstDataTime ||
+            selectedStationInfo?.first_record ||
+            selectedStationInfo?.firstRecord ||
+            "";
+
+        const parsed = toIsoDateOnly(rawStart);
+        return parsed || "";
+    }, [selectedStationInfo]);
+
+    const minSelectableDate = stationStartDate || "";
+    const maxSelectableDate = todayIso;
+    const defaultStartDate = useMemo(
+        () => clampDate(getDaysAgoIso(30), minSelectableDate, maxSelectableDate),
+        [minSelectableDate, maxSelectableDate],
+    );
 
     // Load stations when modal opens
     useEffect(() => {
@@ -66,6 +141,29 @@ const IoTStationModal = ({ isOpen, onClose, onSubmit }) => {
         onClose();
     };
 
+    useEffect(() => {
+        if (!selectedStation) {
+            setStartDate("");
+            setEndDate("");
+            return;
+        }
+
+        const nextStart = clampDate(startDate || defaultStartDate, minSelectableDate, maxSelectableDate);
+        const nextEndBase = endDate || maxSelectableDate;
+        const nextEnd = clampDate(nextEndBase, nextStart || minSelectableDate, maxSelectableDate);
+
+        setStartDate(nextStart);
+        setEndDate(nextEnd);
+    }, [selectedStation, minSelectableDate, maxSelectableDate, defaultStartDate]);
+
+    useEffect(() => {
+        if (!selectedStation) return;
+
+        if (startDate && endDate && startDate > endDate) {
+            setEndDate(startDate);
+        }
+    }, [startDate, endDate, selectedStation]);
+
     if (!isOpen) return null;
 
     return (
@@ -118,6 +216,9 @@ const IoTStationModal = ({ isOpen, onClose, onSubmit }) => {
                             className="form-control"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
+                            min={minSelectableDate}
+                            max={maxSelectableDate}
+                            disabled={!selectedStation}
                             required
                         />
                     </div>
@@ -133,7 +234,9 @@ const IoTStationModal = ({ isOpen, onClose, onSubmit }) => {
                             className="form-control"
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
-                            min={startDate}
+                            min={startDate || minSelectableDate}
+                            max={maxSelectableDate}
+                            disabled={!selectedStation}
                             required
                         />
                     </div>
