@@ -496,9 +496,9 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
         normalizedStation?.tanSuat,
         normalizedStation?.tansuat,
     );
-
     const elementSummary = summarizeHydrometElement(element);
     const shouldShowElement = Boolean(elementSummary) && stationTypeKey === "meteorology";
+
     const secondaryCards = createSecondaryParameterCards(
         stationTypeKey,
         rainfallParams,
@@ -507,6 +507,7 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
         primaryKey,
     );
     const isMeteorology = stationTypeKey === "meteorology";
+    const isHydrology = stationTypeKey === "hydrology";
     const primaryCard = createMetricCard({
         label: primaryLabel,
         value: primaryValue,
@@ -514,6 +515,7 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
         color: statusColor,
     });
     const metricCardsHtml = isMeteorology ? `${primaryCard}${secondaryCards}` : secondaryCards;
+    const metricGridClass = isMeteorology ? "meteorology-grid" : isHydrology ? "hydrology-grid" : "";
 
         return `
         <div class="modern-popup hydromet-popup enhanced">
@@ -538,7 +540,7 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
 
                 ${
                         metricCardsHtml
-                                ? `<div class="multi-param-grid ${isMeteorology ? "meteorology-grid" : ""}">${metricCardsHtml}</div>`
+                        ? `<div class="multi-param-grid ${metricGridClass}">${metricCardsHtml}</div>`
                                 : ""
                 }
 

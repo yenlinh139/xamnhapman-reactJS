@@ -11,8 +11,8 @@ const VerifyEmail = () => {
         // Gửi yêu cầu xác thực email đến backend
         const verifyEmail = async () => {
             try {
-                const response = await fetch(`http://localhost:4000/api/verify-email/${userId}`);
-                const data = await response.json();
+                const baseUrl = (import.meta.env.VITE_BASE_URL || "/api").replace(/\/$/, "");
+                const response = await fetch(`${baseUrl}/verify-email/${encodeURIComponent(userId)}`);
 
                 if (response.ok) {
                     setMessage("Email đã được xác thực thành công!");

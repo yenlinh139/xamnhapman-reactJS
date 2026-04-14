@@ -308,6 +308,10 @@
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
+        &.hydrology-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
         .param-item {
             background: rgba(248, 249, 250, 0.6);
             border-radius: 7px;
@@ -336,6 +340,10 @@
 
     @media (max-width: 430px) {
         .multi-param-grid.meteorology-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .multi-param-grid.hydrology-grid {
             grid-template-columns: 1fr;
         }
     }
@@ -378,7 +386,7 @@
                     padding: 6px 8px;
                     background: rgba(248, 249, 250, 0.6);
                     border-radius: 8px;
-                    border: 1px solid rgba(0, 0, 0, 0.04);
+                    border: none;
                 }
             }
         }
@@ -1286,7 +1294,6 @@ button:hover,
         .popup-actions {
             margin-top: 20px;
             padding-top: 16px;
-            border-top: 1px solid rgba(0, 0, 0, 0.08);
 
             .action-btn {
                 width: 100%;
@@ -1425,6 +1432,7 @@ button:hover,
         .popup-actions {
             margin-top: 8px;
             padding-top: 6px;
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
 
             .action-btn {
                 padding: 7px 10px;
