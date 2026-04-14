@@ -13,9 +13,11 @@ import { TOAST } from "@common/constants.js";
 import SaltChartFull from "@pages/map/SaltChartFull";
 import HydrometChartFull from "@pages/map/HydrometChartFull";
 import IoTChartFull from "@pages/map/IoTChartFull";
+import ReservoirChartFull from "@pages/map/ReservoirChartFull";
 import { initializeMap } from "@components/map/mapInitialization";
 import { getSalinityTooltipClass, renderSalinityPoints } from "@components/map/SalinityMarkers";
 import { renderHydrometStations } from "@components/map/HydrometMarkers";
+import { renderReservoirPoints } from "@components/map/ReservoirMarkers";
 import { renderIoTStations, removeIoTStations } from "@components/map/IoTMarkers";
 import { handleLocationChange, handleFeatureHighlight } from "@components/map/mapUtils";
 import { handleLayerLabelToggle, handleZoomChange, clearAllLabels } from "@components/map/mapLabels";
@@ -24,6 +26,8 @@ import {
     fetchSalinityPoints,
     fetchHydrometeorologyStationPositions,
     fetchIoTStations,
+    fetchReservoirOverview,
+    fetchReservoirData,
 } from "@components/map/mapDataServices";
 import { getSalinityIcon, getHydrometIcon } from "@components/map/mapMarkers";
 import { prefixUnitMap, layerStyles, legendNames, updateLegendVisibility } from "@components/map/mapStyles";
@@ -48,15 +52,55 @@ const MapboxMap = forwardRef(
         const [showFullChart, setShowFullChart] = useState(false);
         const [showHydrometChart, setShowHydrometChart] = useState(false);
         const [showIoTChart, setShowIoTChart] = useState(false);
+        const [showReservoirChart, setShowReservoirChart] = useState(false);
         const [salinityData, setSalinityData] = useState([]);
         const [selectedStation, setSelectedStation] = useState(null);
         const [hydrometData, setHydrometData] = useState([]);
         const [internalIotData, setInternalIotData] = useState(null);
+        const [reservoirOverview, setReservoirOverview] = useState(null);
+        const [reservoirData, setReservoirData] = useState([]);
+        const [selectedReservoir, setSelectedReservoir] = useState(null);
+        const [reservoirInitialTab, setReservoirInitialTab] = useState("chart");
         const highlightedLayerRef = useRef(null);
         const highlightedMarkerRef = useRef(null);
         const baseMapsRef = useRef({});
         const activeBaseMapRef = useRef("Google Streets");
         const boundaryLayerRef = useRef(null);
+
+        const applyReservoirDateRange = async ({ code, startDate, endDate }) => {
+            if (!code) return;
+
+            try {
+                const overview = await fetchReservoirOverview(code, { limit: 50, startDate, endDate });
+                const requestedLimit = Number(overview?.total_records || 0);
+                const tableRows = await fetchReservoirData(code, {
+                    startDate,
+                    endDate,
+                    limit: requestedLimit > 0 ? requestedLimit : 10000,
+                });
+
+                const overviewRows = Array.isArray(overview?.data) ? overview.data : [];
+                const effectiveRows = Array.isArray(tableRows) && tableRows.length > 0 ? tableRows : overviewRows;
+
+                const latestRow = effectiveRows[effectiveRows.length - 1] || null;
+                const latestValue =
+                    latestRow?.TongLuongXa ?? latestRow?.latest_value ?? overview?.latest_value ?? null;
+
+                setReservoirOverview(
+                    overview
+                        ? {
+                              ...overview,
+                              total_records: effectiveRows.length,
+                              latest_value: latestValue,
+                          }
+                        : null,
+                );
+                setReservoirData(effectiveRows);
+            } catch (error) {
+                console.error("Error applying reservoir date range:", error);
+                ToastCommon({ message: "Không thể lọc dữ liệu theo giai đoạn", type: TOAST.ERROR });
+            }
+        };
 
         // Expose map instance through ref
         const onMapReadyRef = useRef(onMapReady);
@@ -275,6 +319,29 @@ const MapboxMap = forwardRef(
                 }
             };
 
+            window.openReservoirDetails = async (reservoirCode, reservoirName, initialTab = "chart") => {
+                if (!reservoirCode) return;
+
+                try {
+                    const [overview, tableRows] = await Promise.all([
+                        fetchReservoirOverview(reservoirCode, { limit: 50 }),
+                        fetchReservoirData(reservoirCode),
+                    ]);
+
+                    setSelectedReservoir({
+                        code: reservoirCode,
+                        name: reservoirName || reservoirCode,
+                    });
+                    setReservoirOverview(overview || null);
+                    setReservoirData(Array.isArray(tableRows) ? tableRows : []);
+                    setReservoirInitialTab(initialTab === "data" ? "data" : "chart");
+                    setShowReservoirChart(true);
+                } catch (error) {
+                    console.error("Error opening reservoir details:", error);
+                    ToastCommon({ message: "Không thể mở dữ liệu hồ chứa", type: TOAST.ERROR });
+                }
+            };
+
             // Cleanup function
             return () => {
                 if (window.openChartDetails) {
@@ -282,6 +349,9 @@ const MapboxMap = forwardRef(
                 }
                 if (window.openHydrometDetails) {
                     delete window.openHydrometDetails;
+                }
+                if (window.openReservoirDetails) {
+                    delete window.openReservoirDetails;
                 }
             };
         }, [selectedPoint, salinityData, hydrometData]);
@@ -377,8 +447,12 @@ const MapboxMap = forwardRef(
             setSelectedPoint(null);
             setSelectedStation(null);
             setShowFullChart(false);
+            setShowReservoirChart(false);
             setSalinityData([]);
             setHydrometData([]);
+            setReservoirData([]);
+            setReservoirOverview(null);
+            setSelectedReservoir(null);
 
             // Clear existing overlay layers (WMS layers)
             Object.entries(overlayLayers.current).forEach(([layerName, layerData]) => {
@@ -397,6 +471,7 @@ const MapboxMap = forwardRef(
                 if (
                     layer.options?.isSalinityPoint ||
                     layer.options?.isHydrometStation ||
+                    layer.options?.isReservoirPoint ||
                     layer.isIoTStation ||
                     layer.options?.isIoTStation ||
                     layer.options?.isDistrictLabel ||
@@ -443,6 +518,12 @@ const MapboxMap = forwardRef(
                     };
                 } else if (layerName === "iotStations") {
                     renderIoTStations(map, setInternalIotData);
+                    overlayLayers.current[layerName] = {
+                        ...getLayerConfig(layerName),
+                        type: "marker",
+                    };
+                } else if (layerName === "HoChuaThuongLuu") {
+                    renderReservoirPoints(map);
                     overlayLayers.current[layerName] = {
                         ...getLayerConfig(layerName),
                         type: "marker",
@@ -1777,6 +1858,17 @@ const MapboxMap = forwardRef(
                     show={showIoTChart}
                     iotData={iotData || internalIotData}
                     onClose={() => setShowIoTChart(false)}
+                />
+
+                <ReservoirChartFull
+                    show={showReservoirChart}
+                    reservoirCode={selectedReservoir?.code}
+                    reservoirName={selectedReservoir?.name}
+                    overview={reservoirOverview}
+                    reservoirData={reservoirData}
+                    initialTab={reservoirInitialTab}
+                    onApplyRange={applyReservoirDateRange}
+                    onClose={() => setShowReservoirChart(false)}
                 />
             </>
         );

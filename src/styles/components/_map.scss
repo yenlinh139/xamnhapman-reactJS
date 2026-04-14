@@ -2313,6 +2313,70 @@ button:hover,
     border: none !important;
 }
 
+.custom-reservoir-marker {
+    background: transparent !important;
+    border: none !important;
+}
+
+.reservoir-marker-container {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+    border: 2px solid #ffffff;
+    background:
+        linear-gradient(180deg, rgba(191, 219, 254, 0.92) 0%, rgba(147, 197, 253, 0.92) 42%, rgba(30, 144, 255, 0.95) 100%),
+        linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+    box-shadow:
+        0 6px 14px rgba(37, 99, 235, 0.38),
+        0 0 0 1px rgba(30, 64, 175, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.reservoir-marker-container::before {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    border-radius: 6px;
+    border: 1.5px solid rgba(255, 255, 255, 0.8);
+    opacity: 0.85;
+}
+
+.reservoir-water {
+    position: relative;
+    z-index: 2;
+    width: 12px;
+    height: 8px;
+    border-radius: 999px;
+    border: 2px solid #ffffff;
+    border-top: 0;
+    opacity: 0.95;
+}
+
+.reservoir-water::before,
+.reservoir-water::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    width: 14px;
+    height: 6px;
+    border-top: 2px solid rgba(255, 255, 255, 0.95);
+    border-radius: 50%;
+    transform: translateX(-50%);
+}
+
+.reservoir-water::before {
+    top: -7px;
+}
+
+.reservoir-water::after {
+    top: -11px;
+    width: 10px;
+    opacity: 0.8;
+}
+
 .iot-marker-container {
     position: relative;
     display: flex;

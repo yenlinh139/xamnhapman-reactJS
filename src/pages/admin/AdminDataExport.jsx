@@ -5,6 +5,7 @@ import { TOAST } from "@common/constants";
 import { Helmet } from "react-helmet-async";
 import Header from "@pages/themes/headers/Header";
 import Footer from "@pages/themes/footer/Footer";
+import LocalizedDateInput from "@components/common/LocalizedDateInput";
 
 const normalizeStationsPayload = (payload) => {
     if (Array.isArray(payload)) return payload;
@@ -262,8 +263,7 @@ const AdminDataExport = () => {
                                         <div className="date-range">
                                             <div className="mb-3">
                                                 <label className="form-label">Từ ngày</label>
-                                                <input
-                                                    type="date"
+                                                <LocalizedDateInput
                                                     className="form-control"
                                                     value={dateRange.startDate}
                                                     onChange={(e) =>
@@ -276,8 +276,7 @@ const AdminDataExport = () => {
                                             </div>
                                             <div className="mb-0">
                                                 <label className="form-label">Đến ngày</label>
-                                                <input
-                                                    type="date"
+                                                <LocalizedDateInput
                                                     className="form-control"
                                                     value={dateRange.endDate}
                                                     onChange={(e) =>

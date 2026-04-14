@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import html2canvas from "html2canvas";
 import IoTBarChart from "./IoTBarChart";
-import { fetchIoTData, normalizeIoTDataRows } from "@components/map/mapDataServices";
+import { fetchIoTData, fetchIoTStations, normalizeIoTDataRows } from "@components/map/mapDataServices";
 import { getSingleStationClassification } from "@common/salinityClassification";
+import LocalizedDateInput from "@components/common/LocalizedDateInput";
 import "@styles/components/_hydrometChart.scss";
 
 const EMPTY_DATA = [];
@@ -24,6 +25,25 @@ const toInputDateValue = (rawValue) => {
 
     const raw = String(rawValue).trim();
     if (!raw) return "";
+
+    // Support Vietnamese dates like 17/12/2025 or 17/12/2025 08:30.
+    const vnDateMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (vnDateMatch) {
+        const [, dd, mm, yyyy] = vnDateMatch;
+        const day = Number(dd);
+        const month = Number(mm);
+        const year = Number(yyyy);
+        const parsedVn = new Date(year, month - 1, day);
+
+        if (
+            !Number.isNaN(parsedVn.getTime()) &&
+            parsedVn.getDate() === day &&
+            parsedVn.getMonth() + 1 === month &&
+            parsedVn.getFullYear() === year
+        ) {
+            return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        }
+    }
 
     if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
         return raw.slice(0, 10);
@@ -72,21 +92,12 @@ const getRangeFromRows = (rows) => {
     };
 };
 
-const getDateOptionsFromRows = (rows) => {
-    const safeRows = Array.isArray(rows) ? rows : [];
-    const seen = new Set();
-
-    return safeRows
-        .map((row) => toInputDateValue(getIoTRowTime(row)))
-        .filter((value) => {
-            if (!value || seen.has(value)) return false;
-            seen.add(value);
-            return true;
-        })
-        .map((value) => ({
-            value,
-            label: formatDateLabel(value),
-        }));
+const getTodayIso = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
 };
 
 const SALINITY_RISK_META = {
@@ -130,48 +141,40 @@ const getIoTSalinityRiskMeta = (value, stationCode = "") => {
     };
 };
 
-const IoTQueryControls = ({ queryOptions, onChange, dateOptions }) => {
+const IoTQueryControls = ({ queryOptions, onChange, minDate, maxDate, compact = false }) => {
     return (
         <div
-            className="d-flex flex-wrap justify-content-center align-items-end gap-2 mb-2"
+            className={`d-flex flex-wrap align-items-end gap-2 ${compact ? "mb-0" : "mb-2"}`}
             style={{ flexShrink: 0, rowGap: 6 }}
         >
             <div>
-                <label className="form-label fw-semibold small mb-1">Từ ngày</label>
-                <select
-                    className="form-select form-select-sm"
+                {!compact && <label className="form-label fw-semibold small mb-1">Từ ngày</label>}
+                <LocalizedDateInput
+                    className="form-control form-control-sm"
                     name="startDate"
                     value={queryOptions.startDate}
                     onChange={onChange}
-                    style={{ minWidth: 128 }}
-                >
-                    {dateOptions.map((option) => (
-                        <option key={`start-${option.value}`} value={option.value}>
-                            {option.label}
-                        </option>
-                    ))}
-                </select>
+                    min={minDate || undefined}
+                    max={maxDate || undefined}
+                    style={{ minWidth: 148 }}
+                />
             </div>
 
             <div>
-                <label className="form-label fw-semibold small mb-1">Đến ngày</label>
-                <select
-                    className="form-select form-select-sm"
+                {!compact && <label className="form-label fw-semibold small mb-1">Đến ngày</label>}
+                <LocalizedDateInput
+                    className="form-control form-control-sm"
                     name="endDate"
                     value={queryOptions.endDate}
                     onChange={onChange}
-                    style={{ minWidth: 128 }}
-                >
-                    {dateOptions.map((option) => (
-                        <option key={`end-${option.value}`} value={option.value}>
-                            {option.label}
-                        </option>
-                    ))}
-                </select>
+                    min={queryOptions.startDate || minDate || undefined}
+                    max={maxDate || undefined}
+                    style={{ minWidth: 148 }}
+                />
             </div>
 
             <div>
-                <label className="form-label fw-semibold small mb-1">Tần suất</label>
+                {!compact && <label className="form-label fw-semibold small mb-1">Tần suất</label>}
                 <select
                     className="form-select form-select-sm"
                     name="groupBy"
@@ -376,17 +379,97 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
     const [loadError, setLoadError] = useState("");
     const [activeTab, setActiveTab] = useState("chart");
     const [hasUserAdjustedQuery, setHasUserAdjustedQuery] = useState(false);
+    const [stationStartDateFromApi, setStationStartDateFromApi] = useState("");
 
     const stationName = iotData?.stationName || iotData?.stationInfo?.station_name || "Trạm IoT";
     const serialNumber = iotData?.serialNumber || iotData?.stationInfo?.serial_number || "N/A";
     const stationCode = iotData?.stationCode || iotData?.stationInfo?.station_code || "";
+
+    const stationStartDate = useMemo(() => {
+        const rawStart =
+            iotData?.start_time ||
+            iotData?.startTime ||
+            iotData?.first_data_time ||
+            iotData?.stationInfo?.start_time ||
+            iotData?.stationInfo?.startTime ||
+            iotData?.stationInfo?.first_data_time ||
+            iotData?.stationInfo?.firstDataTime ||
+            "";
+
+        return toInputDateValue(rawStart);
+    }, [iotData]);
 
     const dataPoints = useMemo(() => {
         const rawDataPoints = iotData?.dataPoints?.length ? iotData.dataPoints : iotData?.data;
         return normalizeIoTDataRows(Array.isArray(rawDataPoints) ? rawDataPoints : EMPTY_DATA);
     }, [iotData?.dataPoints, iotData?.data]);
 
-    const dateOptions = useMemo(() => getDateOptionsFromRows(dataPoints), [dataPoints]);
+    useEffect(() => {
+        if (!show || !serialNumber || serialNumber === "N/A") {
+            setStationStartDateFromApi("");
+            return;
+        }
+
+        let cancelled = false;
+
+        const loadStationStartDate = async () => {
+            try {
+                const stationsResponse = await fetchIoTStations();
+                const stations = Array.isArray(stationsResponse?.data) ? stationsResponse.data : [];
+                const station =
+                    stations.find((item) => item?.serial_number === serialNumber) ||
+                    stations.find((item) => item?.serial === serialNumber) ||
+                    null;
+
+                const rawStart =
+                    station?.start_time ||
+                    station?.startTime ||
+                    station?.first_data_time ||
+                    station?.firstDataTime ||
+                    "";
+                const parsedStart = toInputDateValue(rawStart);
+
+                if (!cancelled) {
+                    setStationStartDateFromApi(parsedStart);
+                    console.debug("[IoTChartFull] station start_time from stations API:", {
+                        serialNumber,
+                        rawStart,
+                        parsedStart,
+                    });
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    console.warn("[IoTChartFull] failed to load station start_time from stations API", error);
+                    setStationStartDateFromApi("");
+                }
+            }
+        };
+
+        loadStationStartDate();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [show, serialNumber]);
+
+    const dateBounds = useMemo(() => {
+        const dataRange = getRangeFromRows(dataPoints);
+        const effectiveStartDate = stationStartDateFromApi || stationStartDate || dataRange.startDate;
+        return {
+            startDate: effectiveStartDate,
+            endDate: getTodayIso(),
+        };
+    }, [dataPoints, stationStartDate, stationStartDateFromApi]);
+
+    useEffect(() => {
+        if (!show) return;
+        console.debug("[IoTChartFull] date bounds resolved", {
+            serialNumber,
+            stationStartDateFromPopup: stationStartDate,
+            stationStartDateFromApi,
+            dateBounds,
+        });
+    }, [show, serialNumber, stationStartDate, stationStartDateFromApi, dateBounds]);
 
     useEffect(() => {
         if (!show) {
@@ -394,16 +477,32 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
         }
 
         const nextRange = getRangeFromRows(dataPoints);
+        const clampedStartDate = (() => {
+            const baseStart = nextRange.startDate || dateBounds.startDate;
+            if (!baseStart) return "";
+            if (dateBounds.startDate && baseStart < dateBounds.startDate) return dateBounds.startDate;
+            if (dateBounds.endDate && baseStart > dateBounds.endDate) return dateBounds.startDate;
+            return baseStart;
+        })();
+
+        const clampedEndDate = (() => {
+            const baseEnd = nextRange.endDate || dateBounds.endDate;
+            if (!baseEnd) return "";
+            if (dateBounds.endDate && baseEnd > dateBounds.endDate) return dateBounds.endDate;
+            if (clampedStartDate && baseEnd < clampedStartDate) return clampedStartDate;
+            return baseEnd;
+        })();
+
         setActiveTab("chart");
         setDisplayData(dataPoints);
         setLoadError("");
         setHasUserAdjustedQuery(false);
         setQueryOptions((prev) => ({
-            startDate: nextRange.startDate,
-            endDate: nextRange.endDate,
+            startDate: clampedStartDate,
+            endDate: clampedEndDate,
             groupBy: prev.groupBy || "none",
         }));
-    }, [show, dataPoints]);
+    }, [show, dataPoints, dateBounds.startDate, dateBounds.endDate]);
 
     useEffect(() => {
         if (!show || !serialNumber || serialNumber === "N/A") {
@@ -430,6 +529,7 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                     startDate: queryOptions.startDate,
                     endDate: queryOptions.endDate,
                     groupBy: queryOptions.groupBy || "none",
+                    limit: 200000,
                 });
 
                 if (isCancelled) return;
@@ -441,6 +541,12 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                 }
 
                 const normalizedRows = normalizeIoTDataRows(response.data);
+                console.debug("[IoTChartFull] loadIoTData response", {
+                    serialNumber,
+                    queryOptions,
+                    responseCount: Array.isArray(response?.data) ? response.data.length : 0,
+                    normalizedCount: normalizedRows.length,
+                });
                 if (normalizedRows.length > 0) {
                     setDisplayData(normalizedRows);
                 }
@@ -556,6 +662,62 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
         }
     };
 
+    const downloadData = () => {
+        if (!isLoggedIn) {
+            alert("Bạn cần đăng nhập để tải dữ liệu");
+            return;
+        }
+
+        if (!data.length) {
+            alert("Không có dữ liệu để tải");
+            return;
+        }
+
+        const headers = ["STT", "Thời gian", "Độ mặn (‰)", "Mực nước (cm)", "Lượng mưa (mm)", "Nhiệt độ (°C)"];
+
+        const escapeCsv = (value) => {
+            if (value === null || value === undefined) return "";
+            const raw = String(value).replace(/\"/g, '""');
+            return `"${raw}"`;
+        };
+
+        const rows = data.map((row, index) => {
+            const timeValue = toDisplayDateTime(row.Date || row.date_time, queryOptions.groupBy);
+            const salinityValue =
+                row.salt_value !== undefined && row.salt_value !== null
+                    ? Number(row.salt_value).toFixed(4)
+                    : "";
+            const waterLevelValue =
+                row.distance_value !== undefined && row.distance_value !== null
+                    ? Number(row.distance_value).toFixed(4)
+                    : "";
+            const rainfallValue =
+                row.daily_rainfall_value !== undefined && row.daily_rainfall_value !== null
+                    ? Number(row.daily_rainfall_value).toFixed(4)
+                    : "";
+            const temperatureValue =
+                row.temp_value !== undefined && row.temp_value !== null
+                    ? Number(row.temp_value).toFixed(1)
+                    : "";
+
+            return [
+                index + 1,
+                timeValue,
+                salinityValue,
+                waterLevelValue,
+                rainfallValue,
+                temperatureValue,
+            ];
+        });
+
+        const csvContent = [headers, ...rows].map((line) => line.map(escapeCsv).join(",")).join("\n");
+        const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `du_lieu_iot_${serialNumber}_${queryOptions.startDate || "all"}_${queryOptions.endDate || "all"}.csv`;
+        link.click();
+    };
+
     if (!show) return null;
 
     const data = displayData;
@@ -616,26 +778,39 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                             paddingBottom: 12,
                         }}
                     >
-                        <ul className="nav nav-tabs mb-2" role="tablist" style={{ flexShrink: 0 }}>
-                            <li className="nav-item">
-                                <button
-                                    className={`nav-link ${activeTab === "chart" ? "active" : ""}`}
-                                    type="button"
-                                    onClick={() => setActiveTab("chart")}
-                                >
-                                    Biểu đồ
-                                </button>
-                            </li>
-                            <li className="nav-item">
-                                <button
-                                    className={`nav-link ${activeTab === "data" ? "active" : ""}`}
-                                    type="button"
-                                    onClick={() => setActiveTab("data")}
-                                >
-                                    Data
-                                </button>
-                            </li>
-                        </ul>
+                        <div className="chartfull-topbar mb-2">
+                            <ul className="nav nav-tabs mb-0" role="tablist" style={{ flexShrink: 0 }}>
+                                <li className="nav-item">
+                                    <button
+                                        className={`nav-link ${activeTab === "chart" ? "active" : ""}`}
+                                        type="button"
+                                        onClick={() => setActiveTab("chart")}
+                                    >
+                                        Biểu đồ
+                                    </button>
+                                </li>
+                                <li className="nav-item">
+                                    <button
+                                        className={`nav-link ${activeTab === "data" ? "active" : ""}`}
+                                        type="button"
+                                        onClick={() => setActiveTab("data")}
+                                    >
+                                        Dữ liệu
+                                    </button>
+                                </li>
+                            </ul>
+
+                            <div className="chartfull-topbar-controls">
+                                <span className="small text-muted fw-semibold">Giai đoạn:</span>
+                                <IoTQueryControls
+                                    queryOptions={queryOptions}
+                                    onChange={handleQueryOptionChange}
+                                    minDate={dateBounds.startDate}
+                                    maxDate={dateBounds.endDate}
+                                    compact
+                                />
+                            </div>
+                        </div>
 
                         <div className="tab-content" style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
                             <div
@@ -644,12 +819,6 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                                 style={{ overflow: "hidden" }}
                             >
                                 <div className="h-100 d-flex flex-column" style={{ minHeight: 0 }}>
-                                    <IoTQueryControls
-                                        queryOptions={queryOptions}
-                                        onChange={handleQueryOptionChange}
-                                        dateOptions={dateOptions}
-                                    />
-
                                     {isLoadingData ? (
                                         <div className="flex-grow-1 d-flex align-items-center justify-content-center text-muted">
                                             Đang tải dữ liệu IoT...
@@ -685,7 +854,7 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                                                         Hiển thị: <strong>{data.length}</strong> điểm dữ liệu
                                                     </div>
                                                     <button
-                                                        className={`btn btn-sm ${isLoggedIn ? "btn-primary" : "btn-secondary"}`}
+                                                        className={`btn btn-sm ${isLoggedIn ? "btn-outline-primary" : "btn-outline-secondary"}`}
                                                         onClick={downloadChart}
                                                         disabled={!isLoggedIn}
                                                         title={
@@ -695,7 +864,7 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                                                         }
                                                         style={{ fontSize: "12px", padding: "4px 10px" }}
                                                     >
-                                                        {isLoggedIn ? "Tải ảnh biểu đồ" : "Đăng nhập để tải"}
+                                                        Tải biểu đồ
                                                     </button>
                                                 </div>
                                             </div>
@@ -719,12 +888,6 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                                 style={{ overflow: "hidden" }}
                             >
                                 <div className="h-100 d-flex flex-column" style={{ minHeight: 0 }}>
-                                    <IoTQueryControls
-                                        queryOptions={queryOptions}
-                                        onChange={handleQueryOptionChange}
-                                        dateOptions={dateOptions}
-                                    />
-
                                     {data.length > 0 ? (
                                         <>
                                             <div
@@ -750,8 +913,19 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                                                     Thời gian: <strong>{startDate || "-"}</strong> đến{" "}
                                                     <strong>{endDate || "-"}</strong>
                                                 </div>
-                                                <div className="text-muted small">
-                                                    Hiển thị {data.length} bản ghi
+                                                <div className="d-flex align-items-center gap-2">
+                                                    <div className="text-muted small">
+                                                        Hiển thị {data.length} bản ghi
+                                                    </div>
+                                                    <button
+                                                        className={`btn btn-sm ${isLoggedIn ? "btn-outline-success" : "btn-outline-secondary"}`}
+                                                        onClick={downloadData}
+                                                        disabled={!isLoggedIn}
+                                                        title={!isLoggedIn ? "Bạn cần đăng nhập để tải dữ liệu" : ""}
+                                                        style={{ fontSize: "12px", padding: "4px 10px" }}
+                                                    >
+                                                        Tải dữ liệu
+                                                    </button>
                                                 </div>
                                             </div>
                                         </>

@@ -150,6 +150,7 @@ export const layerStyles = {
     CTTL_2023_DeBao_BoBao: { type: "line", color: "#dc2626" },
     CTTL_2023_KenhMuong: { type: "line", color: "#059669" },
     CTTL_2023_TramBom: { type: "point", color: "#7c3aed" },
+    HoChuaThuongLuu: { type: "point", color: "#0ea5e9" },
     // Công trình thủy lợi - Quy hoạch 2030
     CTTL_2030_Vung_HeThong: { type: "line", color: "#0891b2" },
     CTTL_2030_NongThonMoi: { type: "line", color: "#65a30d" },
@@ -208,6 +209,7 @@ export const legendNames = {
     CTTL_2023_DeBao_BoBao: "Đê bao, bờ bao",
     CTTL_2023_KenhMuong: "Kênh mương",
     CTTL_2023_TramBom: "Trạm bơm",
+    HoChuaThuongLuu: "Hồ chứa thượng lưu",
     // Công trình thủy lợi - Quy hoạch 2030
     CTTL_2030_Vung_HeThong: "Công trình thủy lợi vùng, hệ thống",
     CTTL_2030_NongThonMoi: "Công trình nông thôn mới",

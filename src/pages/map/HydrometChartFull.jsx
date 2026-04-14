@@ -4,6 +4,7 @@ import HydrometBarChart from "@pages/map/HydrometBarChart";
 import html2canvas from "html2canvas";
 import { getDisplayStationName, getFilenameSafeStationName } from "@common/stationMapping";
 import "@styles/components/_hydrometChart.scss";
+import LocalizedDateInput from "@components/common/LocalizedDateInput";
 
 const ExportPreviewTable = ({ data }) => {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
@@ -122,10 +123,7 @@ const ExportPreviewTable = ({ data }) => {
     };
 
     return (
-        <div
-            className="table-responsive mb-3 map-data-table-wrap"
-            style={{ maxHeight: "80vh", overflowY: "auto" }}
-        >
+        <div className="table-responsive mb-0 map-data-table-wrap" style={{ height: "100%" }}>
             <table className="table table-bordered table-sm table-striped map-data-table">
                 <thead className="table-light sticky-top">
                     <tr>
@@ -603,57 +601,9 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                         ></button>
                     </div>
 
-                    <div className="modal-body">
-                        <div className="hydromet-compact-toolbar mb-2">
-                            <span className="toolbar-label">Chọn giai đoạn</span>
-                            <label className="toolbar-field">
-                                <span>Từ</span>
-                                <input
-                                    type="date"
-                                    className="form-control form-control-sm"
-                                    name="startDate"
-                                    value={chartDateRange.startDate}
-                                    onChange={handleChartDateRangeChange}
-                                />
-                            </label>
-                            <label className="toolbar-field">
-                                <span>Đến</span>
-                                <input
-                                    type="date"
-                                    className="form-control form-control-sm"
-                                    name="endDate"
-                                    value={chartDateRange.endDate}
-                                    onChange={handleChartDateRangeChange}
-                                />
-                            </label>
-                            <button
-                                type="button"
-                                className="btn btn-outline-secondary btn-sm"
-                                onClick={() => {
-                                    setPresetRange("all");
-                                    setFilteredChartData(data);
-                                    const firstDate = data[0]?.date || data[0]?.Ngày;
-                                    const lastDate =
-                                        data[data.length - 1]?.date || data[data.length - 1]?.Ngày;
-                                    if (firstDate && lastDate) {
-                                        setChartDateRange({
-                                            startDate: firstDate.includes("/")
-                                                ? convertVietnameseDateToISO(firstDate)
-                                                : firstDate.split("T")[0],
-                                            endDate: lastDate.includes("/")
-                                                ? convertVietnameseDateToISO(lastDate)
-                                                : lastDate.split("T")[0],
-                                        });
-                                    }
-                                }}
-                            >
-                                Reset
-                            </button>
-                        </div>
-
-                        {/* Tab Navigation */}
-                        <nav>
-                            <div className="nav nav-tabs" id="nav-tab" role="tablist">
+                    <div className="modal-body d-flex flex-column" style={{ minHeight: 0 }}>
+                        <div className="chartfull-topbar mb-2">
+                            <div className="nav nav-tabs mb-0" id="nav-tab" role="tablist">
                                 <button
                                     className={`nav-link ${activeTab === "chart" ? "active" : ""}`}
                                     id="nav-chart-tab"
@@ -674,28 +624,75 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                     aria-selected={activeTab === "export"}
                                     onClick={() => setActiveTab("export")}
                                 >
-                                    📋 Số liệu
+                                    Dữ liệu
                                 </button>
                             </div>
-                        </nav>
 
-                        <div className="tab-content mt-2">
+                            <div className="chartfull-topbar-controls">
+                                <span className="small text-muted fw-semibold">Giai đoạn:</span>
+                                <div className="hydromet-compact-toolbar m-0">
+                                    <label className="toolbar-field">
+                                        <span>Từ</span>
+                                        <LocalizedDateInput
+                                            className="form-control form-control-sm"
+                                            name="startDate"
+                                            value={chartDateRange.startDate}
+                                            onChange={handleChartDateRangeChange}
+                                        />
+                                    </label>
+                                    <label className="toolbar-field">
+                                        <span>Đến</span>
+                                        <LocalizedDateInput
+                                            className="form-control form-control-sm"
+                                            name="endDate"
+                                            value={chartDateRange.endDate}
+                                            onChange={handleChartDateRangeChange}
+                                        />
+                                    </label>
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-secondary btn-sm"
+                                        onClick={() => {
+                                            setPresetRange("all");
+                                            setFilteredChartData(data);
+                                            const firstDate = data[0]?.date || data[0]?.Ngày;
+                                            const lastDate =
+                                                data[data.length - 1]?.date || data[data.length - 1]?.Ngày;
+                                            if (firstDate && lastDate) {
+                                                setChartDateRange({
+                                                    startDate: firstDate.includes("/")
+                                                        ? convertVietnameseDateToISO(firstDate)
+                                                        : firstDate.split("T")[0],
+                                                    endDate: lastDate.includes("/")
+                                                        ? convertVietnameseDateToISO(lastDate)
+                                                        : lastDate.split("T")[0],
+                                                });
+                                            }
+                                        }}
+                                    >
+                                        Reset
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="tab-content mt-1" style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
                             <div
-                                className={`tab-pane fade ${activeTab === "chart" ? "show active" : ""}`}
+                                className={`tab-pane fade ${activeTab === "chart" ? "show active" : ""} h-100`}
                                 id="chart"
                             >
                                 {filteredChartData.length > 0 ? (
-                                    <div className="map-chart-pane hydromet-pane">
+                                    <div className="map-chart-pane hydromet-pane h-100">
                                         <div id="hydromet-chart" className="map-chart-box hydromet-chart-box">
                                             <HydrometBarChart data={filteredChartData} height="100%" />
                                         </div>
-                                        <div className="map-chart-footer export-actions mt-3 d-flex justify-content-between align-items-center">
+                                        <div className="map-chart-footer export-actions mt-1 d-flex justify-content-between align-items-center">
                                             <div className="text-muted small">
                                                 📊 Hiển thị: <strong>{filteredChartData.length}</strong> /{" "}
                                                 <strong>{data.length}</strong> ngày có dữ liệu
                                             </div>
                                             <button
-                                                className={`btn ${isLoggedIn ? "btn-info" : "btn-secondary"}`}
+                                                className={`btn btn-sm ${isLoggedIn ? "btn-outline-primary" : "btn-outline-secondary"}`}
                                                 onClick={downloadChart}
                                                 disabled={!isLoggedIn}
                                                 title={
@@ -704,7 +701,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                                         : ""
                                                 }
                                             >
-                                                {isLoggedIn ? "Tải ảnh biểu đồ" : "Đăng nhập để tải"}
+                                                Tải biểu đồ
                                             </button>
                                         </div>
                                     </div>
@@ -721,12 +718,12 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                             </div>
 
                             <div
-                                className={`tab-pane fade ${activeTab === "export" ? "show active" : ""}`}
+                                className={`tab-pane fade ${activeTab === "export" ? "show active" : ""} h-100`}
                                 id="export"
                             >
                                 {data.length > 0 ? (
-                                    <>
-                                        <div className="map-data-scroll mb-2">
+                                    <div className="h-100 d-flex flex-column" style={{ minHeight: 0 }}>
+                                        <div style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
                                             <ExportPreviewTable
                                                 data={filteredData.length > 0 ? filteredData : data}
                                             />
@@ -740,15 +737,15 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                                 </strong>
                                             </div>
                                             <button
-                                                className={`btn ${isLoggedIn ? "btn-success" : "btn-secondary"}`}
+                                                className={`btn btn-sm ${isLoggedIn ? "btn-outline-success" : "btn-outline-secondary"}`}
                                                 onClick={downloadCSV}
                                                 disabled={data.length === 0 || !isLoggedIn}
                                                 title={!isLoggedIn ? "Bạn cần đăng nhập để xuất dữ liệu" : ""}
                                             >
-                                                📥 {isLoggedIn ? "Xuất dữ liệu" : "Đăng nhập để xuất"}
+                                                Tải dữ liệu
                                             </button>
                                         </div>
-                                    </>
+                                    </div>
                                 ) : (
                                     <div className="text-center py-5">
                                         <div className="text-muted">

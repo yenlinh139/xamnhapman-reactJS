@@ -92,6 +92,87 @@ const setMeasurementInteractionMode = (mapInstance, isActive) => {
     });
 };
 
+const formatIsoDateForDisplay = (isoDate) => {
+    if (!isoDate) return "";
+    const [year, month, day] = String(isoDate).split("-");
+    if (!year || !month || !day) return "";
+    return `${day}/${month}/${year}`;
+};
+
+const parseDisplayDateToIso = (text) => {
+    const raw = String(text || "").trim();
+    const matched = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!matched) return "";
+
+    const [, dd, mm, yyyy] = matched;
+    const day = Number(dd);
+    const month = Number(mm);
+    const year = Number(yyyy);
+    const date = new Date(year, month - 1, day);
+
+    if (
+        Number.isNaN(date.getTime()) ||
+        date.getDate() !== day ||
+        date.getMonth() + 1 !== month ||
+        date.getFullYear() !== year
+    ) {
+        return "";
+    }
+
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+};
+
+const createDateInputComponentMarkup = ({ displayId, nativeId, placeholder = "dd/mm/yyyy" }) => {
+    return `
+                 <div class="legend-date-wrap" style="position: relative;">
+                   <input
+                     type="text"
+                     id="${displayId}"
+                     class="legend-date-input"
+                     autocomplete="off"
+                     inputmode="numeric"
+                     placeholder="${placeholder}"
+                   />
+                   <input
+                     type="date"
+                     id="${nativeId}"
+                     tabindex="-1"
+                     aria-hidden="true"
+                     style="position: absolute; inset: 0; opacity: 0; pointer-events: none;"
+                   />
+                 </div>
+    `;
+};
+
+const initializeDateInputComponent = ({ displayInput, nativeInput, defaultIsoDate }) => {
+    if (!displayInput || !nativeInput) return;
+
+    nativeInput.value = defaultIsoDate;
+    displayInput.value = formatIsoDateForDisplay(nativeInput.value);
+
+    nativeInput.addEventListener("change", () => {
+        displayInput.value = formatIsoDateForDisplay(nativeInput.value);
+        displayInput.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    const openPicker = () => {
+        if (typeof nativeInput.showPicker === "function") {
+            nativeInput.showPicker();
+        }
+    };
+
+    displayInput.addEventListener("focus", openPicker);
+    displayInput.addEventListener("click", openPicker);
+
+    displayInput.addEventListener("blur", () => {
+        const isoDate = parseDisplayDateToIso(displayInput.value);
+        if (!isoDate) return;
+
+        nativeInput.value = isoDate;
+        displayInput.value = formatIsoDateForDisplay(isoDate);
+    });
+};
+
 export const createLegendControl = () => {
     const legendContainer = L.control({ position: "topright" });
 
@@ -115,8 +196,10 @@ export const createLegendControl = () => {
               <i class="search-icon fas fa-calendar-alt"></i>
               <span>Chọn ngày quan trắc</span>
             </div>
-                 <input type="date" id="legend-date" class="legend-date-input"
-                   autocomplete="off" lang="vi" />
+                        ${createDateInputComponentMarkup({
+                                displayId: "legend-date",
+                                nativeId: "legend-date-native",
+                        })}
           </div>
 
           <div class="legend-section">
@@ -152,9 +235,12 @@ export const createLegendControl = () => {
             }
 
             const dateInput = document.getElementById("legend-date");
-            if (dateInput) {
-                dateInput.value = "2025-03-08";
-            }
+            const nativeDateInput = document.getElementById("legend-date-native");
+            initializeDateInputComponent({
+                displayInput: dateInput,
+                nativeInput: nativeDateInput,
+                defaultIsoDate: "2025-03-08",
+            });
         }, 100);
 
         return div;

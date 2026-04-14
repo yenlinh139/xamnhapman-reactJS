@@ -103,6 +103,20 @@ export const getHydrometIcon = (stationType = "") => {
     });
 };
 
+export const getReservoirIcon = () => {
+    return L.divIcon({
+        className: "custom-reservoir-marker",
+        html: `
+            <div class="reservoir-marker-container" title="Hồ chứa thượng lưu">
+                <span class="reservoir-water"></span>
+            </div>
+        `,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+        popupAnchor: [0, -12],
+    });
+};
+
 export const getHighlightedMarkerIcon = () => {
     return L.divIcon({
         html: '<i class="fa-solid fa-droplet" style="color:blue; font-size:24px;"></i>',
