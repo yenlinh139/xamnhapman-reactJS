@@ -1,11 +1,10 @@
 import React from "react";
 import L from "leaflet";
 import { convertDMSToDecimal } from "@components/convertDMSToDecimal";
-import {
-    fetchIoTStations,
-    fetchIoTData,
-    normalizeIoTDataRows,
-} from "@components/map/mapDataServices";
+import IoTCongAnHaImage from "@assets/IoT_CongAnHa.jpg";
+import IoTCongKenhCImage from "@assets/IoT_CongKenhC.jpg";
+import IoTCongVuonThomImage from "@assets/IoT_CongVuonThom.jpg";
+import { fetchIoTStations, fetchIoTData, normalizeIoTDataRows } from "@components/map/mapDataServices";
 import { getSingleStationClassification } from "@common/salinityClassification";
 
 const ensureStationPanes = (mapInstance) => {
@@ -40,16 +39,9 @@ const buildIoTChartPayload = (station, iotResponse) => {
 
     const stationInfo = iotResponse?.station || station;
     const stationName =
-        stationInfo?.station_name ||
-        station?.station_name ||
-        station?.stationName ||
-        "Trạm IoT";
+        stationInfo?.station_name || station?.station_name || station?.stationName || "Trạm IoT";
     const serialNumber =
-        stationInfo?.serial_number ||
-        stationInfo?.serial ||
-        station?.serial_number ||
-        station?.serial ||
-        "";
+        stationInfo?.serial_number || stationInfo?.serial || station?.serial_number || station?.serial || "";
 
     return {
         stationInfo,
@@ -71,62 +63,158 @@ const buildIoTChartPayload = (station, iotResponse) => {
 // Map classification class to popup/icon styles with stronger colors for better visibility
 const RISK_CLASS_MAP = {
     normal: {
-        statusClass: 'status-normal',
-        color: '#228b22',
-        accentColor: '#16a34a',
-        glowColor: 'rgba(34, 139, 34, 0.72)',
-        shadowColor: 'rgba(21, 128, 61, 0.42)',
+        statusClass: "status-normal",
+        color: "#228b22",
+        accentColor: "#16a34a",
+        glowColor: "rgba(34, 139, 34, 0.62)",
+        shadowColor: "rgba(21, 128, 61, 0.36)",
     },
     warning: {
-        statusClass: 'status-warning',
-        color: '#d97706',
-        accentColor: '#f59e0b',
-        glowColor: 'rgba(217, 119, 6, 0.72)',
-        shadowColor: 'rgba(180, 83, 9, 0.42)',
+        statusClass: "status-warning",
+        color: "#d97706",
+        accentColor: "#f59e0b",
+        glowColor: "rgba(217, 119, 6, 0.62)",
+        shadowColor: "rgba(180, 83, 9, 0.36)",
     },
-    'high-warning': {
-        statusClass: 'status-high-warning',
-        color: '#c2410c',
-        accentColor: '#ea580c',
-        glowColor: 'rgba(194, 65, 12, 0.72)',
-        shadowColor: 'rgba(154, 52, 18, 0.42)',
+    "high-warning": {
+        statusClass: "status-high-warning",
+        color: "#c2410c",
+        accentColor: "#ea580c",
+        glowColor: "rgba(194, 65, 12, 0.62)",
+        shadowColor: "rgba(154, 52, 18, 0.36)",
     },
     critical: {
-        statusClass: 'status-critical',
-        color: '#b91c1c',
-        accentColor: '#ef4444',
-        glowColor: 'rgba(185, 28, 28, 0.75)',
-        shadowColor: 'rgba(153, 27, 27, 0.42)',
+        statusClass: "status-critical",
+        color: "#b91c1c",
+        accentColor: "#ef4444",
+        glowColor: "rgba(185, 28, 28, 0.64)",
+        shadowColor: "rgba(153, 27, 27, 0.38)",
     },
-    'no-data': {
-        statusClass: 'status-no-data',
-        color: '#6b7280',
-        accentColor: '#9ca3af',
-        glowColor: 'rgba(107, 114, 128, 0.55)',
-        shadowColor: 'rgba(75, 85, 99, 0.35)',
+    "no-data": {
+        statusClass: "status-no-data",
+        color: "#6b7280",
+        accentColor: "#9ca3af",
+        glowColor: "rgba(107, 114, 128, 0.55)",
+        shadowColor: "rgba(75, 85, 99, 0.35)",
     },
+};
+
+const getLatestIoTSaltValue = (station) => {
+    const rawValue =
+        station?.latest_hour_avg_salt ??
+        station?.latest_salt_value ??
+        station?.salt_value ??
+        station?.latest_value ??
+        station?.value ??
+        station?.salinity ??
+        station?.do_man ??
+        station?.DoMan ??
+        null;
+
+    if (rawValue === null || rawValue === undefined || rawValue === "" || rawValue === "NULL") {
+        return null;
+    }
+
+    const normalized = String(rawValue).replace(",", ".");
+    const numeric = Number.parseFloat(normalized);
+    return Number.isFinite(numeric) ? numeric : null;
+};
+
+const LOCAL_IOT_STATION_IMAGES = {
+    CKC: [IoTCongKenhCImage],
+    KXAH: [IoTCongAnHaImage],
+    COT: [IoTCongVuonThomImage],
+    default: [IoTCongKenhCImage],
+};
+
+const normalizeStationCode = (stationCode) => {
+    return String(stationCode || "")
+        .toUpperCase()
+        .replace(/_IOT$/i, "")
+        .trim();
+};
+
+const inferStationCodeFromName = (stationName) => {
+    const normalizedName = String(stationName || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+
+    if (normalizedName.includes("kenh c")) return "CKC";
+    if (normalizedName.includes("an ha")) return "KXAH";
+    if (normalizedName.includes("vuon thom")) return "COT";
+    return "";
+};
+
+const getIoTStationImages = (station = {}) => {
+    const baseCode =
+        normalizeStationCode(station?.station_code || station?.StationCode) ||
+        inferStationCodeFromName(station?.station_name || station?.StationName);
+
+    return LOCAL_IOT_STATION_IMAGES[baseCode] || LOCAL_IOT_STATION_IMAGES.default;
+};
+
+const renderIoTImageContainer = (station) => {
+    const images = getIoTStationImages(station);
+
+    if (images.length === 0) {
+        return `
+            <div class="iot-image-container">
+                <div class="iot-image-empty">
+                    <i class="fa-regular fa-image"></i>
+                    <span>Chưa có ảnh trạm</span>
+                </div>
+            </div>
+        `;
+    }
+
+    const mainImage = images[0];
+    const thumbnails = images
+        .map(
+            (imageUrl, index) => `
+                <button
+                    type="button"
+                    class="iot-image-thumb ${index === 0 ? "active" : ""}"
+                    data-image-src="${imageUrl}"
+                    aria-label="Ảnh trạm ${index + 1}"
+                >
+                    <img src="${imageUrl}" alt="Ảnh trạm ${index + 1}" loading="lazy" />
+                </button>
+            `,
+        )
+        .join("");
+
+    return `
+        <div class="iot-image-container">
+            <div class="iot-image-main-wrap">
+                <img class="iot-image-main" src="${mainImage}" alt="Ảnh trạm IoT" loading="lazy" />
+            </div>
+            ${images.length > 1 ? `<div class="iot-image-thumbs">${thumbnails}</div>` : ""}
+        </div>
+    `;
 };
 
 // Helper: get risk classification for IoT station based on latest salt value
 const getIoTRiskClassification = (station) => {
-    const saltValue =
-        station?.latest_hour_avg_salt ??
-        station?.latest_salt_value ??
-        null;
+    const saltValue = getLatestIoTSaltValue(station);
     // Derive base station code (e.g. "CKC_IoT" → "CKC") for MNB detection
-    const baseCode = (station.station_code || '').replace(/_IoT$/i, '').replace(/_iot$/i, '');
+    const baseCode = String(station?.station_code || station?.StationCode || "")
+        .replace(/_IoT$/i, "")
+        .replace(/_iot$/i, "");
     return getSingleStationClassification(saltValue, baseCode);
 };
 
 // Create custom IoT icon using the same risk palette as the salinity markers.
-export const getIoTIcon = (status, totalRecords, riskClass = 'no-data') => {
-    const normalizedRiskClass = String(riskClass || 'no-data');
-    const riskStyle = RISK_CLASS_MAP[normalizedRiskClass] || RISK_CLASS_MAP['no-data'];
+export const getIoTIcon = (status, totalRecords, riskClass = "no-data") => {
+    const normalizedRiskClass = String(riskClass || "no-data");
+    const riskStyle = RISK_CLASS_MAP[normalizedRiskClass] || RISK_CLASS_MAP["no-data"];
+    const hasValueBasedRisk = normalizedRiskClass !== "no-data";
     const isInactive =
-        String(status || '').toLowerCase() === 'inactive' || Number(totalRecords || 0) <= 0;
+        !hasValueBasedRisk &&
+        (String(status || "").toLowerCase() === "inactive" || Number(totalRecords || 0) <= 0);
 
-    const markerStyle = isInactive ? RISK_CLASS_MAP['no-data'] : riskStyle;
-    const markerStateClass = isInactive ? 'inactive' : 'active';
+    const markerStyle = hasValueBasedRisk ? riskStyle : RISK_CLASS_MAP["no-data"];
+    const markerStateClass = isInactive ? "inactive" : "active";
 
     return L.divIcon({
         className: "custom-iot-marker",
@@ -155,8 +243,8 @@ export const getIoTIcon = (status, totalRecords, riskClass = 'no-data') => {
 
 const toYMD = (date) => {
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
 };
 
@@ -184,15 +272,21 @@ const getRecent14DaysRange = (lastDataTime) => {
 
 // Create IoT station popup - Lấy dữ liệu từ API thực tế
 export const createIoTPopup = (station) => {
-    const hasSerial = station.serial_number && station.serial_number.trim() !== '';
-    
+    const stationSerial = String(
+        station?.serial_number ?? station?.serialNumber ?? station?.serial ?? station?.serial_no ?? "",
+    ).trim();
+    const hasSerial = stationSerial !== "";
+
     // Latest/previous hourly salinity values
-    const latestSaltValueRaw = station?.latest_hour_avg_salt;
-    const previousSaltValueRaw = station?.previous_hour_avg_salt;
-    const latestSaltValue =
-        latestSaltValueRaw !== null && latestSaltValueRaw !== undefined && latestSaltValueRaw !== ""
-            ? parseFloat(latestSaltValueRaw)
-            : null;
+    const latestSaltValue = getLatestIoTSaltValue(station);
+    const previousSaltValueRaw =
+        station?.previous_hour_avg_salt ??
+        station?.previousHourAvgSalt ??
+        station?.prev_hour_avg_salt ??
+        station?.previous_salt_value ??
+        station?.previousSaltValue ??
+        station?.prev_salt_value ??
+        station?.prev_value;
     const previousSaltValue =
         previousSaltValueRaw !== null && previousSaltValueRaw !== undefined && previousSaltValueRaw !== ""
             ? parseFloat(previousSaltValueRaw)
@@ -201,12 +295,13 @@ export const createIoTPopup = (station) => {
     const saltUnit = station?.latest_salt_unit || "‰";
 
     // Previous day salinity average (optional summary field)
-    const previousDayAvgRaw = station?.previous_day_avg_salt;
+    const previousDayAvgRaw =
+        station?.previous_day_avg_salt ?? station?.previousDayAvgSalt ?? station?.prev_day_avg_salt;
     const previousDayAvgSalt =
         previousDayAvgRaw !== null && previousDayAvgRaw !== undefined && previousDayAvgRaw !== ""
             ? parseFloat(previousDayAvgRaw)
             : null;
-    const previousDay = station?.previous_day || null;
+    const previousDay = station?.previous_day || station?.previousDay || null;
     const previousDayLabel = (() => {
         if (!previousDay) return null;
         const parsed = new Date(previousDay);
@@ -215,36 +310,43 @@ export const createIoTPopup = (station) => {
         }
         return String(previousDay);
     })();
-    
+
     // Format values
-    const saltDisplay = hasSaltValue
-        ? `${latestSaltValue.toFixed(2)} ${saltUnit}`
-        : 'N/A';
+    const saltDisplay = hasSaltValue ? `${latestSaltValue.toFixed(2)} ${saltUnit}` : "N/A";
+    const previousHourSaltDisplay = Number.isFinite(previousSaltValue)
+        ? `${previousSaltValue.toFixed(2)} ${saltUnit}`
+        : "--";
+    const previousDaySaltDisplay = Number.isFinite(previousDayAvgSalt)
+        ? `${previousDayAvgSalt.toFixed(2)} ${saltUnit}`
+        : "--";
 
     // Format latest hour end time
-    const latestTime = station.latest_hour_end_time ? 
-        new Date(station.latest_hour_end_time).toLocaleString('vi-VN', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
-        }) : 'Chưa có dữ liệu';
+    const latestTime = station.latest_hour_end_time
+        ? new Date(station.latest_hour_end_time).toLocaleString("vi-VN", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+          })
+        : "Chưa có dữ liệu";
 
     // Format previous hour end time (optional)
-    const previousHourLabel = station.previous_hour_end_time
-        ? new Date(station.previous_hour_end_time).toLocaleString('vi-VN', {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-              hour: '2-digit',
-              minute: '2-digit',
+    const previousHourEndTime = station?.previous_hour_end_time || station?.previousHourEndTime;
+    const previousHourLabel = previousHourEndTime
+        ? new Date(previousHourEndTime).toLocaleString("vi-VN", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
           })
-        : 'Giờ liền trước';
-    
+        : "Giờ liền trước";
+
     // Risk level based on latest salt value
     const riskClassification = getIoTRiskClassification(station);
-    const { statusClass: riskStatusClass, color: riskColor } = RISK_CLASS_MAP[riskClassification.class] || RISK_CLASS_MAP['no-data'];
+    const { statusClass: riskStatusClass, color: riskColor } =
+        RISK_CLASS_MAP[riskClassification.class] || RISK_CLASS_MAP["no-data"];
 
     const buildTrend = (baselineValue, baselineLabel) => {
         if (!Number.isFinite(latestSaltValue) || !Number.isFinite(baselineValue)) {
@@ -253,13 +355,22 @@ export const createIoTPopup = (station) => {
 
         const diff = latestSaltValue - baselineValue;
         const absDiff = Math.abs(diff);
-        if (absDiff < 0.01) return null;
+        if (absDiff < 0.01) {
+            return {
+                icon: "→",
+                text: `Không đổi so với`,
+                color: "#6c757d",
+                date: baselineLabel,
+                directionClass: "trend-flat",
+            };
+        }
 
         return {
             icon: diff > 0 ? "↑" : "↓",
             text: `${diff > 0 ? "Tăng" : "Giảm"} ${absDiff.toFixed(2)} ${saltUnit} so với`,
             color: diff > 0 ? "#dc3545" : "#28a745",
             date: baselineLabel,
+            directionClass: diff > 0 ? "trend-up" : "trend-down",
         };
     };
 
@@ -272,16 +383,20 @@ export const createIoTPopup = (station) => {
     // Get format coordinates
     const lngDecimal = convertDMSToDecimal(station?.longitude);
     const latDecimal = convertDMSToDecimal(station?.latitude);
-    const latDisplay = Number.isFinite(latDecimal) ? latDecimal.toFixed(6) : station.latitude || 'Không xác định';
-    const lngDisplay = Number.isFinite(lngDecimal) ? lngDecimal.toFixed(6) : station.longitude || 'Không xác định';
-    
-    const stationCode = station.station_code || 'N/A';
-    const stationName = station.station_name || 'Trạm IoT';
+    const latDisplay = Number.isFinite(latDecimal)
+        ? latDecimal.toFixed(6)
+        : station.latitude || "Không xác định";
+    const lngDisplay = Number.isFinite(lngDecimal)
+        ? lngDecimal.toFixed(6)
+        : station.longitude || "Không xác định";
+
+    const stationCode = station.station_code || "N/A";
+    const stationName = station.station_name || "Trạm IoT";
 
     const totalRecordsText = Number.isFinite(Number(station?.total_records))
         ? Number(station.total_records).toLocaleString("vi-VN")
         : "--";
-    
+
     const formatDateTime = (dateStr) => {
         const date = new Date(dateStr);
 
@@ -320,10 +435,14 @@ export const createIoTPopup = (station) => {
                     <span class="value-date">${latestTime}</span>
                 </div>
                 
-                ${trendItems
-                    .map(
-                        (trend) => `
-                    <div class="trend-indicator">
+                ${
+                    trendItems.length > 0
+                        ? `
+                    <div class="iot-trend-list">
+                        ${trendItems
+                            .map(
+                                (trend) => `
+                    <div class="trend-indicator ${trend.directionClass}">
                         <div class="trend-icon" style="color: ${trend.color}">
                             ${trend.icon}
                         </div>
@@ -335,8 +454,14 @@ export const createIoTPopup = (station) => {
                         </div>
                     </div>
                 `,
-                    )
-                    .join("")}
+                            )
+                            .join("")}
+                    </div>
+                `
+                        : ""
+                }
+
+                ${renderIoTImageContainer(station)}
                 
                 <div class="popup-details">
                     <div class="detail-grid">
@@ -382,6 +507,20 @@ export const createIoTPopup = (station) => {
                                 <span class="detail-value">${totalRecordsText}</span>
                             </div>
                         </div>
+
+                        <div class="detail-item">
+                            <div class="detail-content py-1">
+                                <strong class="detail-label">Độ mặn giờ trước: </strong>
+                                <span class="detail-value">${previousHourSaltDisplay}</span>
+                            </div>
+                        </div>
+
+                        <div class="detail-item">
+                            <div class="detail-content py-1">
+                                <strong class="detail-label">Độ mặn TB ngày trước: </strong>
+                                <span class="detail-value">${previousDaySaltDisplay}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -389,7 +528,13 @@ export const createIoTPopup = (station) => {
                     hasSerial
                         ? `
                     <div class="popup-actions">
-                        <button class="action-btn primary btn-view-data" data-serial="${station.serial_number}" data-name="${stationName}">
+                        <button
+                            type="button"
+                            class="action-btn primary btn-view-data"
+                            data-serial="${stationSerial}"
+                            data-name="${stationName}"
+                            onclick="window.openIoTChartDetails && window.openIoTChartDetails(this.getAttribute('data-serial'))"
+                        >
                             Xem dữ liệu chi tiết
                         </button>
                     </div>
@@ -402,22 +547,22 @@ export const createIoTPopup = (station) => {
 };
 
 // Get IoT tooltip class by risk level (used to color station name label)
-export const getIoTTooltipClass = (_status, _totalRecords, riskClass = 'no-data') => {
-    const normalizedRiskClass = String(riskClass || 'no-data');
+export const getIoTTooltipClass = (_status, _totalRecords, riskClass = "no-data") => {
+    const normalizedRiskClass = String(riskClass || "no-data");
 
-    if (normalizedRiskClass === 'normal') {
-        return 'custom-tooltip tooltip-normal';
+    if (normalizedRiskClass === "normal") {
+        return "custom-tooltip tooltip-normal";
     }
-    if (normalizedRiskClass === 'warning') {
-        return 'custom-tooltip tooltip-warning';
+    if (normalizedRiskClass === "warning") {
+        return "custom-tooltip tooltip-warning";
     }
-    if (normalizedRiskClass === 'high-warning') {
-        return 'custom-tooltip tooltip-high-warning';
+    if (normalizedRiskClass === "high-warning") {
+        return "custom-tooltip tooltip-high-warning";
     }
-    if (normalizedRiskClass === 'critical') {
-        return 'custom-tooltip tooltip-critical';
+    if (normalizedRiskClass === "critical") {
+        return "custom-tooltip tooltip-critical";
     }
-    return 'custom-tooltip tooltip-no-data';
+    return "custom-tooltip tooltip-no-data";
 };
 
 // Main function to render IoT stations on map
@@ -428,11 +573,64 @@ export const renderIoTStations = async (mapInstance, setIotData) => {
         const stationsResponse = await fetchIoTStations();
 
         if (!stationsResponse.success || !stationsResponse.data) {
-            console.warn('⚠️ No IoT stations data received', stationsResponse);
+            console.warn("⚠️ No IoT stations data received", stationsResponse);
             return;
         }
 
         const stations = stationsResponse.data;
+        const stationMapBySerial = new Map();
+
+        stations.forEach((stationItem) => {
+            const serial = String(
+                stationItem?.serial_number ??
+                    stationItem?.serialNumber ??
+                    stationItem?.serial ??
+                    stationItem?.serial_no ??
+                    "",
+            ).trim();
+            if (serial) {
+                stationMapBySerial.set(serial, stationItem);
+            }
+        });
+
+        window.openIoTChartDetails = async (serialInput) => {
+            const serial = String(serialInput || "").trim();
+            if (!serial) return;
+
+            const matchedStation = stationMapBySerial.get(serial);
+            if (!matchedStation) return;
+
+            try {
+                const fallbackPayload = buildIoTChartPayload(matchedStation, { success: true, data: [] });
+                if (typeof setIotData === "function") {
+                    setIotData(fallbackPayload);
+                }
+                if (typeof window.onOpenIoTChart === "function") {
+                    window.onOpenIoTChart(fallbackPayload);
+                }
+
+                const { startDate, endDate } = getRecent14DaysRange(
+                    matchedStation.latest_hour_end_time || matchedStation.last_data_time,
+                );
+                const iotResponse = await fetchIoTData(serial, {
+                    startDate,
+                    endDate,
+                    groupBy: "none",
+                });
+                const chartPayload = buildIoTChartPayload(matchedStation, iotResponse);
+
+                if (typeof setIotData === "function") {
+                    setIotData(chartPayload);
+                }
+                if (typeof window.onOpenIoTChart === "function") {
+                    window.onOpenIoTChart(chartPayload);
+                }
+            } catch (error) {
+                console.error("❌ Error khi mở modal IoT:", error);
+                alert("Có lỗi khi mở biểu đồ IoT");
+            }
+        };
+
         const latLngs = [];
 
         for (const station of stations) {
@@ -445,7 +643,7 @@ export const renderIoTStations = async (mapInstance, setIotData) => {
                     latitude: station.latitude,
                     longitude: station.longitude,
                     convertedLat: lat,
-                    convertedLng: lng
+                    convertedLng: lng,
                 });
                 continue;
             }
@@ -464,7 +662,7 @@ export const renderIoTStations = async (mapInstance, setIotData) => {
 
             // Add to map first
             marker.addTo(mapInstance);
-            
+
             // Set custom properties after adding to map
             marker.isIoTStation = true;
             marker.stationData = station;
@@ -480,51 +678,62 @@ export const renderIoTStations = async (mapInstance, setIotData) => {
                 pane: "iotTooltipPane",
             });
 
+            const popupHTML = createIoTPopup(station);
+            marker.bindPopup(popupHTML, {
+                maxWidth: 350,
+                className: "custom-popup iot-custom-popup",
+                autoClose: true,
+                closeOnClick: false,
+            });
+
+            marker.on("popupopen", (event) => {
+                const popupElement = event?.popup?.getElement?.();
+                if (popupElement) {
+                    L.DomEvent.disableClickPropagation(popupElement);
+                    L.DomEvent.disableScrollPropagation(popupElement);
+                }
+                const mainImage = popupElement?.querySelector(".iot-image-main");
+                const imageThumbs = popupElement?.querySelectorAll(".iot-image-thumb") || [];
+
+                imageThumbs.forEach((thumbButton) => {
+                    thumbButton.onclick = () => {
+                        const nextImage = thumbButton.getAttribute("data-image-src");
+                        if (!mainImage || !nextImage) return;
+
+                        mainImage.src = nextImage;
+                        imageThumbs.forEach((item) => item.classList.remove("active"));
+                        thumbButton.classList.add("active");
+                    };
+                });
+
+                const btnViewData = popupElement?.querySelector(".btn-view-data");
+                const stationSerial = String(
+                    station?.serial_number ??
+                        station?.serialNumber ??
+                        station?.serial ??
+                        station?.serial_no ??
+                        btnViewData?.getAttribute("data-serial") ??
+                        "",
+                ).trim();
+
+                if (!btnViewData || !stationSerial) {
+                    return;
+                }
+
+                btnViewData.onclick = async (clickEvent) => {
+                    clickEvent?.preventDefault?.();
+                    clickEvent?.stopPropagation?.();
+                    if (typeof window.openIoTChartDetails === "function") {
+                        await window.openIoTChartDetails(stationSerial);
+                        marker.closePopup();
+                    }
+                };
+            });
+
             // Add click handler
             marker.on("click", async () => {
                 try {
-                    const popupHTML = createIoTPopup(station);
-                    marker.bindPopup(popupHTML, {
-                        maxWidth: 350,
-                        className: "custom-popup iot-custom-popup",
-                    });
                     marker.openPopup();
-
-                    // Add event listener for view data button
-                    setTimeout(() => {
-                        const btnViewData = document.querySelector('.btn-view-data');
-                        if (btnViewData && station.serial_number) {
-                            btnViewData.addEventListener('click', async () => {
-                                try {
-                                    const { startDate, endDate } = getRecent14DaysRange(
-                                        station.latest_hour_end_time || station.last_data_time,
-                                    );
-                                    const iotResponse = await fetchIoTData(station.serial_number, {
-                                        startDate,
-                                        endDate,
-                                        groupBy: "none",
-                                    });
-                                    const chartPayload = buildIoTChartPayload(station, iotResponse);
-
-                                    if (typeof setIotData === "function") {
-                                        setIotData(chartPayload);
-                                    }
-
-                                    // Gọi trực tiếp modal IoT chart (window.onOpenIoTChart hoặc props)
-                                    if (typeof window.onOpenIoTChart === 'function') {
-                                        window.onOpenIoTChart(chartPayload);
-                                    } else {
-                                        alert('Không tìm thấy hàm mở biểu đồ IoT.');
-                                    }
-                                    marker.closePopup();
-                                } catch (error) {
-                                    console.error('❌ Error khi mở modal IoT:', error);
-                                    alert('Có lỗi khi mở biểu đồ IoT');
-                                }
-                            });
-                        }
-                    }, 100);
-
                 } catch (error) {
                     console.error("❌ Error in IoT marker click handler:", error);
                 }
@@ -545,20 +754,20 @@ export const renderIoTStations = async (mapInstance, setIotData) => {
         }
     } catch (error) {
         console.error("❌ Error rendering IoT stations:", error);
-        console.error('❌ Error stack:', error.stack);
+        console.error("❌ Error stack:", error.stack);
     }
 };
 
 // Function to remove existing IoT markers from map
 export const removeIoTStations = (mapInstance) => {
     if (!mapInstance.eachLayer) {
-        console.warn('⚠️ Map instance does not have eachLayer method');
+        console.warn("⚠️ Map instance does not have eachLayer method");
         return;
     }
-    
+
     let removedCount = 0;
     const layersToRemove = [];
-    
+
     mapInstance.eachLayer((layer) => {
         if (layer.isIoTStation || (layer.options && layer.options.isIoTStation)) {
             layersToRemove.push(layer);

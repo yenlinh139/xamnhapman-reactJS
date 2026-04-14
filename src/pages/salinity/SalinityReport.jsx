@@ -16,8 +16,8 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 // Custom plugin for station labels
 const stationLabelsPlugin = {
-    id: 'stationLabels',
-    afterDatasetsDraw: function(chart) {
+    id: "stationLabels",
+    afterDatasetsDraw: function (chart) {
         const ctx = chart.ctx;
         chart.data.datasets.forEach((dataset, datasetIndex) => {
             const meta = chart.getDatasetMeta(datasetIndex);
@@ -25,52 +25,52 @@ const stationLabelsPlugin = {
                 meta.data.forEach((bar, index) => {
                     const stationName = dataset.label;
                     const value = dataset.data[index];
-                    
+
                     // Only draw if bar has value > 0
                     if (value > 0) {
                         const x = bar.x;
                         const y = bar.y - 20; // Position higher above the bar
-                        
+
                         ctx.save();
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillStyle = '#1a202c';
-                        ctx.font = 'bold 9px Arial, sans-serif';
-                        
+                        ctx.textAlign = "center";
+                        ctx.textBaseline = "middle";
+                        ctx.fillStyle = "#1a202c";
+                        ctx.font = "bold 9px Arial, sans-serif";
+
                         // Measure text for background
                         const textWidth = ctx.measureText(stationName).width;
                         const textHeight = 12;
                         const padding = 3;
-                        
+
                         // Draw white background
-                        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                        ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
                         ctx.fillRect(
-                            x - textWidth/2 - padding, 
-                            y - textHeight/2 - padding/2, 
-                            textWidth + padding*2, 
-                            textHeight + padding
+                            x - textWidth / 2 - padding,
+                            y - textHeight / 2 - padding / 2,
+                            textWidth + padding * 2,
+                            textHeight + padding,
                         );
-                        
+
                         // Draw border
-                        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                        ctx.strokeStyle = "rgba(0, 0, 0, 0.2)";
                         ctx.lineWidth = 1;
                         ctx.strokeRect(
-                            x - textWidth/2 - padding, 
-                            y - textHeight/2 - padding/2, 
-                            textWidth + padding*2, 
-                            textHeight + padding
+                            x - textWidth / 2 - padding,
+                            y - textHeight / 2 - padding / 2,
+                            textWidth + padding * 2,
+                            textHeight + padding,
                         );
-                        
+
                         // Draw station name text
-                        ctx.fillStyle = '#1a202c';
+                        ctx.fillStyle = "#1a202c";
                         ctx.fillText(stationName, x, y);
-                        
+
                         ctx.restore();
                     }
                 });
             }
         });
-    }
+    },
 };
 
 // Register the custom plugin
@@ -526,7 +526,7 @@ const SalinityReport = () => {
                 return getSalinityColor(value, station.stationCode);
             });
 
-            const borderColor = backgroundColor.map(color => color);
+            const borderColor = backgroundColor.map((color) => color);
 
             return {
                 label: station.stationName,
@@ -575,21 +575,21 @@ const SalinityReport = () => {
                 borderColor: "rgba(255,255,255,0.2)",
                 borderWidth: 1,
                 callbacks: {
-                    title: function(context) {
+                    title: function (context) {
                         return context[0].label;
                     },
-                    label: function(context) {
+                    label: function (context) {
                         const stationName = context.dataset.label;
                         const value = context.parsed.y;
                         return `${stationName}: ${value.toFixed(2)} ‰`;
-                    }
-                }
+                    },
+                },
             },
-            stationLabels: true // Enable the registered plugin
+            stationLabels: true, // Enable the registered plugin
         },
         onHover: (event, activeElements) => {
             // Add cursor pointer when hovering over bars
-            event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
+            event.native.target.style.cursor = activeElements.length > 0 ? "pointer" : "default";
         },
         scales: {
             x: {
@@ -673,7 +673,6 @@ const SalinityReport = () => {
         onResize: null,
         aspectRatio: 1.4, // Adjusted for new layout
     });
-
 
     // Get current month and year from selected date
     const getCurrentMonthYear = () => {
@@ -838,7 +837,7 @@ const SalinityReport = () => {
                                                         const stationsWithValues = reportStations
                                                             ?.map((station) => ({
                                                                 ...station,
-                                                                value: parseFloat(station.currentSalinity)
+                                                                value: parseFloat(station.currentSalinity),
                                                             }))
                                                             .filter(
                                                                 (station) =>
@@ -846,19 +845,26 @@ const SalinityReport = () => {
                                                                     !isNaN(station.value) &&
                                                                     station.currentSalinity !== "" &&
                                                                     station.currentSalinity !== null &&
-                                                                    station.currentSalinity !== undefined
+                                                                    station.currentSalinity !== undefined,
                                                             );
 
-                                                        if (!stationsWithValues || stationsWithValues.length === 0) {
+                                                        if (
+                                                            !stationsWithValues ||
+                                                            stationsWithValues.length === 0
+                                                        ) {
                                                             return "text-secondary";
                                                         }
 
                                                         // Find station with maximum value
-                                                        const maxStation = stationsWithValues.reduce((max, station) => 
-                                                            station.value > max.value ? station : max
+                                                        const maxStation = stationsWithValues.reduce(
+                                                            (max, station) =>
+                                                                station.value > max.value ? station : max,
                                                         );
 
-                                                        return getSalinityClassLocal(maxStation.value, maxStation.stationCode);
+                                                        return getSalinityClassLocal(
+                                                            maxStation.value,
+                                                            maxStation.stationCode,
+                                                        );
                                                     })()}`}
                                                 >
                                                     {(() => {
@@ -896,7 +902,7 @@ const SalinityReport = () => {
                                                         const stationsWithValues = reportStations
                                                             ?.map((station) => ({
                                                                 ...station,
-                                                                value: parseFloat(station.previousSalinity)
+                                                                value: parseFloat(station.previousSalinity),
                                                             }))
                                                             .filter(
                                                                 (station) =>
@@ -904,19 +910,26 @@ const SalinityReport = () => {
                                                                     !isNaN(station.value) &&
                                                                     station.previousSalinity !== "" &&
                                                                     station.previousSalinity !== null &&
-                                                                    station.previousSalinity !== undefined
+                                                                    station.previousSalinity !== undefined,
                                                             );
 
-                                                        if (!stationsWithValues || stationsWithValues.length === 0) {
+                                                        if (
+                                                            !stationsWithValues ||
+                                                            stationsWithValues.length === 0
+                                                        ) {
                                                             return "text-secondary";
                                                         }
 
                                                         // Find station with maximum value
-                                                        const maxStation = stationsWithValues.reduce((max, station) => 
-                                                            station.value > max.value ? station : max
+                                                        const maxStation = stationsWithValues.reduce(
+                                                            (max, station) =>
+                                                                station.value > max.value ? station : max,
                                                         );
 
-                                                        return getSalinityClassLocal(maxStation.value, maxStation.stationCode);
+                                                        return getSalinityClassLocal(
+                                                            maxStation.value,
+                                                            maxStation.stationCode,
+                                                        );
                                                     })()}`}
                                                 >
                                                     {(() => {
@@ -952,24 +965,36 @@ const SalinityReport = () => {
                                                                 const max = calculateArrayMaximum(
                                                                     station.prevYearMonthlyData,
                                                                 );
-                                                                const value = max === "NULL" ? null : parseFloat(max);
+                                                                const value =
+                                                                    max === "NULL" ? null : parseFloat(max);
                                                                 return {
                                                                     ...station,
-                                                                    value: value
+                                                                    value: value,
                                                                 };
                                                             })
-                                                            .filter((station) => station.value !== null && !isNaN(station.value));
+                                                            .filter(
+                                                                (station) =>
+                                                                    station.value !== null &&
+                                                                    !isNaN(station.value),
+                                                            );
 
-                                                        if (!stationsWithValues || stationsWithValues.length === 0) {
+                                                        if (
+                                                            !stationsWithValues ||
+                                                            stationsWithValues.length === 0
+                                                        ) {
                                                             return "text-secondary";
                                                         }
 
                                                         // Find station with maximum value
-                                                        const maxStation = stationsWithValues.reduce((max, station) => 
-                                                            station.value > max.value ? station : max
+                                                        const maxStation = stationsWithValues.reduce(
+                                                            (max, station) =>
+                                                                station.value > max.value ? station : max,
                                                         );
 
-                                                        return getSalinityClassLocal(maxStation.value, maxStation.stationCode);
+                                                        return getSalinityClassLocal(
+                                                            maxStation.value,
+                                                            maxStation.stationCode,
+                                                        );
                                                     })()}`}
                                                 >
                                                     {(() => {
@@ -1005,24 +1030,36 @@ const SalinityReport = () => {
                                                                 const max = calculateArrayMaximum(
                                                                     station.allYearsMonthlyData,
                                                                 );
-                                                                const value = max === "NULL" ? null : parseFloat(max);
+                                                                const value =
+                                                                    max === "NULL" ? null : parseFloat(max);
                                                                 return {
                                                                     ...station,
-                                                                    value: value
+                                                                    value: value,
                                                                 };
                                                             })
-                                                            .filter((station) => station.value !== null && !isNaN(station.value));
+                                                            .filter(
+                                                                (station) =>
+                                                                    station.value !== null &&
+                                                                    !isNaN(station.value),
+                                                            );
 
-                                                        if (!stationsWithValues || stationsWithValues.length === 0) {
+                                                        if (
+                                                            !stationsWithValues ||
+                                                            stationsWithValues.length === 0
+                                                        ) {
                                                             return "text-secondary";
                                                         }
 
                                                         // Find station with maximum value
-                                                        const maxStation = stationsWithValues.reduce((max, station) => 
-                                                            station.value > max.value ? station : max
+                                                        const maxStation = stationsWithValues.reduce(
+                                                            (max, station) =>
+                                                                station.value > max.value ? station : max,
                                                         );
 
-                                                        return getSalinityClassLocal(maxStation.value, maxStation.stationCode);
+                                                        return getSalinityClassLocal(
+                                                            maxStation.value,
+                                                            maxStation.stationCode,
+                                                        );
                                                     })()}`}
                                                 >
                                                     {(() => {
@@ -1044,8 +1081,7 @@ const SalinityReport = () => {
                                                     })()}
                                                 </div>
                                                 <div className="stat-label">
-                                                    Max độ mặn tháng {getCurrentMonthYear().month}/TBNN
-                                                    (‰)
+                                                    Max độ mặn tháng {getCurrentMonthYear().month}/TBNN (‰)
                                                 </div>
                                             </div>
                                         </div>
@@ -1060,8 +1096,8 @@ const SalinityReport = () => {
                                         <span className="text-lowercase">
                                             {formatDateVietnamese(selectedDate)}
                                         </span>
-                                        tại {reportStations.length} trạm trên sông rạch chính thuộc khu vực Thành phố Hồ Chí Minh
-                                        được thống kê như sau:
+                                        tại {reportStations.length} trạm trên sông rạch chính thuộc khu vực
+                                        Thành phố Hồ Chí Minh được thống kê như sau:
                                     </p>
                                     <h5 className="pdf-table-title mb-3">
                                         Bảng số liệu quan trắc độ mặn ngày{" "}

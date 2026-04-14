@@ -42,7 +42,7 @@ export const fetchSalinityData =
             // Add date filters
             if (params.startDate) queryParams.append("startDate", params.startDate);
             if (params.endDate) queryParams.append("endDate", params.endDate);
-            
+
             const response = await axiosInstance.get(`/salinity-data?${queryParams}`);
 
             if (response.data.code === 200) {

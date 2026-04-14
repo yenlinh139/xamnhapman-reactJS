@@ -2,74 +2,74 @@ import L from "leaflet";
 import { createBaseMaps, createWMSLayer } from "@components/map/mapStyles";
 
 const formatDistance = (meters) => {
-  if (!Number.isFinite(meters)) return "0 m";
-  if (meters >= 1000) {
-    return `${(meters / 1000).toFixed(2)} km`;
-  }
-  return `${meters.toFixed(1)} m`;
+    if (!Number.isFinite(meters)) return "0 m";
+    if (meters >= 1000) {
+        return `${(meters / 1000).toFixed(2)} km`;
+    }
+    return `${meters.toFixed(1)} m`;
 };
 
 const formatArea = (squareMeters) => {
-  if (!Number.isFinite(squareMeters)) return "0 m²";
-  if (squareMeters >= 1000000) {
-    return `${(squareMeters / 1000000).toFixed(2)} km²`;
-  }
-  return `${squareMeters.toFixed(0)} m²`;
+    if (!Number.isFinite(squareMeters)) return "0 m²";
+    if (squareMeters >= 1000000) {
+        return `${(squareMeters / 1000000).toFixed(2)} km²`;
+    }
+    return `${squareMeters.toFixed(0)} m²`;
 };
 
 const updateMeasurementTooltip = (layer) => {
-  if (!layer || typeof layer.getLatLngs !== "function") return;
+    if (!layer || typeof layer.getLatLngs !== "function") return;
 
-  // Polygon extends Polyline, so polygon must be checked first.
-  const isPolygon = layer instanceof L.Polygon;
-  const isPolyline = layer instanceof L.Polyline;
-  if (!isPolygon && !isPolyline) return;
+    // Polygon extends Polyline, so polygon must be checked first.
+    const isPolygon = layer instanceof L.Polygon;
+    const isPolyline = layer instanceof L.Polyline;
+    if (!isPolygon && !isPolyline) return;
 
-  let label = "";
+    let label = "";
 
-  if (isPolygon) {
-    const latlngs = layer.getLatLngs();
-    const ring = Array.isArray(latlngs[0]) ? latlngs[0] : latlngs;
-    const area = L.GeometryUtil.geodesicArea(ring);
-    label = `Diện tích: ${formatArea(area)}`;
-  } else {
-    const latlngs = layer.getLatLngs();
-    let distance = 0;
+    if (isPolygon) {
+        const latlngs = layer.getLatLngs();
+        const ring = Array.isArray(latlngs[0]) ? latlngs[0] : latlngs;
+        const area = L.GeometryUtil.geodesicArea(ring);
+        label = `Diện tích: ${formatArea(area)}`;
+    } else {
+        const latlngs = layer.getLatLngs();
+        let distance = 0;
 
-    for (let i = 1; i < latlngs.length; i++) {
-      distance += latlngs[i - 1].distanceTo(latlngs[i]);
+        for (let i = 1; i < latlngs.length; i++) {
+            distance += latlngs[i - 1].distanceTo(latlngs[i]);
+        }
+
+        label = `Khoảng cách: ${formatDistance(distance)}`;
     }
 
-    label = `Khoảng cách: ${formatDistance(distance)}`;
-  }
+    const tooltipOptions = {
+        permanent: true,
+        direction: isPolygon ? "center" : "top",
+        offset: isPolygon ? [0, 0] : [0, -6],
+        opacity: 1,
+        interactive: false,
+        className: "leaflet-measure-tooltip",
+    };
 
-  const tooltipOptions = {
-    permanent: true,
-    direction: isPolygon ? "center" : "top",
-    offset: isPolygon ? [0, 0] : [0, -6],
-    opacity: 1,
-    interactive: false,
-    className: "leaflet-measure-tooltip",
-  };
+    const tooltipCenter = typeof layer.getBounds === "function" ? layer.getBounds().getCenter() : null;
+    const existingTooltip = typeof layer.getTooltip === "function" ? layer.getTooltip() : null;
 
-  const tooltipCenter = typeof layer.getBounds === "function" ? layer.getBounds().getCenter() : null;
-  const existingTooltip = typeof layer.getTooltip === "function" ? layer.getTooltip() : null;
-
-  if (existingTooltip) {
-    existingTooltip.setContent(label);
-    if (tooltipCenter) {
-      existingTooltip.setLatLng(tooltipCenter);
+    if (existingTooltip) {
+        existingTooltip.setContent(label);
+        if (tooltipCenter) {
+            existingTooltip.setLatLng(tooltipCenter);
+        }
+    } else {
+        layer.bindTooltip(label, tooltipOptions);
+        if (tooltipCenter && layer.getTooltip()) {
+            layer.getTooltip().setLatLng(tooltipCenter);
+        }
     }
-  } else {
-    layer.bindTooltip(label, tooltipOptions);
-    if (tooltipCenter && layer.getTooltip()) {
-      layer.getTooltip().setLatLng(tooltipCenter);
-    }
-  }
 
-  if (typeof layer.openTooltip === "function") {
-    layer.openTooltip();
-  }
+    if (typeof layer.openTooltip === "function") {
+        layer.openTooltip();
+    }
 };
 
 const setMeasurementInteractionMode = (mapInstance, isActive) => {
@@ -115,8 +115,8 @@ export const createLegendControl = () => {
               <i class="search-icon fas fa-calendar-alt"></i>
               <span>Chọn ngày quan trắc</span>
             </div>
-            <input type="text" id="legend-date" class="legend-date-input"
-                   placeholder="dd/mm/yyyy" maxlength="10" autocomplete="off" />
+                 <input type="date" id="legend-date" class="legend-date-input"
+                   autocomplete="off" lang="vi" />
           </div>
 
           <div class="legend-section">
@@ -153,13 +153,7 @@ export const createLegendControl = () => {
 
             const dateInput = document.getElementById("legend-date");
             if (dateInput) {
-                dateInput.value = "08/03/2025";
-                dateInput.addEventListener("input", (e) => {
-                    let v = e.target.value.replace(/\D/g, "").slice(0, 8);
-                    if (v.length > 4) v = v.slice(0, 2) + "/" + v.slice(2, 4) + "/" + v.slice(4);
-                    else if (v.length > 2) v = v.slice(0, 2) + "/" + v.slice(2);
-                    e.target.value = v;
-                });
+                dateInput.value = "2025-03-08";
             }
         }, 100);
 
@@ -224,10 +218,7 @@ export const createExplanationControl = () => {
                     toggleIcon.textContent = "−";
                     toggleControl.style.display = collapsed ? "none" : "flex";
                     toggleBtn.setAttribute("aria-expanded", String(!collapsed));
-                    toggleBtn.setAttribute(
-                        "aria-label",
-                        collapsed ? "Mở chú giải" : "Thu gọn chú giải",
-                    );
+                    toggleBtn.setAttribute("aria-label", collapsed ? "Mở chú giải" : "Thu gọn chú giải");
                 };
 
                 setCollapsed(false);
@@ -319,15 +310,18 @@ export const initializeMap = (container) => {
         if (L.drawLocal?.draw?.handlers?.polyline) {
             L.drawLocal.draw.handlers.polyline.error = "<strong>Lỗi:</strong> Đường đo không hợp lệ.";
             if (L.drawLocal.draw.handlers.polyline.tooltip) {
-                L.drawLocal.draw.handlers.polyline.tooltip.start = "Nhấp lên bản đồ để bắt đầu đo khoảng cách";
+                L.drawLocal.draw.handlers.polyline.tooltip.start =
+                    "Nhấp lên bản đồ để bắt đầu đo khoảng cách";
                 L.drawLocal.draw.handlers.polyline.tooltip.cont = "Nhấp để thêm điểm tiếp theo";
-                L.drawLocal.draw.handlers.polyline.tooltip.end = "Nhấp điểm cuối hoặc chọn ‘Hoàn tất’ để kết thúc";
+                L.drawLocal.draw.handlers.polyline.tooltip.end =
+                    "Nhấp điểm cuối hoặc chọn ‘Hoàn tất’ để kết thúc";
             }
         }
         if (L.drawLocal?.draw?.handlers?.polygon?.tooltip) {
             L.drawLocal.draw.handlers.polygon.tooltip.start = "Nhấp lên bản đồ để bắt đầu đo diện tích";
             L.drawLocal.draw.handlers.polygon.tooltip.cont = "Nhấp để tiếp tục thêm điểm cho vùng đo";
-            L.drawLocal.draw.handlers.polygon.tooltip.end = "Nhấp vào điểm đầu hoặc chọn ‘Hoàn tất’ để đóng vùng";
+            L.drawLocal.draw.handlers.polygon.tooltip.end =
+                "Nhấp vào điểm đầu hoặc chọn ‘Hoàn tất’ để đóng vùng";
         }
         if (L.drawLocal?.draw?.handlers?.simpleshape?.tooltip) {
             L.drawLocal.draw.handlers.simpleshape.tooltip.end = "Thả chuột để hoàn tất";
@@ -463,6 +457,8 @@ export const initializeMap = (container) => {
     L.control
         .zoom({
             position: "topleft",
+            zoomInTitle: "Phóng to",
+            zoomOutTitle: "Thu nhỏ",
         })
         .addTo(mapInstance);
 

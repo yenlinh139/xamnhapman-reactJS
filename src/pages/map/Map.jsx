@@ -26,8 +26,8 @@ const Map = () => {
     const [leafletMapInstance, setLeafletMapInstance] = useState(null);
     const mapInstanceRef = useRef(null);
     const searchContainerRef = useRef(null);
-    const hasAccess = userInfo && userInfo.role == 1; 
-    
+    const hasAccess = userInfo && userInfo.role == 1;
+
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (!searchContainerRef.current?.contains(event.target)) {
@@ -44,13 +44,15 @@ const Map = () => {
     }, []);
 
     const handleAreaSelect = (areaInfo) => {
-        console.log('Map.jsx - Selected area:', areaInfo);
-        console.log('Map.jsx - mapInstanceRef current:', mapInstanceRef.current);
-        console.log('Map.jsx - mapInstance from ref:', mapInstanceRef.current?.getMap());
+        console.log("Map.jsx - Selected area:", areaInfo);
+        console.log("Map.jsx - mapInstanceRef current:", mapInstanceRef.current);
+        console.log("Map.jsx - mapInstance from ref:", mapInstanceRef.current?.getMap());
         // Additional handling if needed
         if (areaInfo.area && areaInfo.type) {
             // You can add custom handling here, like showing info popup
-            console.log(`Đã chọn ${areaInfo.type}: ${areaInfo.area.name || areaInfo.area.TenTram || areaInfo.area.TenTam}`);
+            console.log(
+                `Đã chọn ${areaInfo.type}: ${areaInfo.area.name || areaInfo.area.TenTram || areaInfo.area.TenTam}`,
+            );
         }
     };
 
@@ -68,12 +70,10 @@ const Map = () => {
         setIsSearching(true);
         setSearchResults([]);
         try {
-            const response = await axiosInstance.get(
-                `/search/${encodeURIComponent(searchText)}`,
-            );
+            const response = await axiosInstance.get(`/search/${encodeURIComponent(searchText)}`);
 
             // Backend trả về mảng kết quả trực tiếp hoặc object chứa results
-            const searchData = Array.isArray(response.data) ? response.data : (response.data.results || []);
+            const searchData = Array.isArray(response.data) ? response.data : response.data.results || [];
             setSearchResults(searchData);
 
             // Log để debug nội dung API sau khi tìm kiếm
@@ -106,11 +106,10 @@ const Map = () => {
                 })),
             );
             console.groupEnd();
-            
         } catch (err) {
             console.error("Lỗi tìm kiếm:", err);
             setSearchResults([]);
-            
+
             // Có thể thêm toast notification ở đây nếu cần
             if (err.response?.status === 400) {
                 console.warn("Từ khóa tìm kiếm không hợp lệ");

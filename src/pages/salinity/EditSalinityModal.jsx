@@ -15,6 +15,7 @@ const EditSalinityModal = ({ record, onClose, onSuccess }) => {
         COT: "",
         CKC: "",
         KXAH: "",
+        KXD2: "",
         MNB: "",
         PCL: "",
     });
@@ -29,6 +30,7 @@ const EditSalinityModal = ({ record, onClose, onSuccess }) => {
         COT: "Cầu Ông Thìn",
         CKC: "Cống Kênh C",
         KXAH: "Kênh Xáng - An Hạ",
+        KXD2: "Kênh Xáng đứng 2",
         MNB: "Mũi Nhà Bè",
         PCL: "Phà Cát Lái",
     };
@@ -43,6 +45,7 @@ const EditSalinityModal = ({ record, onClose, onSuccess }) => {
                 COT: record.COT !== null && record.COT !== "NULL" ? record.COT : "",
                 CKC: record.CKC !== null && record.CKC !== "NULL" ? record.CKC : "",
                 KXAH: record.KXAH !== null && record.KXAH !== "NULL" ? record.KXAH : "",
+                KXD2: record.KXD2 !== null && record.KXD2 !== "NULL" ? record.KXD2 : "",
                 MNB: record.MNB !== null && record.MNB !== "NULL" ? record.MNB : "",
                 PCL: record.PCL !== null && record.PCL !== "NULL" ? record.PCL : "",
             };

@@ -237,9 +237,7 @@ function AreaInterestSelector({ setSelectedLocation, setHighlightedFeature }) {
 
             focusAdministrativeArea(districtDetail, 12);
             setDistrictList((prevState) =>
-                prevState.map((item) =>
-                    item.code === districtCode ? { ...item, ...districtDetail } : item,
-                ),
+                prevState.map((item) => (item.code === districtCode ? { ...item, ...districtDetail } : item)),
             );
 
             const communes = getApiArray(responsePayload).map((item) =>
@@ -313,9 +311,7 @@ function AreaInterestSelector({ setSelectedLocation, setHighlightedFeature }) {
                     Chọn Vùng Quan tâm
                 </span>
                 <i
-                    className={`fa-solid fa-chevron-right area-interest-chevron ${
-                        isOpen ? "rotated" : ""
-                    }`}
+                    className={`fa-solid fa-chevron-right area-interest-chevron ${isOpen ? "rotated" : ""}`}
                 ></i>
             </button>
 

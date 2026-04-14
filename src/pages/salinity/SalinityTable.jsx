@@ -22,6 +22,7 @@ const SalinityTable = ({
         COT: "Cầu Ông Thìn",
         CKC: "Cống Kênh C",
         KXAH: "Kênh Xáng - An Hạ",
+        KXD2: "Kênh Xáng đứng 2",
         MNB: "Mũi Nhà Bè",
         PCL: "Phà Cát Lái",
     };

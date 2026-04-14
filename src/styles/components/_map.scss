@@ -32,39 +32,72 @@
     flex-direction: column;
     overflow: hidden;
     background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-    font-family:
-        Inter,
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        sans-serif;
-    font-size: 14px;
+    font-family: Inter, sans-serif;
 }
 
-/* Clear data button styles */
-.clear-data-btn {
-    font-size: 0.8rem;
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    color: #dc3545;
-    border-color: #dc3545;
-
-    &:hover {
-        background-color: #dc3545;
+/* Popup status indicators */
+.popup-status {
+    &.status-light-rain {
+        background: linear-gradient(135deg, #17a2b8, #20c997);
         color: white;
-        transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(220, 53, 69, 0.25);
     }
 
-    &:active {
-        transform: translateY(1px);
-        box-shadow: none;
+    &.status-humid {
+        background: linear-gradient(135deg, #6f42c1, #8a63d2);
+        color: white;
     }
 
+    &.status-cold {
+        background: linear-gradient(135deg, #0dcaf0, #3dd5f3);
+        color: white;
+    }
+
+    &.status-no-data {
+        background: linear-gradient(135deg, #6c757d, #8d9499);
+        color: white;
+    }
+}
+
+/* Enhanced popup container */
+.custom-popup.enhanced-popup {
+    .leaflet-popup-content-wrapper {
+        max-width: 400px;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    }
+
+    .leaflet-popup-content {
+        margin: 0;
+        line-height: 1.4;
+    }
+}
+
+/* ===============================
+   Responsive Design
+   =============================== */
+@media (max-width: 1024px) {
+    :root {
+        --sidebar-width: 230px;
+        --header-height: 65px;
+    }
+
+    .map-header {
+        .header-center {
+            padding: 0 15px;
+
+            .search-container {
+                max-width: 400px;
+            }
+        }
+
+        .header-right {
+            .header-nav {
+                .nav-link span {
+                    display: none;
+                }
+            }
+        }
+    }
     i {
         font-size: 0.75rem;
         margin-right: 2px;
@@ -174,7 +207,6 @@
 
     &:hover {
         background-color: var(--lightGray);
-        transform: scale(1.05);
     }
 }
 
@@ -262,21 +294,25 @@
 /* Enhanced popup styles */
 .modern-popup.hydromet-popup.enhanced {
     .popup-content {
-        max-height: 800px;
+        max-height: 560px;
         overflow-y: auto;
     }
 
     .multi-param-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 8px;
-        margin-top: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+        gap: 5px;
+        margin-top: 6px;
+
+        &.meteorology-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
 
         .param-item {
             background: rgba(248, 249, 250, 0.6);
-            border-radius: 8px;
-            padding: 8px 10px;
-            border: 1px solid rgba(0, 0, 0, 0.06);
+            border-radius: 7px;
+            padding: 6px 8px;
+            border: 1px solid rgba(0, 0, 0, 0.04);
 
             .param-content {
                 display: flex;
@@ -284,17 +320,23 @@
                 gap: 4px;
 
                 .param-label {
-                    font-size: 11px;
+                    font-size: 10px;
                     color: var(--textColorLight);
                     font-weight: 500;
                 }
 
                 .param-value {
-                    font-size: 12px;
+                    font-size: 11px;
                     font-weight: 600;
                     color: var(--textColorDark);
                 }
             }
+        }
+    }
+
+    @media (max-width: 430px) {
+        .multi-param-grid.meteorology-grid {
+            grid-template-columns: 1fr;
         }
     }
 
@@ -317,26 +359,26 @@
 
     /* Enhanced specific styling */
     &.enhanced {
-        max-width: 400px;
+        max-width: 360px;
 
         .popup-header {
-            padding: 18px 24px;
+            padding: 12px 42px 12px 14px;
         }
 
         .popup-content {
-            padding: 20px 24px;
+            padding: 10px 12px;
         }
 
         .detail-grid {
             grid-template-columns: 1fr;
-            gap: 12px;
+            gap: 6px;
 
             .detail-item {
                 .detail-content {
-                    padding: 12px 16px;
+                    padding: 6px 8px;
                     background: rgba(248, 249, 250, 0.6);
-                    border-radius: 10px;
-                    border: 1px solid rgba(0, 0, 0, 0.06);
+                    border-radius: 8px;
+                    border: 1px solid rgba(0, 0, 0, 0.04);
                 }
             }
         }
@@ -767,7 +809,7 @@ button:hover,
         p {
             margin: 0;
             padding-bottom: 6px;
-            font-size: 11px
+            font-size: 11px;
         }
     }
 
@@ -1070,7 +1112,7 @@ button:hover,
     .popup-header {
         background: linear-gradient(135deg, var(--lightBlue), var(--blue));
         color: white;
-        padding: 16px 20px;
+        padding: 16px 52px 16px 20px;
         display: flex;
         align-items: center;
         gap: 12px;
@@ -1284,6 +1326,312 @@ button:hover,
     }
 }
 
+/* Compact popup tuning for salinity + IoT (content preserved) */
+.modern-popup.salinity-popup,
+.modern-popup.iot-popup {
+    min-width: 244px;
+    max-width: 308px;
+    border-radius: 12px;
+
+    .popup-header {
+        padding: 8px 38px 8px 10px;
+        gap: 8px;
+
+        .popup-title {
+            .popup-name {
+                font-size: 14px;
+                line-height: 1.2;
+            }
+
+            .popup-type {
+                font-size: 11px;
+            }
+        }
+
+        .popup-status {
+            padding: 3px 8px;
+            font-size: 10px;
+            letter-spacing: 0.2px;
+        }
+    }
+
+    .popup-content {
+        padding: 8px 10px;
+
+        .popup-main-value {
+            padding: 8px;
+            margin-bottom: 5px;
+
+            .value-label {
+                font-size: 10px;
+                margin-bottom: 3px;
+            }
+
+            .value-number {
+                font-size: 17px;
+            }
+
+            .value-date {
+                font-size: 10px;
+                margin-top: 3px;
+            }
+        }
+
+        .trend-indicator {
+            gap: 8px;
+            padding: 7px 8px;
+            margin-bottom: 5px;
+
+            .trend-icon {
+                font-size: 14px;
+            }
+
+            .trend-content {
+                .trend-text {
+                    font-size: 11px;
+                    line-height: 1.25;
+                }
+
+                .trend-date {
+                    font-size: 10px;
+                }
+            }
+        }
+
+        .popup-details {
+            .detail-grid {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+
+            .detail-item {
+                margin: 0;
+                min-width: 0;
+
+                .detail-content {
+                    height: 100%;
+                    padding: 3px 5px !important;
+                    line-height: 1.25;
+                }
+
+                .detail-label,
+                .detail-value {
+                    font-size: 11px;
+                }
+            }
+        }
+
+        .popup-actions {
+            margin-top: 8px;
+            padding-top: 6px;
+
+            .action-btn {
+                padding: 7px 10px;
+                border-radius: 8px;
+                font-size: 12px;
+            }
+        }
+    }
+}
+
+/* Compact popup tuning for hydromet (align with salinity/iot density) */
+.modern-popup.hydromet-popup.enhanced {
+    min-width: 244px;
+    max-width: 308px;
+    border-radius: 12px;
+
+    .popup-header {
+        padding: 8px 38px 8px 10px;
+        gap: 8px;
+
+        .popup-title {
+            .popup-name {
+                font-size: 14px;
+                line-height: 1.2;
+            }
+
+            .popup-type {
+                font-size: 11px;
+            }
+        }
+    }
+
+    .popup-content {
+        max-height: 430px;
+        overflow-y: auto;
+        padding: 8px 10px;
+
+        .popup-main-value {
+            padding: 8px;
+            margin-bottom: 5px;
+
+            .value-label {
+                font-size: 10px;
+                margin-bottom: 3px;
+            }
+
+            .value-number {
+                font-size: 17px;
+            }
+        }
+
+        .multi-param-grid {
+            gap: 6px;
+            margin-top: 4px;
+
+            .param-item {
+                padding: 5px 7px;
+
+                .param-content {
+                    gap: 2px;
+
+                    .param-label {
+                        font-size: 10px;
+                    }
+
+                    .param-value {
+                        font-size: 11px;
+                    }
+                }
+            }
+        }
+
+        .popup-details {
+            margin-top: 6px !important;
+
+            .detail-grid {
+                gap: 6px;
+            }
+
+            .detail-item {
+                margin: 0;
+
+                .detail-content {
+                    padding: 3px 5px !important;
+                    line-height: 1.25;
+                }
+
+                .detail-label,
+                .detail-value {
+                    font-size: 11px;
+                }
+            }
+        }
+
+        .popup-actions {
+            margin-top: 8px;
+            padding-top: 6px;
+
+            .action-btn {
+                padding: 7px 10px;
+                border-radius: 8px;
+                font-size: 12px;
+            }
+        }
+    }
+}
+
+.modern-popup.iot-popup {
+    .iot-trend-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+        margin-bottom: 6px;
+    }
+
+    .trend-indicator {
+        margin-bottom: 0 !important;
+        border-radius: 8px;
+
+        &.trend-up {
+            background: rgba(220, 53, 69, 0.08);
+            border-color: rgba(220, 53, 69, 0.2);
+        }
+
+        &.trend-down {
+            background: rgba(40, 167, 69, 0.08);
+            border-color: rgba(40, 167, 69, 0.2);
+        }
+    }
+
+    @media (max-width: 430px) {
+        .iot-trend-list {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .iot-image-container {
+        margin: 5px 0 6px;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        border-radius: 9px;
+        overflow: hidden;
+        background: #f8fafc;
+    }
+
+    .iot-image-main-wrap {
+        width: 100%;
+        height: 132px;
+        background: #e2e8f0;
+    }
+
+    .iot-image-main {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .iot-image-thumbs {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
+        gap: 4px;
+        padding: 5px;
+        background: rgba(255, 255, 255, 0.92);
+    }
+
+    .iot-image-thumb {
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 6px;
+        padding: 0;
+        height: 40px;
+        overflow: hidden;
+        background: #fff;
+        cursor: pointer;
+        transition:
+            border-color 0.2s ease,
+            transform 0.2s ease;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        &.active {
+            border-color: var(--blue, #3b82f6);
+            transform: translateY(-1px);
+        }
+    }
+
+    .iot-image-empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        height: 78px;
+        color: #64748b;
+        font-size: 11px;
+        background: linear-gradient(135deg, #f8fafc, #eef2f7);
+
+        i {
+            font-size: 13px;
+            opacity: 0.7;
+        }
+    }
+}
+
 /* Leaflet Popup Override */
 .leaflet-popup-content-wrapper {
     padding: 0 !important;
@@ -1341,30 +1689,30 @@ button:hover,
 
     /* Salinity level based colors - Updated for new 5-level classification */
     &.tooltip-normal {
-        background: #ADEBB3 !important; /* Green for normal (< 1‰) */
+        background: #adebb3 !important; /* Green for normal (< 1‰) */
         &::before {
-            border-top-color: #ADEBB3 !important;
+            border-top-color: #adebb3 !important;
         }
     }
 
     &.tooltip-warning {
-        background: #FFFFC5 !important; /* Yellow for risk level 1 (Nhà Bè 1-4‰) */
+        background: #ffffc5 !important; /* Yellow for risk level 1 (Nhà Bè 1-4‰) */
         &::before {
-            border-top-color: #FFFFC5 !important;
+            border-top-color: #ffffc5 !important;
         }
     }
 
     &.tooltip-high-warning {
-        background: #FFD1B3 !important; /* Orange for risk level 2 (other stations 1-4‰) */
+        background: #ffd1b3 !important; /* Orange for risk level 2 (other stations 1-4‰) */
         &::before {
-            border-top-color: #FFD1B3 !important;
+            border-top-color: #ffd1b3 !important;
         }
     }
 
     &.tooltip-critical {
-        background: #FFA896 !important; /* Red for risk level 3 (> 4‰) */
+        background: #ffa896 !important; /* Red for risk level 3 (> 4‰) */
         &::before {
-            border-top-color: #FFA896 !important;
+            border-top-color: #ffa896 !important;
         }
     }
 
@@ -1695,7 +2043,7 @@ button:hover,
    =============================== */
 .iot-station-container {
     margin: 8px 0;
-    
+
     .iot-quick-view {
         margin-bottom: 8px;
     }
@@ -1709,34 +2057,34 @@ button:hover,
     background: rgba(102, 126, 234, 0.08);
     border-radius: 8px;
     margin-bottom: 8px;
-    
+
     .status-item {
         display: flex;
         align-items: center;
         font-size: 10px;
         color: #64748b;
-        
+
         .status-dot {
             width: 6px;
             height: 6px;
             border-radius: 50%;
             margin-right: 6px;
-            
+
             &.active {
                 background: #10b981;
                 animation: pulse 2s infinite;
             }
-            
+
             &.inactive {
                 background: #f59e0b;
             }
         }
-        
+
         i {
             margin-right: 4px;
             font-size: 9px;
         }
-        
+
         .status-text {
             font-weight: 500;
         }
@@ -1744,7 +2092,8 @@ button:hover,
 }
 
 @keyframes pulse {
-    0%, 100% {
+    0%,
+    100% {
         opacity: 1;
         transform: scale(1);
     }
@@ -1773,7 +2122,7 @@ button:hover,
     }
 
     &::before {
-        content: '';
+        content: "";
         position: absolute;
         top: 0;
         left: -100%;
@@ -1791,38 +2140,38 @@ button:hover,
 .iot-icon-container {
     position: relative;
     margin-right: 16px;
-    
+
     .iot-icon {
         font-size: 24px;
         color: #ffffff;
         z-index: 2;
         position: relative;
     }
-    
+
     .iot-signal-animation {
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        
+
         .signal-ring {
             position: absolute;
             border: 2px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
             animation: iotSignal 2s ease-out infinite;
-            
+
             &.ring-1 {
                 width: 40px;
                 height: 40px;
                 animation-delay: 0s;
             }
-            
+
             &.ring-2 {
                 width: 50px;
                 height: 50px;
                 animation-delay: 0.3s;
             }
-            
+
             &.ring-3 {
                 width: 60px;
                 height: 60px;
@@ -1846,26 +2195,26 @@ button:hover,
 .iot-info {
     flex: 1;
     color: #ffffff;
-    
+
     .iot-title {
         display: block;
         font-size: 16px;
         font-weight: 600;
         margin-bottom: 2px;
     }
-    
+
     .iot-subtitle {
         display: block;
         font-size: 12px;
         opacity: 0.9;
         margin-bottom: 8px;
     }
-    
+
     .iot-features {
         display: flex;
         flex-direction: column;
         gap: 4px;
-        
+
         .feature-badge {
             display: inline-flex;
             align-items: center;
@@ -1875,7 +2224,7 @@ button:hover,
             border-radius: 8px;
             backdrop-filter: blur(4px);
             width: fit-content;
-            
+
             i {
                 margin-right: 4px;
                 font-size: 9px;
@@ -1908,18 +2257,18 @@ button:hover,
     font-size: 12px;
     cursor: pointer;
     transition: all 0.3s ease;
-    
+
     i {
         margin-right: 6px;
         font-size: 11px;
     }
-    
+
     &:hover {
         background: rgba(102, 126, 234, 0.2);
         border-color: #667eea;
         transform: translateY(-1px);
     }
-    
+
     &:active {
         transform: translateY(0);
     }
@@ -1929,18 +2278,18 @@ button:hover,
 [data-theme="dark"] {
     .iot-quick-button {
         background: linear-gradient(135deg, #4c1d95 0%, #581c87 100%);
-        
+
         &:hover {
             background: linear-gradient(135deg, #581c87 0%, #4c1d95 100%);
             box-shadow: 0 8px 25px rgba(76, 29, 149, 0.4);
         }
     }
-    
+
     .iot-advanced-button {
         background: rgba(147, 51, 234, 0.1);
         border-color: rgba(147, 51, 234, 0.3);
         color: #a855f7;
-        
+
         &:hover {
             background: rgba(147, 51, 234, 0.2);
             border-color: #a855f7;
@@ -1965,47 +2314,52 @@ button:hover,
 
 .iot-marker {
     position: relative;
-    width: 30px;
-    height: 30px;
+    width: 25px;
+    height: 25px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
     z-index: 10;
-    
+
+    &::before {
+        content: "";
+        position: absolute;
+        inset: -2px;
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 1;
+    }
+
     &.active {
-        background: linear-gradient(
-            135deg,
-            var(--risk-accent-color, #a855f7) 0%,
-            var(--risk-color, #7c3aed) 100%
-        );
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
         box-shadow:
             0 0 0 0 var(--risk-glow-color, rgba(168, 85, 247, 0.7)),
-            0 0 20px var(--risk-glow-color, rgba(168, 85, 247, 0.6)),
-            0 4px 12px var(--risk-shadow-color, rgba(147, 51, 234, 0.4)),
+            0 0 14px var(--risk-glow-color, rgba(168, 85, 247, 0.4)),
+            0 3px 9px var(--risk-shadow-color, rgba(147, 51, 234, 0.25)),
             inset 0 -2px 6px rgba(0, 0, 0, 0.1);
-        animation: markerGlow 1.5s ease-in-out infinite;
+        animation: markerGlow 1.9s ease-in-out infinite;
 
         .iot-icon {
-            color: white;
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+            color: var(--risk-color, #7c3aed);
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
         }
     }
-    
+
     &.inactive {
         background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-        box-shadow: 
+        box-shadow:
             0 0 0 0 rgba(108, 117, 125, 0.5),
             0 2px 8px rgba(108, 117, 125, 0.3);
         animation: markerInactive 2s ease-in-out infinite;
-        
+
         .iot-icon {
             color: white;
             opacity: 0.8;
         }
     }
-    
+
     .iot-icon {
         font-size: 14px;
         z-index: 2;
@@ -2035,26 +2389,28 @@ button:hover,
 }
 
 @keyframes markerGlow {
-    0%, 100% {
+    0%,
+    100% {
         box-shadow:
             0 0 0 0 var(--risk-glow-color, rgba(168, 85, 247, 0.7)),
-            0 0 20px var(--risk-glow-color, rgba(168, 85, 247, 0.6)),
-            0 4px 12px var(--risk-shadow-color, rgba(147, 51, 234, 0.4)),
+            0 0 16px var(--risk-glow-color, rgba(168, 85, 247, 0.2)),
+            0 3px 9px var(--risk-shadow-color, rgba(147, 51, 234, 0.25)),
             inset 0 -2px 6px rgba(0, 0, 0, 0.1);
         transform: scale(1);
     }
     50% {
         box-shadow:
-            0 0 0 8px var(--risk-glow-color, rgba(168, 85, 247, 0.3)),
-            0 0 30px var(--risk-glow-color, rgba(168, 85, 247, 0.8)),
-            0 8px 20px var(--risk-shadow-color, rgba(147, 51, 234, 0.5)),
+            0 0 0 6px var(--risk-glow-color, rgba(168, 85, 247, 0.08)),
+            0 0 20px var(--risk-glow-color, rgba(168, 85, 247, 0.28)),
+            0 6px 14px var(--risk-shadow-color, rgba(147, 51, 234, 0.22)),
             inset 0 -2px 6px rgba(0, 0, 0, 0.1);
-        transform: scale(1.08);
+        transform: scale(1.1);
     }
 }
 
 @keyframes markerBounce {
-    0%, 100% {
+    0%,
+    100% {
         transform: scale(1) translateY(0px);
     }
     25% {
@@ -2069,14 +2425,15 @@ button:hover,
 }
 
 @keyframes markerInactive {
-    0%, 100% {
-        box-shadow: 
+    0%,
+    100% {
+        box-shadow:
             0 0 0 0 rgba(108, 117, 125, 0.5),
             0 2px 8px rgba(108, 117, 125, 0.3);
         transform: scale(1);
     }
     50% {
-        box-shadow: 
+        box-shadow:
             0 0 0 4px rgba(108, 117, 125, 0.2),
             0 4px 12px rgba(108, 117, 125, 0.4);
         transform: scale(1.02);
@@ -2084,7 +2441,8 @@ button:hover,
 }
 
 @keyframes markerFade {
-    0%, 100% {
+    0%,
+    100% {
         opacity: 0.8;
     }
     50% {
@@ -2093,7 +2451,8 @@ button:hover,
 }
 
 @keyframes pulse {
-    0%, 100% {
+    0%,
+    100% {
         transform: scale(1);
     }
     50% {
@@ -2108,7 +2467,7 @@ button:hover,
     font-weight: 600 !important;
     border: none !important;
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
-    
+
     &::after {
         border-top-color: #667eea !important;
     }
@@ -2120,7 +2479,7 @@ button:hover,
     font-weight: 600 !important;
     border: none !important;
     box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4) !important;
-    
+
     &::after {
         border-top-color: #ffc107 !important;
     }
@@ -2132,7 +2491,7 @@ button:hover,
     font-weight: 600 !important;
     border: none !important;
     box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4) !important;
-    
+
     &::after {
         border-top-color: #6c757d !important;
     }
@@ -2142,24 +2501,24 @@ button:hover,
 .iot-custom-popup {
     .popup-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        
+
         .popup-icon {
             font-size: 20px;
         }
     }
-    
+
     .status-active {
         background: rgba(25, 135, 84, 0.1);
         color: #198754;
         border: 1px solid rgba(25, 135, 84, 0.2);
     }
-    
+
     .status-pending {
         background: rgba(255, 193, 7, 0.1);
         color: #ffc107;
         border: 1px solid rgba(255, 193, 7, 0.2);
     }
-    
+
     .status-inactive {
         background: rgba(108, 117, 125, 0.1);
         color: #6c757d;
@@ -2170,7 +2529,7 @@ button:hover,
 .popup-actions {
     margin-top: 15px;
     text-align: center;
-    
+
     .btn-view-data {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -2184,17 +2543,17 @@ button:hover,
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        
+
         &:hover {
             background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
-        
+
         &:active {
             transform: translateY(0);
         }
-        
+
         i {
             font-size: 11px;
         }
@@ -2232,23 +2591,88 @@ button:hover,
 }
 
 .leaflet-control-zoom a,
-.leaflet-control-locate a,
-.leaflet-draw-toolbar a {
+.leaflet-control-locate a {
     width: 36px;
     height: 36px;
     line-height: 36px;
     border: none !important;
-    background: rgba(255, 255, 255, 0.96);
+    background-color: rgba(255, 255, 255, 0.96);
     color: #0f172a;
-    transition: all 0.22s ease;
+    transition: background-color 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;
+}
+
+/* Keep draw buttons close to Leaflet.Draw defaults so sprite icons don't get cropped. */
+.leaflet-draw-toolbar a {
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    border: none !important;
+    background-color: rgba(255, 255, 255, 0.96);
+    color: #0f172a;
+    transition: background-color 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;
+    position: relative;
+    background-image: none !important;
+}
+
+/* Draw icons use CSS mask so icon color follows current text color. */
+.leaflet-draw-toolbar a::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    transform: translate(-50%, -50%);
+    background-color: currentColor;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    -webkit-mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: contain;
+}
+.leaflet-draw-toolbar .leaflet-draw-draw-polyline::before {
+    -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M5 17L10 11L15 14L19 8' stroke='black' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/><circle cx='5' cy='17' r='2' fill='black'/><circle cx='10' cy='11' r='2' fill='black'/><circle cx='15' cy='14' r='2' fill='black'/><circle cx='19' cy='8' r='2' fill='black'/></svg>");
+    mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M5 17L10 11L15 14L19 8' stroke='black' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/><circle cx='5' cy='17' r='2' fill='black'/><circle cx='10' cy='11' r='2' fill='black'/><circle cx='15' cy='14' r='2' fill='black'/><circle cx='19' cy='8' r='2' fill='black'/></svg>");
+}
+
+.leaflet-draw-toolbar .leaflet-draw-draw-polygon::before {
+    -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M6 8L12 5L18 9L16 17L8 18Z' stroke='black' stroke-width='2.4' fill='none' stroke-linejoin='round'/><circle cx='6' cy='8' r='1.8' fill='black'/><circle cx='12' cy='5' r='1.8' fill='black'/><circle cx='18' cy='9' r='1.8' fill='black'/><circle cx='16' cy='17' r='1.8' fill='black'/><circle cx='8' cy='18' r='1.8' fill='black'/></svg>");
+    mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M6 8L12 5L18 9L16 17L8 18Z' stroke='black' stroke-width='2.4' fill='none' stroke-linejoin='round'/><circle cx='6' cy='8' r='1.8' fill='black'/><circle cx='12' cy='5' r='1.8' fill='black'/><circle cx='18' cy='9' r='1.8' fill='black'/><circle cx='16' cy='17' r='1.8' fill='black'/><circle cx='8' cy='18' r='1.8' fill='black'/></svg>");
+}
+
+.leaflet-draw-toolbar .leaflet-draw-edit-edit::before {
+    -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M3 17.25V21h3.75l11-11.03-3.75-3.75zM20.7 7.05a1 1 0 0 0 0-1.41L18.36 3.3a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z'/></svg>");
+    mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M3 17.25V21h3.75l11-11.03-3.75-3.75zM20.7 7.05a1 1 0 0 0 0-1.41L18.36 3.3a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z'/></svg>");
+}
+
+.leaflet-draw-toolbar .leaflet-draw-edit-remove::before {
+    -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M7 21a2 2 0 0 1-2-2V7h14v12a2 2 0 0 1-2 2zM9 4h6l1 2h4v2H4V6h4z'/></svg>");
+    mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M7 21a2 2 0 0 1-2-2V7h14v12a2 2 0 0 1-2 2zM9 4h6l1 2h4v2H4V6h4z'/></svg>");
 }
 
 .leaflet-control-zoom a:hover,
 .leaflet-control-locate a:hover,
 .leaflet-draw-toolbar a:hover {
-    background: #e8f0ff;
+    background-color: #e8f0ff;
     color: #1d4ed8;
-    transform: translateY(-1px);
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.2);
+}
+
+.leaflet-control-zoom a:active,
+.leaflet-control-locate a:active,
+.leaflet-draw-toolbar a:active {
+    background-color: #bfdbfe;
+    color: #1e40af;
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.3);
+}
+
+/* Draw tool stays highlighted while active (polyline/polygon/edit/delete). */
+.leaflet-draw-toolbar a.leaflet-draw-toolbar-button-enabled,
+.leaflet-draw-toolbar a.leaflet-draw-toolbar-button-enabled:hover {
+    background-color: #dbeafe;
+    color: #1e40af;
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.35);
 }
 
 .leaflet-draw-toolbar .leaflet-draw-draw-polyline {
@@ -2280,6 +2704,11 @@ button:hover,
 .leaflet-draw-actions a:hover {
     background: #eef4ff;
     color: #1d4ed8;
+}
+
+.leaflet-draw-actions a:active {
+    background: #dbeafe;
+    color: #1e40af;
 }
 
 .leaflet-control-scale {
@@ -2325,10 +2754,15 @@ button:hover,
 
 @media (max-width: 768px) {
     .leaflet-control-zoom a,
-    .leaflet-control-locate a,
-    .leaflet-draw-toolbar a {
+    .leaflet-control-locate a {
         width: 34px;
         height: 34px;
         line-height: 34px;
+    }
+
+    .leaflet-draw-toolbar a {
+        width: 30px;
+        height: 30px;
+        line-height: 30px;
     }
 }

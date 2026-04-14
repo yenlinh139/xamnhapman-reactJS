@@ -106,6 +106,7 @@ export const getSystemWideClassification = (data) => {
         COT: "Cầu Ông Thìn",
         CKC: "Cống Kênh C",
         KXAH: "Kênh Xáng - An Hạ",
+        KXD2: "Kênh Xáng đứng 2",
         MNB: "Mũi Nhà Bè", // This is the key station for classification (NB_TV - Thủy văn)
         PCL: "Phà Cát Lái",
     };

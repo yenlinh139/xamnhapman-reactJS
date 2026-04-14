@@ -287,8 +287,7 @@ export const updateLegendVisibility = (overlayLayers) => {
 
     const hasSalinityLegend =
         Boolean(overlayLayers?.salinityPoints) && Boolean(layerStyles?.salinityPoints?.legend);
-    const hasSharedRiskLegend =
-        Boolean(overlayLayers?.salinityPoints) || Boolean(overlayLayers?.iotStations);
+    const hasSharedRiskLegend = Boolean(overlayLayers?.salinityPoints) || Boolean(overlayLayers?.iotStations);
 
     if (hasSharedRiskLegend) {
         const sharedIcons = [
@@ -302,10 +301,7 @@ export const updateLegendVisibility = (overlayLayers) => {
             .filter(Boolean)
             .join('<span style="color:#94a3b8;">/</span>');
 
-        secondaryLegend.innerHTML += createCompactRiskLegend(
-        
-            sharedIcons,
-        );
+        secondaryLegend.innerHTML += createCompactRiskLegend(sharedIcons);
     }
 
     const orderedLayerNames = Object.keys(overlayLayers).sort((a, b) => {
@@ -346,7 +342,7 @@ export const updateLegendVisibility = (overlayLayers) => {
             } else if (type === "polygon") {
                 symbolHTML = `<span style="display:inline-block;width:12px;height:12px;background:${color};border:1px solid #333;margin-right:5px;"></span>`;
             } else if (type === "raster") {
-                symbolHTML = `<span style="display:inline-block;width:12px;height:12px;background:linear-gradient(to right, ${colors?.join(', ')});margin-right:5px;"></span>`;
+                symbolHTML = `<span style="display:inline-block;width:12px;height:12px;background:linear-gradient(to right, ${colors?.join(", ")});margin-right:5px;"></span>`;
             } else {
                 symbolHTML = `<span style="margin-right:5px;">📌</span>`;
             }
@@ -354,7 +350,7 @@ export const updateLegendVisibility = (overlayLayers) => {
 
         // Get layer name - either from layerInfo.name or legendNames fallback
         const layerDisplayName = layerInfo?.name || legendNames[layerName] || layerName;
-        
+
         // Handle special cases for layers with custom legends
         if (layerName === "QuyHoachSDD_2030") {
             // QuyHoachSDD_2030: only show detailed legend without symbol

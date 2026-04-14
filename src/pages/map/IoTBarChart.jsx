@@ -83,7 +83,8 @@ function normalizeChartData(data, groupBy = "none") {
 
     if (hasNewStructure) {
         const normalized = safeData.map((item) => {
-            const rawTime = item.Date || item.date_time || item.sync_5m_end_time || item.hour_end_time || item.day;
+            const rawTime =
+                item.Date || item.date_time || item.sync_5m_end_time || item.hour_end_time || item.day;
             const timestamp = new Date(rawTime).getTime();
             const time = formatChartDateTime(rawTime, groupBy);
             return {
@@ -100,7 +101,8 @@ function normalizeChartData(data, groupBy = "none") {
 
     const grouped = {};
     safeData.forEach((item) => {
-        const rawTime = item.Date || item.date_time || item.sync_5m_end_time || item.hour_end_time || item.day;
+        const rawTime =
+            item.Date || item.date_time || item.sync_5m_end_time || item.hour_end_time || item.day;
         const timestamp = new Date(rawTime).getTime();
         const time = formatChartDateTime(rawTime, groupBy);
         if (!grouped[time]) grouped[time] = { time };
@@ -154,7 +156,9 @@ const IoTBarChart = ({ data, height = 300, isCompact = false, groupBy = "none", 
         );
     }
 
-    const xInterval = isCompact ? Math.max(Math.floor(chartData.length / 10), 0) : Math.max(Math.floor(chartData.length / 50), 0);
+    const xInterval = isCompact
+        ? Math.max(Math.floor(chartData.length / 10), 0)
+        : Math.max(Math.floor(chartData.length / 50), 0);
     const margins = isCompact
         ? { top: 8, right: 12, left: 18, bottom: 56 }
         : { top: 8, right: 18, left: 24, bottom: 56 };
@@ -170,7 +174,15 @@ const IoTBarChart = ({ data, height = 300, isCompact = false, groupBy = "none", 
     const seriesButtons = [SENSOR_MAP.salt, SENSOR_MAP.rainfall, SENSOR_MAP.temp, SENSOR_MAP.distance];
 
     return (
-        <div style={{ width: "100%", height: chartHeight, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        <div
+            style={{
+                width: "100%",
+                height: chartHeight,
+                minHeight: 0,
+                display: "flex",
+                flexDirection: "column",
+            }}
+        >
             <div style={{ flex: 1, minHeight: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={chartData} margin={margins}>
@@ -186,14 +198,24 @@ const IoTBarChart = ({ data, height = 300, isCompact = false, groupBy = "none", 
                         <YAxis
                             yAxisId="left"
                             orientation="left"
-                            label={{ value: "Độ mặn (‰), Lượng mưa (mm)", angle: -90, position: "insideLeft", style: { textAnchor: "middle" } }}
+                            label={{
+                                value: "Độ mặn (‰), Lượng mưa (mm)",
+                                angle: -90,
+                                position: "insideLeft",
+                                style: { textAnchor: "middle" },
+                            }}
                             fontSize={12}
                             width={yAxisWidth}
                         />
                         <YAxis
                             yAxisId="right"
                             orientation="right"
-                            label={{ value: "Nhiệt độ (°C), Mực nước (cm)", angle: 90, position: "insideRight", style: { textAnchor: "middle" } }}
+                            label={{
+                                value: "Nhiệt độ (°C), Mực nước (cm)",
+                                angle: 90,
+                                position: "insideRight",
+                                style: { textAnchor: "middle" },
+                            }}
                             fontSize={12}
                             width={yAxisWidth}
                         />
@@ -203,19 +225,30 @@ const IoTBarChart = ({ data, height = 300, isCompact = false, groupBy = "none", 
                                     return ["-", name];
                                 }
 
-                                if (name === SENSOR_MAP.distance.name) return [`${value} cm`, SENSOR_MAP.distance.name];
-                                if (name === SENSOR_MAP.rainfall.name) return [`${value} mm`, SENSOR_MAP.rainfall.name];
+                                if (name === SENSOR_MAP.distance.name)
+                                    return [`${value} cm`, SENSOR_MAP.distance.name];
+                                if (name === SENSOR_MAP.rainfall.name)
+                                    return [`${value} mm`, SENSOR_MAP.rainfall.name];
                                 if (name === SENSOR_MAP.salt.name) {
-                                    const riskLabel = payload?.payload?.saltRiskLabel ? ` (${payload.payload.saltRiskLabel})` : "";
+                                    const riskLabel = payload?.payload?.saltRiskLabel
+                                        ? ` (${payload.payload.saltRiskLabel})`
+                                        : "";
                                     return [`${value} ‰${riskLabel}`, SENSOR_MAP.salt.name];
                                 }
-                                if (name === SENSOR_MAP.temp.name) return [`${value} °C`, SENSOR_MAP.temp.name];
+                                if (name === SENSOR_MAP.temp.name)
+                                    return [`${value} °C`, SENSOR_MAP.temp.name];
                                 return [value, name];
                             }}
                         />
 
                         {visibleSeries.salt && (
-                            <Bar yAxisId="left" dataKey="salt" name={SENSOR_MAP.salt.name} barSize={10} radius={[2, 2, 0, 0]}>
+                            <Bar
+                                yAxisId="left"
+                                dataKey="salt"
+                                name={SENSOR_MAP.salt.name}
+                                barSize={10}
+                                radius={[2, 2, 0, 0]}
+                            >
                                 {chartData.map((entry, index) => (
                                     <Cell key={`salt-cell-${index}`} fill={entry.saltColor} />
                                 ))}
@@ -261,7 +294,10 @@ const IoTBarChart = ({ data, height = 300, isCompact = false, groupBy = "none", 
                 </ResponsiveContainer>
             </div>
 
-            <div className="d-flex flex-wrap justify-content-center gap-2 mt-2 small" style={{ flexShrink: 0 }}>
+            <div
+                className="d-flex flex-wrap justify-content-center gap-2 mt-2 small"
+                style={{ flexShrink: 0 }}
+            >
                 {seriesButtons.map((item) => {
                     const isActive = visibleSeries[item.key];
                     return (
@@ -293,7 +329,10 @@ const IoTBarChart = ({ data, height = 300, isCompact = false, groupBy = "none", 
                 })}
             </div>
 
-            <div className="d-flex flex-wrap justify-content-center gap-2 mt-2 small" style={{ flexShrink: 0 }}>
+            <div
+                className="d-flex flex-wrap justify-content-center gap-2 mt-2 small"
+                style={{ flexShrink: 0 }}
+            >
                 {RISK_LEGEND_ITEMS.map((item) => (
                     <div
                         key={item.label}

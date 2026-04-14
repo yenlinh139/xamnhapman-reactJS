@@ -146,14 +146,14 @@ const rowsForLayer = (layerName, props) => {
             return [
                 { label: "Huyện", value: formatValue(props.tenHuyen) },
                 { label: "Mã huyện", value: formatValue(props.maHuyen) },
-                { label: "Diện tích", value: formatValue(props.dienTichTuNhien, "km²") },
+                { label: "Diện tích (km²)", value: formatValue(props.dienTichTuNhien) },
             ];
         case "DiaPhanXa":
             return [
                 { label: "Xã", value: formatValue(props.tenXa) },
                 { label: "Mã xã", value: formatValue(props.maXa) },
                 { label: "Huyện", value: formatValue(props.tenHuyen) },
-                { label: "Diện tích", value: formatValue(props.dienTichTuNhien, "km²") },
+                { label: "Diện tích (km²)", value: formatValue(props.dienTichTuNhien) },
             ];
         case "GiaoThong_line":
             return [
@@ -302,7 +302,10 @@ export const createLayerPopupContent = (layerName, props) => {
 
     const rows = rowsForLayer(layerName, props);
     if (rows.length === 0) {
-        return createPopupShell(title, `<div style="font-size: 14px; color: #64748b; padding: 4px 2px 2px;">Không có cấu hình hiển thị cho lớp này.</div>`);
+        return createPopupShell(
+            title,
+            `<div style="font-size: 14px; color: #64748b; padding: 4px 2px 2px;">Không có cấu hình hiển thị cho lớp này.</div>`,
+        );
     }
 
     if (layerName.startsWith("CTTL_")) {
