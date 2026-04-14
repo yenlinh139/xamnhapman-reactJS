@@ -1,14 +1,5 @@
 import React from "react";
-import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    Cell,
-} from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 // Hàm phân loại dựa theo Value - tương tự điểm đo mặn
 const getIoTValueClassification = (value) => {
@@ -16,7 +7,7 @@ const getIoTValueClassification = (value) => {
         return {
             level: "no-data",
             color: "#6c757d",
-            description: "Khuyết số liệu"
+            description: "Khuyết số liệu",
         };
     }
 
@@ -26,25 +17,25 @@ const getIoTValueClassification = (value) => {
         return {
             level: "normal",
             color: "#28a745", // Xanh - Bình thường
-            description: "Bình thường"
+            description: "Bình thường",
         };
     } else if (numericValue <= 4) {
         return {
             level: "warning",
             color: "#ffc107", // Vàng - Rủi ro cấp 1
-            description: "Rủi ro cấp 1"
+            description: "Rủi ro cấp 1",
         };
     } else if (numericValue <= 8) {
         return {
             level: "high-warning",
             color: "#fd7e14", // Cam - Rủi ro cấp 2
-            description: "Rủi ro cấp 2"
+            description: "Rủi ro cấp 2",
         };
     } else {
         return {
             level: "critical",
             color: "#dc3545", // Đỏ - Rủi ro cấp 3
-            description: "Rủi ro cấp 3"
+            description: "Rủi ro cấp 3",
         };
     }
 };
@@ -66,14 +57,14 @@ const IoTChart = ({ data, height = 300 }) => {
             ...item,
             index,
             displayDate: new Date(item.Date).toLocaleDateString("vi-VN"),
-            displayTime: new Date(item.Date).toLocaleTimeString("vi-VN", { 
-                hour: '2-digit', 
-                minute: '2-digit' 
+            displayTime: new Date(item.Date).toLocaleTimeString("vi-VN", {
+                hour: "2-digit",
+                minute: "2-digit",
             }),
             color: classification.color,
             level: classification.level,
             description: classification.description,
-            chartValue: saltValue // Giá trị dùng cho biểu đồ
+            chartValue: saltValue, // Giá trị dùng cho biểu đồ
         };
     });
 
@@ -124,7 +115,7 @@ const IoTChart = ({ data, height = 300 }) => {
 
     const formatXAxisLabel = (tickItem, index) => {
         const item = chartData[index];
-        if (!item) return '';
+        if (!item) return "";
         return `${item.displayDate}\n${item.displayTime}`;
     };
 
@@ -140,7 +131,7 @@ const IoTChart = ({ data, height = 300 }) => {
                 }}
             >
                 <CartesianGrid strokeDasharray="3 3" stroke="#e9ecef" />
-                <XAxis 
+                <XAxis
                     dataKey="index"
                     tickFormatter={formatXAxisLabel}
                     interval={Math.max(Math.floor(chartData.length / 8), 0)}
@@ -149,12 +140,12 @@ const IoTChart = ({ data, height = 300 }) => {
                     height={80}
                     fontSize={11}
                 />
-                <YAxis 
-                    label={{ 
-                        value: 'Độ mặn (ppt)', 
-                        angle: -90, 
-                        position: 'insideLeft',
-                        style: { textAnchor: 'middle' }
+                <YAxis
+                    label={{
+                        value: "Độ mặn (ppt)",
+                        angle: -90,
+                        position: "insideLeft",
+                        style: { textAnchor: "middle" },
                     }}
                 />
                 <Tooltip content={<CustomTooltip />} />

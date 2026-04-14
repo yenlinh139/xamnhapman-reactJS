@@ -41,9 +41,9 @@ const IoTStationModal = ({ isOpen, onClose, onSubmit }) => {
         setLoading(true);
         try {
             // Tìm station theo serial_number thay vì serial
-            const station = stations.find(s => s.serial_number === selectedStation);
+            const station = stations.find((s) => s.serial_number === selectedStation);
             const result = await onSubmit(station, startDate, endDate);
-            
+
             // Chỉ đóng modal và hiển thị UI khi có dữ liệu thành công
             if (result && result.success) {
                 handleClose();
@@ -76,11 +76,7 @@ const IoTStationModal = ({ isOpen, onClose, onSubmit }) => {
                         <i className="fa-solid fa-tower-broadcast"></i>
                         Chọn Trạm IoT
                     </h3>
-                    <button 
-                        type="button" 
-                        className="modal-close-btn"
-                        onClick={handleClose}
-                    >
+                    <button type="button" className="modal-close-btn" onClick={handleClose}>
                         <i className="fa-solid fa-times"></i>
                     </button>
                 </div>
@@ -104,7 +100,8 @@ const IoTStationModal = ({ isOpen, onClose, onSubmit }) => {
                             </option>
                             {stations.map((station) => (
                                 <option key={station.id} value={station.serial_number}>
-                                    {station.station_name} ({station.serial_number || 'Chưa có serial'}) - {station.total_records} bản ghi
+                                    {station.station_name} ({station.serial_number || "Chưa có serial"}) -{" "}
+                                    {station.total_records} bản ghi
                                 </option>
                             ))}
                         </select>
@@ -150,11 +147,7 @@ const IoTStationModal = ({ isOpen, onClose, onSubmit }) => {
                         >
                             Hủy
                         </button>
-                        <button
-                            type="submit"
-                            className="btn btn-primary"
-                            disabled={loading}
-                        >
+                        <button type="submit" className="btn btn-primary" disabled={loading}>
                             {loading ? (
                                 <>
                                     <i className="fa-solid fa-spinner fa-spin"></i>

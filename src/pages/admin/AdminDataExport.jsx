@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import axiosInstance from '@config/axios-config';
-import { ToastCommon } from '@components/ToastCommon';
-import { TOAST } from '@common/constants';
-import { Helmet } from 'react-helmet-async';
+import React, { useState, useEffect } from "react";
+import axiosInstance from "@config/axios-config";
+import { ToastCommon } from "@components/ToastCommon";
+import { TOAST } from "@common/constants";
+import { Helmet } from "react-helmet-async";
 import Header from "@pages/themes/headers/Header";
-import Footer from '@pages/themes/footer/Footer';
+import Footer from "@pages/themes/footer/Footer";
 
 const normalizeStationsPayload = (payload) => {
     if (Array.isArray(payload)) return payload;
@@ -16,43 +16,43 @@ const normalizeStationsPayload = (payload) => {
 };
 
 const AdminDataExport = () => {
-    const [selectedDataType, setSelectedDataType] = useState('salinity');
-    const [exportFormat, setExportFormat] = useState('excel');
+    const [selectedDataType, setSelectedDataType] = useState("salinity");
+    const [exportFormat, setExportFormat] = useState("excel");
     const [dateRange, setDateRange] = useState({
-        startDate: '',
-        endDate: ''
+        startDate: "",
+        endDate: "",
     });
     const [stations, setStations] = useState([]);
     const [selectedStations, setSelectedStations] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
 
     const dataTypes = [
-        { value: 'salinity', label: 'Độ mặn', icon: 'fa-droplet' },
-        { value: 'hydrometeorology', label: 'Khí tượng thủy văn', icon: 'fa-cloud-rain' },
-        { value: 'iot', label: 'Dữ liệu IoT', icon: 'fa-microchip' },
-        { value: 'administrative', label: 'Dữ liệu hành chính', icon: 'fa-map' }
+        { value: "salinity", label: "Độ mặn", icon: "fa-droplet" },
+        { value: "hydrometeorology", label: "Khí tượng thủy văn", icon: "fa-cloud-rain" },
+        { value: "iot", label: "Dữ liệu IoT", icon: "fa-microchip" },
+        { value: "administrative", label: "Dữ liệu hành chính", icon: "fa-map" },
     ];
 
     const exportFormats = [
-        { value: 'excel', label: 'Excel (.xlsx)', icon: 'fa-file-excel' },
-        { value: 'gis', label: 'GIS (.shp)', icon: 'fa-map-pin' },
-        { value: 'pdf', label: 'Báo cáo PDF', icon: 'fa-file-pdf' }
+        { value: "excel", label: "Excel (.xlsx)", icon: "fa-file-excel" },
+        { value: "gis", label: "GIS (.shp)", icon: "fa-map-pin" },
+        { value: "pdf", label: "Báo cáo PDF", icon: "fa-file-pdf" },
     ];
 
     // Load stations based on selected data type
     useEffect(() => {
         const loadStations = async () => {
             try {
-                let endpoint = '';
+                let endpoint = "";
                 switch (selectedDataType) {
-                    case 'salinity':
-                        endpoint = '/salinity-points';
+                    case "salinity":
+                        endpoint = "/salinity-points";
                         break;
-                    case 'hydrometeorology':
-                        endpoint = '/hydrometeorology-stations';
+                    case "hydrometeorology":
+                        endpoint = "/hydrometeorology-stations";
                         break;
-                    case 'iot':
-                        endpoint = '/iot/stations';
+                    case "iot":
+                        endpoint = "/iot/stations";
                         break;
                     default:
                         setStations([]);
@@ -64,10 +64,10 @@ const AdminDataExport = () => {
                 setStations(normalizedStations);
                 setSelectedStations([]);
             } catch (error) {
-                console.error('Error loading stations:', error);
+                console.error("Error loading stations:", error);
                 setStations([]);
                 setSelectedStations([]);
-                ToastCommon({ message: 'Không thể tải danh sách trạm', type: TOAST.ERROR });
+                ToastCommon({ message: "Không thể tải danh sách trạm", type: TOAST.ERROR });
             }
         };
 
@@ -75,8 +75,7 @@ const AdminDataExport = () => {
     }, [selectedDataType]);
 
     const stationList = Array.isArray(stations) ? stations : [];
-    const selectedDataTypeMeta =
-        dataTypes.find((type) => type.value === selectedDataType) || dataTypes[0];
+    const selectedDataTypeMeta = dataTypes.find((type) => type.value === selectedDataType) || dataTypes[0];
     const selectedFormatMeta =
         exportFormats.find((format) => format.value === exportFormat) || exportFormats[0];
     const canExport =
@@ -87,17 +86,17 @@ const AdminDataExport = () => {
 
     const handleStationToggle = (stationId) => {
         if (!stationId) return;
-        setSelectedStations(prev => 
-            prev.includes(stationId) 
-                ? prev.filter(id => id !== stationId)
-                : [...prev, stationId]
+        setSelectedStations((prev) =>
+            prev.includes(stationId) ? prev.filter((id) => id !== stationId) : [...prev, stationId],
         );
     };
 
     const handleSelectAll = () => {
-        setSelectedStations(stationList.map(station => 
-            station.KiHieu || station.maTram || station.serial_number || station.id
-        ).filter(Boolean));
+        setSelectedStations(
+            stationList
+                .map((station) => station.KiHieu || station.maTram || station.serial_number || station.id)
+                .filter(Boolean),
+        );
     };
 
     const handleClearAll = () => {
@@ -106,67 +105,66 @@ const AdminDataExport = () => {
 
     const handleExport = async () => {
         if (selectedStations.length === 0) {
-            ToastCommon({ message: 'Vui lòng chọn ít nhất một trạm', type: TOAST.ERROR });
+            ToastCommon({ message: "Vui lòng chọn ít nhất một trạm", type: TOAST.ERROR });
             return;
         }
 
         if (!dateRange.startDate || !dateRange.endDate) {
-            ToastCommon({ message: 'Vui lòng chọn khoảng thời gian', type: TOAST.ERROR });
+            ToastCommon({ message: "Vui lòng chọn khoảng thời gian", type: TOAST.ERROR });
             return;
         }
 
         setIsLoading(true);
-        
+
         try {
-            let endpoint = '';
+            let endpoint = "";
             let requestData = {
                 stations: selectedStations,
                 startDate: dateRange.startDate,
                 endDate: dateRange.endDate,
-                format: exportFormat
+                format: exportFormat,
             };
 
             switch (selectedDataType) {
-                case 'salinity':
-                    endpoint = '/salinity-export';
+                case "salinity":
+                    endpoint = "/salinity-export";
                     break;
-                case 'hydrometeorology':
-                    endpoint = '/hydrometeorology-export';
+                case "hydrometeorology":
+                    endpoint = "/hydrometeorology-export";
                     break;
-                case 'iot':
-                    endpoint = '/iot/export';
+                case "iot":
+                    endpoint = "/iot/export";
                     break;
-                case 'administrative':
-                    endpoint = '/administrative-export';
+                case "administrative":
+                    endpoint = "/administrative-export";
                     break;
                 default:
-                    throw new Error('Loại dữ liệu không hợp lệ');
+                    throw new Error("Loại dữ liệu không hợp lệ");
             }
 
             const response = await axiosInstance.post(endpoint, requestData, {
-                responseType: 'blob'
+                responseType: "blob",
             });
 
             // Create download link
             const blob = new Blob([response.data]);
             const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
+            const link = document.createElement("a");
             link.href = url;
-            
-            const extension = exportFormat === 'excel' ? 'xlsx' : exportFormat === 'gis' ? 'zip' : 'pdf';
+
+            const extension = exportFormat === "excel" ? "xlsx" : exportFormat === "gis" ? "zip" : "pdf";
             link.download = `${selectedDataType}_export_${dateRange.startDate}_${dateRange.endDate}.${extension}`;
-            
+
             document.body.appendChild(link);
             link.click();
-            
+
             window.URL.revokeObjectURL(url);
             document.body.removeChild(link);
 
-            ToastCommon({ message: 'Xuất dữ liệu thành công', type: TOAST.SUCCESS });
-            
+            ToastCommon({ message: "Xuất dữ liệu thành công", type: TOAST.SUCCESS });
         } catch (error) {
-            console.error('Export error:', error);
-            ToastCommon({ message: 'Lỗi khi xuất dữ liệu', type: TOAST.ERROR });
+            console.error("Export error:", error);
+            ToastCommon({ message: "Lỗi khi xuất dữ liệu", type: TOAST.ERROR });
         } finally {
             setIsLoading(false);
         }
@@ -186,8 +184,8 @@ const AdminDataExport = () => {
                                 <span className="header-eyebrow">QUẢN TRỊ DỮ LIỆU</span>
                                 <h1 className="card-title">Xuất dữ liệu hệ thống</h1>
                                 <p className="card-subtitle mb-0">
-                                    Chọn loại dữ liệu, định dạng và khoảng thời gian để tải báo cáo
-                                    nhanh chóng.
+                                    Chọn loại dữ liệu, định dạng và khoảng thời gian để tải báo cáo nhanh
+                                    chóng.
                                 </p>
                             </div>
                             <div className="header-badges">
@@ -335,7 +333,10 @@ const AdminDataExport = () => {
                                                 station.serial_number ||
                                                 station.id;
                                             const stationName =
-                                                station.TenDiem || station.TenTram || station.name || stationId;
+                                                station.TenDiem ||
+                                                station.TenTram ||
+                                                station.name ||
+                                                stationId;
                                             const isSelected = selectedStations.includes(stationId);
 
                                             return (
@@ -346,7 +347,9 @@ const AdminDataExport = () => {
                                                 >
                                                     <div className="station-info">
                                                         <strong>{stationName}</strong>
-                                                        <small className="text-muted d-block">{stationId}</small>
+                                                        <small className="text-muted d-block">
+                                                            {stationId}
+                                                        </small>
                                                     </div>
                                                     {isSelected && (
                                                         <i className="fa-solid fa-check-circle text-success"></i>

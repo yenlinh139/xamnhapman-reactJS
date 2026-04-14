@@ -10,9 +10,7 @@ const ExportPreviewTable = ({ data, kiHieu }) => {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
     const sortedData = React.useMemo(() => {
-        const effectiveSort = sortConfig.key
-            ? sortConfig
-            : { key: "date", direction: "desc" };
+        const effectiveSort = sortConfig.key ? sortConfig : { key: "date", direction: "desc" };
 
         const sorted = [...data].sort((a, b) => {
             let aValue = a[effectiveSort.key];
@@ -98,7 +96,7 @@ const ExportPreviewTable = ({ data, kiHieu }) => {
                             <tr key={idx}>
                                 <td>{idx + 1}</td>
                                 <td>{new Date(item.date).toLocaleDateString("vi-VN")}</td>
-                                <td 
+                                <td
                                     className="text-end fw-bold"
                                     style={{
                                         backgroundColor: riskColorMap[riskClassification.class] || "#6c757d",
@@ -119,7 +117,7 @@ const ExportPreviewTable = ({ data, kiHieu }) => {
 const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
     // Check if user is logged in
     const isLoggedIn = localStorage.getItem("access_token");
-    
+
     // Get display name for the station using utility function
     const displayStationName = getDisplayStationName(tenDiem, kiHieu);
     const filenameSafeName = getFilenameSafeStationName(displayStationName);
@@ -180,7 +178,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
             alert("Bạn cần đăng nhập để xuất dữ liệu Excel");
             return;
         }
-        
+
         try {
             if (!exportRange.startDate || !exportRange.endDate) {
                 alert("Vui lòng chọn khoảng thời gian để xuất dữ liệu");
@@ -223,7 +221,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
             alert("Bạn cần đăng nhập để tải xuống biểu đồ");
             return;
         }
-        
+
         try {
             const chartContainer = document.createElement("div");
             chartContainer.style.backgroundColor = "white";
@@ -360,11 +358,15 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                                 Hiển thị: <strong>{data.length}</strong> ngày có dữ liệu hợp
                                                 lệ
                                             </div>
-                                            <button 
-                                                className={`btn ${isLoggedIn ? 'btn-primary' : 'btn-secondary'}`} 
+                                            <button
+                                                className={`btn ${isLoggedIn ? "btn-primary" : "btn-secondary"}`}
                                                 onClick={downloadChart}
                                                 disabled={!isLoggedIn}
-                                                title={!isLoggedIn ? "Bạn cần đăng nhập để tải xuống biểu đồ" : ""}
+                                                title={
+                                                    !isLoggedIn
+                                                        ? "Bạn cần đăng nhập để tải xuống biểu đồ"
+                                                        : ""
+                                                }
                                             >
                                                 {isLoggedIn ? "Tải ảnh biểu đồ" : "Đăng nhập để tải"}
                                             </button>
@@ -420,10 +422,18 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                                     : `Tổng số ${data.length} bản ghi`}
                                             </div>
                                             <button
-                                                className={`btn ${isLoggedIn ? 'btn-success' : 'btn-secondary'}`}
+                                                className={`btn ${isLoggedIn ? "btn-success" : "btn-secondary"}`}
                                                 onClick={handleExportExcel}
-                                                disabled={!exportRange.startDate || !exportRange.endDate || !isLoggedIn}
-                                                title={!isLoggedIn ? "Bạn cần đăng nhập để xuất dữ liệu Excel" : ""}
+                                                disabled={
+                                                    !exportRange.startDate ||
+                                                    !exportRange.endDate ||
+                                                    !isLoggedIn
+                                                }
+                                                title={
+                                                    !isLoggedIn
+                                                        ? "Bạn cần đăng nhập để xuất dữ liệu Excel"
+                                                        : ""
+                                                }
                                             >
                                                 📥 {isLoggedIn ? "Tải Excel" : "Đăng nhập để tải"}
                                             </button>

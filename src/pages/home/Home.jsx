@@ -26,7 +26,11 @@ const userRoles = [
         title: "Người dùng đã đăng nhập",
         icon: "👤",
         color: "blue",
-        features: ["Tất cả chức năng của người dùng chưa đăng nhập", "Gửi đánh giá", "Chỉnh sửa thông tin cá nhân"],
+        features: [
+            "Tất cả chức năng của người dùng chưa đăng nhập",
+            "Gửi đánh giá",
+            "Chỉnh sửa thông tin cá nhân",
+        ],
     },
     {
         title: "Quản trị viên",
@@ -112,9 +116,7 @@ const Home = () => {
             </Helmet>
             <Header />
             <section id="about-section" className="about-section">
-                <Banner
-                    title="WEBGIS GIÁM SÁT VÀ CẢNH BÁO XÂM NHẬP MẶN TRÊN HỆ THỐNG SÔNG, KÊNH, RẠCH TẠI THÀNH PHỐ HỒ CHÍ MINH"
-                />
+                <Banner title="WEBGIS GIÁM SÁT VÀ CẢNH BÁO XÂM NHẬP MẶN TRÊN HỆ THỐNG SÔNG, KÊNH, RẠCH TẠI THÀNH PHỐ HỒ CHÍ MINH" />
 
                 {/* Introduction Section */}
                 <div className="container mt-5">

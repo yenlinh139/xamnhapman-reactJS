@@ -121,7 +121,9 @@ L.TileLayer.BetterWMS = L.TileLayer.WMS.extend({
                 if (xmlErrorMessage) {
                     L.popup()
                         .setLatLng(latlng)
-                        .setContent(`<div style="padding: 8px 10px; font-size: 13px; color: #475569;">${xmlErrorMessage}</div>`)
+                        .setContent(
+                            `<div style="padding: 8px 10px; font-size: 13px; color: #475569;">${xmlErrorMessage}</div>`,
+                        )
                         .openOn(this._map);
                 }
                 return;

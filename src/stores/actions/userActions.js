@@ -33,7 +33,10 @@ export const getListUser = () => {
                 dispatch(hideLoading());
             }
         } catch (error) {
-            ToastCommon(TOAST.ERROR, error.response?.data?.message || error.message || "Không tải được danh sách người dùng");
+            ToastCommon(
+                TOAST.ERROR,
+                error.response?.data?.message || error.message || "Không tải được danh sách người dùng",
+            );
             dispatch(hideLoading());
         }
     };

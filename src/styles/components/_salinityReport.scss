@@ -49,7 +49,9 @@
 
                 &:focus {
                     border-color: #667eea;
-                    box-shadow: 0 0 0 0.3rem rgba(102, 126, 234, 0.25), 0 8px 25px rgba(0, 0, 0, 0.1);
+                    box-shadow:
+                        0 0 0 0.3rem rgba(102, 126, 234, 0.25),
+                        0 8px 25px rgba(0, 0, 0, 0.1);
                     transform: translateY(-2px);
                     background: rgba(255, 255, 255, 1);
                 }
@@ -81,7 +83,7 @@
                 overflow: hidden;
 
                 &::before {
-                    content: '';
+                    content: "";
                     position: absolute;
                     top: 0;
                     left: -100%;
@@ -176,13 +178,17 @@
                 overflow: hidden;
 
                 &::before {
-                    content: '';
+                    content: "";
                     position: absolute;
                     top: 0;
                     left: 0;
                     right: 0;
                     bottom: 0;
-                    background: linear-gradient(45deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+                    background: linear-gradient(
+                        45deg,
+                        rgba(255, 255, 255, 0.1) 0%,
+                        rgba(255, 255, 255, 0.05) 100%
+                    );
                     pointer-events: none;
                 }
 
@@ -231,13 +237,17 @@
                     position: relative;
 
                     &::before {
-                        content: '';
+                        content: "";
                         position: absolute;
                         top: 0;
                         left: 0;
                         right: 0;
                         bottom: 0;
-                        background: linear-gradient(45deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+                        background: linear-gradient(
+                            45deg,
+                            rgba(255, 255, 255, 0.1) 0%,
+                            rgba(255, 255, 255, 0.05) 100%
+                        );
                         pointer-events: none;
                     }
 
@@ -311,7 +321,7 @@
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 
             &::before {
-                content: '';
+                content: "";
                 position: absolute;
                 top: 0;
                 left: -100%;
@@ -491,13 +501,17 @@
             overflow: hidden;
 
             &::before {
-                content: '';
+                content: "";
                 position: absolute;
                 top: 0;
                 left: 0;
                 right: 0;
                 bottom: 0;
-                background: linear-gradient(45deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+                background: linear-gradient(
+                    45deg,
+                    rgba(102, 126, 234, 0.05) 0%,
+                    rgba(118, 75, 162, 0.05) 100%
+                );
                 opacity: 0;
                 transition: all 0.3s ease;
                 pointer-events: none;
@@ -505,7 +519,11 @@
 
             &:hover {
                 transform: translateY(-8px) scale(1.05);
-                background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 250, 0.95) 100%);
+                background: linear-gradient(
+                    135deg,
+                    rgba(255, 255, 255, 0.95) 0%,
+                    rgba(248, 249, 250, 0.95) 100%
+                );
                 box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
                 border: 1px solid rgba(102, 126, 234, 0.3);
 
@@ -647,7 +665,7 @@
 
             .chart-wrapper {
                 width: 90%; // Tăng từ 80% lên 90%
-                
+
                 canvas {
                     height: 100% !important;
                     max-height: 100% !important;
@@ -664,7 +682,7 @@
 
             .chart-wrapper {
                 width: 95%; // Tăng từ 80% lên 95%
-                
+
                 canvas {
                     height: 100% !important;
                     max-height: 100% !important;
@@ -863,20 +881,19 @@
 
 // PDF Print Mode Styles - Optimized for A4 Portrait Layout
 .print-mode {
-    
     // General PDF fixes
     font-family: Arial, sans-serif !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     line-height: 1.2 !important;
-    
+
     // Remove all unnecessary margins and padding
     * {
         margin: 0 !important;
         padding: 0 !important;
         box-sizing: border-box !important;
     }
-    
+
     // Container adjustments for PDF
     .main-content {
         padding: 0 !important;
@@ -884,7 +901,7 @@
         min-height: auto !important;
         background: white !important;
     }
-    
+
     .pdf-content {
         margin: 0 !important;
         padding: 10px !important;
@@ -896,18 +913,18 @@
         font-weight: bold !important;
         margin-bottom: 10px !important;
     }
-        .legend-item span{
-            font-size: 12px !important;
-        }
+    .legend-item span {
+        font-size: 12px !important;
+    }
     // Remove extra spacing above Statistics Table
     .pdf-table-section {
         margin-top: 0 !important;
         padding-top: 5px !important;
         margin-bottom: 10px !important;
     }
-    
-    .pdf-table-intro{
-        margin-bottom: 20px !important;  
+
+    .pdf-table-intro {
+        margin-bottom: 20px !important;
         line-height: 1.5 !important;
         text-indent: 2em;
     }
@@ -919,8 +936,7 @@
         text-align: center !important;
         font-style: italic;
     }
-    
-        
+
     // Fix Statistics card spacing - more compact
     .card {
         display: none !important;
@@ -942,7 +958,7 @@
         justify-content: center !important;
         align-items: center !important;
         overflow: hidden !important; // Ẩn phần thừa
-        
+
         .chart-wrapper {
             width: 98% !important; // Tăng từ 95% lên 98%
             height: 98% !important; // Tăng từ 95% lên 98%
@@ -959,8 +975,7 @@
             }
         }
     }
-      
-    
+
     // PDF explicit page break styling
     .pdf-page-break {
         display: none !important;
@@ -973,7 +988,7 @@
         clear: both !important;
         visibility: hidden !important;
     }
-    
+
     // Chart section wrapper
     .pdf-chart-section {
         width: 100% !important;
@@ -986,7 +1001,7 @@
         break-inside: avoid !important;
         display: block !important;
     }
-    
+
     .pdf-appendix-section {
         width: 100% !important;
         max-width: 100% !important;
@@ -998,20 +1013,21 @@
         break-inside: avoid !important;
         display: block !important;
     }
-            
+
     // Fix Table for PDF - optimized table layout
     .table-responsive {
         overflow: visible !important;
         border: none !important;
     }
-    
+
     .table {
         width: 100% !important;
-        table-layout: fixed !important; 
+        table-layout: fixed !important;
         font-size: 10px !important;
         margin-bottom: 8px !important;
 
-        th, td {
+        th,
+        td {
             padding: 6px 2px !important;
             border: 0.5px solid #ccc !important;
             font-size: 14px !important;
@@ -1020,41 +1036,41 @@
             text-align: center !important;
             vertical-align: middle !important;
         }
-        
+
         th {
             background-color: #f0f0f0 !important;
             color: #000 !important;
             font-weight: bold !important;
             font-size: 14px !important;
-            
+
             .d-flex {
                 display: block !important;
-                
+
                 span {
                     display: block !important;
                     line-height: 1.1 !important;
                 }
 
-                 i.fa-sort,
+                i.fa-sort,
                 i.fa-sort-up,
                 i.fa-sort-down {
                     display: none !important;
                 }
             }
         }
-        
+
         // Optimized column widths for A4 PDF
         tr td:nth-child(1),
         tr th:nth-child(1) {
             width: 6% !important; // STT
         }
-        
+
         tr td:nth-child(2),
         tr th:nth-child(2) {
             width: 22% !important; // Tên trạm
             text-align: center !important;
         }
-        
+
         tr td:nth-child(3),
         tr th:nth-child(3),
         tr td:nth-child(4),
@@ -1066,7 +1082,7 @@
             width: 16.75% !important; // Data columns
         }
     }
-    
+
     // Fix salinity values for PDF
     .salinity-value {
         font-size: 14px !important;
@@ -1075,10 +1091,9 @@
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
-    
+
     // Fix PDF Header
     .pdf-header {
-        
         .pdf-header-gradient {
             padding: 15px !important;
 
@@ -1087,51 +1102,50 @@
                 margin-bottom: 8px !important;
                 font-weight: bold !important;
             }
-            
+
             h4 {
                 font-size: 20px !important;
                 font-weight: bold !important;
             }
         }
     }
-    
+
     // Fix Statistics section - more compact
     .stat-item {
         padding: 4px !important;
         margin-bottom: 4px !important;
         border: 1px solid #ddd !important;
         border-radius: 0 !important;
-        
+
         .stat-value {
             font-size: 14px !important;
             margin-bottom: 2px !important;
             font-weight: bold !important;
         }
-        
+
         .stat-label {
             font-size: 9px !important;
             line-height: 1.1 !important;
         }
     }
-    
+
     // Fix Chart title
     .pdf-chart-title {
         font-size: 14px !important;
         margin: 10px 0 !important;
         text-align: center !important;
     }
-    
+
     // Hide elements that shouldn't be in PDF
     .pdf-hide {
         display: none !important;
     }
-    
+
     // Show elements only in PDF
     .pdf-only {
         display: block !important;
     }
-    
-       
+
     // PDF Analysis section styling
     .pdf-analysis-section {
         margin: 0 !important;
@@ -1145,11 +1159,11 @@
             text-align: justify !important;
             line-height: 1.5 !important;
         }
-        
+
         .analysis-content {
             .station-analysis {
                 margin-bottom: 12px !important;
-                
+
                 .analysis-details {
                     margin-left: 15px !important;
                     margin-top: 3px !important;
@@ -1159,7 +1173,7 @@
             }
         }
     }
-    
+
     // PDF Appendix section styling
     .pdf-appendix-section {
         .appendix-title {
@@ -1169,46 +1183,47 @@
             text-align: center !important;
             font-weight: bold !important;
         }
-        
+
         .appendix-table-title {
             margin-bottom: 15px !important;
             font-size: 14px !important;
             text-align: center !important;
             font-weight: bold !important;
         }
-        
+
         .appendix-table {
             font-size: 12px !important;
             width: 100% !important;
-            
-            th, td {
+
+            th,
+            td {
                 padding: 8px 6px !important;
                 border: 1px solid #000 !important;
                 vertical-align: middle !important;
                 word-wrap: break-word !important;
             }
-            
+
             th {
                 background-color: #f0f0f0 !important;
                 font-weight: bold !important;
                 text-align: center !important;
             }
-            
+
             td {
                 text-align: left !important;
-                
+
                 &:first-child {
                     text-align: center !important;
                 }
             }
-            
+
             .d-flex {
                 display: flex !important;
-                
+
                 span {
                     border-left: 1px solid #000 !important;
                     padding: 0 4px !important;
-                    
+
                     &:first-child {
                         border-left: none !important;
                     }
@@ -1216,7 +1231,6 @@
             }
         }
     }
-    
 }
 
 // Hide PDF-only elements on web view
@@ -1291,7 +1305,8 @@
 }
 
 @keyframes pulse {
-    0%, 100% {
+    0%,
+    100% {
         transform: scale(1);
     }
     50% {

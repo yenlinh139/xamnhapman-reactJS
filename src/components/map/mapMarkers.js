@@ -37,33 +37,52 @@ export const getSalinityIcon = (value = null, stationCode = null) => {
 
 const HYDROMET_ICON_COLORS = {
     rain: "#0d6efd",
-    meteorology: "#fd7e14",
-    hydrology: "#198754",
+    meteorology: "#000000",
+    hydrology: "#0d6efd",
     default: "#990000",
 };
 
-const resolveHydrometColor = (stationType = "") => {
+const resolveHydrometIconType = (stationType = "") => {
     const normalizedType = String(stationType || "").toLowerCase();
 
     if (normalizedType.includes("mưa") || normalizedType.includes("rain")) {
-        return HYDROMET_ICON_COLORS.rain;
+        return "rain";
     }
     if (normalizedType.includes("thủy văn") || normalizedType.includes("hydrology")) {
-        return HYDROMET_ICON_COLORS.hydrology;
+        return "hydrology";
     }
     if (normalizedType.includes("khí tượng") || normalizedType.includes("meteorology")) {
-        return HYDROMET_ICON_COLORS.meteorology;
+        return "meteorology";
     }
 
-    return HYDROMET_ICON_COLORS.default;
+    return "default";
+};
+
+const resolveHydrometColor = (stationType = "") => {
+    const iconType = resolveHydrometIconType(stationType);
+    return HYDROMET_ICON_COLORS[iconType] || HYDROMET_ICON_COLORS.default;
 };
 
 export const getHydrometIcon = (stationType = "") => {
+    const iconType = resolveHydrometIconType(stationType);
     const iconColor = resolveHydrometColor(stationType);
+    const triangleDirection = iconType === "hydrology" ? "down" : "up";
 
-    return L.divIcon({
-        className: "custom-hydromet-icon",
-        html: `
+    const markerShapeHtml =
+        iconType === "meteorology" || iconType === "hydrology"
+            ? `
+            <span style="
+                display:inline-block;
+                width:16px;
+                height:16px;
+                background:${iconColor};
+                clip-path:polygon(50% 0%, 0% 100%, 100% 100%);
+                transform:${triangleDirection === "down" ? "rotate(180deg)" : "none"};
+                border:2px solid #ffffff;
+                box-shadow:0 0 0 1px rgba(0,0,0,0.25);
+            "></span>
+        `
+            : `
             <span style="
                 display:inline-block;
                 width:14px;
@@ -73,7 +92,11 @@ export const getHydrometIcon = (stationType = "") => {
                 border:2px solid #ffffff;
                 box-shadow:0 0 0 1px rgba(0,0,0,0.25);
             "></span>
-        `,
+        `;
+
+    return L.divIcon({
+        className: "custom-hydromet-icon",
+        html: markerShapeHtml,
         iconSize: [18, 18],
         iconAnchor: [9, 9],
         popupAnchor: [0, -10],

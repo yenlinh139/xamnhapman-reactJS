@@ -22,7 +22,7 @@ useEffect(() => {
     if (mapInstance && enabledLayers.includes("iotStations")) {
         renderIoTStations(mapInstance, setIotData);
     }
-    
+
     // Cleanup function
     return () => {
         if (mapInstance) {

@@ -97,7 +97,9 @@ function LeftMenuMap({
     };
 
     const handleMonitoringDataVisibilityToggle = () => {
-        const shouldEnableAll = !DEFAULT_MONITORING_LAYERS.every((layer) => state.enabledLayers.includes(layer));
+        const shouldEnableAll = !DEFAULT_MONITORING_LAYERS.every((layer) =>
+            state.enabledLayers.includes(layer),
+        );
 
         setState((prevState) => ({
             ...prevState,
@@ -152,36 +154,38 @@ function LeftMenuMap({
 
     // Hàm để lấy dữ liệu IoT mặc định (7 ngày gần nhất)
     const handleIoTQuickView = async () => {
-        try {            
+        try {
             // Hiển thị trạm IoT trên bản đồ trước
             setState((prevState) => ({
                 ...prevState,
-                enabledLayers: [...prevState.enabledLayers.filter(l => l !== "iotStations"), "iotStations"]
+                enabledLayers: [...prevState.enabledLayers.filter((l) => l !== "iotStations"), "iotStations"],
             }));
             onLayerToggle("iotStations", true);
 
-            const stationsResponse = await fetchIoTStations();            
+            const stationsResponse = await fetchIoTStations();
             if (stationsResponse.success && stationsResponse.data && stationsResponse.data.length > 0) {
                 // Cập nhật thống kê
                 const stats = calculateStationStats(stationsResponse.data);
                 setIotStationStats(stats);
-                
+
                 // Lấy trạm có nhiều dữ liệu nhất
                 const activeStation = stationsResponse.data
-                    .filter(station => station.total_records > 0 && station.serial_number)
+                    .filter((station) => station.total_records > 0 && station.serial_number)
                     .sort((a, b) => parseInt(b.total_records) - parseInt(a.total_records))[0];
 
-                if (activeStation) {                  
+                if (activeStation) {
                     // Tự động lấy dữ liệu 7 ngày gần nhất
-                    const endDate = new Date().toISOString().split('T')[0];
-                    const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];                 
-                    
+                    const endDate = new Date().toISOString().split("T")[0];
+                    const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+                        .toISOString()
+                        .split("T")[0];
+
                     const result = await fetchIoTData(activeStation.serial_number, {
                         startDate,
                         endDate,
-                        limit: 1000
+                        limit: 1000,
                     });
-                    
+
                     if (result.success && result.data && result.data.length > 0) {
                         const formattedData = formatIoTDataForDisplay(result, activeStation);
 
@@ -189,13 +193,13 @@ function LeftMenuMap({
                             setIotData(formattedData);
                         }
                     } else {
-                        console.warn('⚠️ No IoT data found for quick view');
+                        console.warn("⚠️ No IoT data found for quick view");
                     }
                 } else {
-                    console.warn('⚠️ No active station found with data');
+                    console.warn("⚠️ No active station found with data");
                 }
             } else {
-                console.warn('⚠️ No IoT stations found');
+                console.warn("⚠️ No IoT stations found");
             }
         } catch (error) {
             console.error("❌ Error fetching IoT quick view:", error);
@@ -204,21 +208,19 @@ function LeftMenuMap({
 
     // Hàm tính toán thống kê trạm
     const calculateStationStats = (stations) => {
-        const activeStations = stations.filter(station => 
-            station.total_records > 0 && 
-            station.serial_number &&
-            station.status === 'active'
+        const activeStations = stations.filter(
+            (station) => station.total_records > 0 && station.serial_number && station.status === "active",
         ).length;
-        
+
         const lastSyncTimes = stations
-            .filter(station => station.last_data_time)
-            .map(station => new Date(station.last_data_time))
+            .filter((station) => station.last_data_time)
+            .map((station) => new Date(station.last_data_time))
             .sort((a, b) => b - a);
-        
+
         return {
             active: activeStations,
             total: stations.length,
-            lastSync: lastSyncTimes[0] || null
+            lastSync: lastSyncTimes[0] || null,
         };
     };
 
@@ -226,21 +228,21 @@ function LeftMenuMap({
         try {
             // Sử dụng serial_number thay vì serial
             const serialNumber = stationInfo.serial_number;
-            
+
             if (!serialNumber) {
                 return {
                     success: false,
-                    message: "Trạm chưa có serial number. Vui lòng chọn trạm khác."
+                    message: "Trạm chưa có serial number. Vui lòng chọn trạm khác.",
                 };
             }
 
             // Gọi API mới với định dạng ngày yyyy-mm-dd
             const result = await fetchIoTData(serialNumber, {
                 startDate: startDate, // startDate đã được format từ modal
-                endDate: endDate,     // endDate đã được format từ modal
-                limit: 1000          // Lấy nhiều dữ liệu hơn
+                endDate: endDate, // endDate đã được format từ modal
+                limit: 1000, // Lấy nhiều dữ liệu hơn
             });
-            
+
             // Kiểm tra xem có dữ liệu thành công hay không
             if (result.success && result.data && result.data.length > 0) {
                 const formattedData = formatIoTDataForDisplay(result, stationInfo);
@@ -249,21 +251,21 @@ function LeftMenuMap({
                     // Trả về success để modal biết có thể đóng
                     return {
                         success: true,
-                        message: `Đã lấy thành công ${formattedData.summary.totalRecords} bản ghi từ trạm ${formattedData.stationName}. Dữ liệu sẽ hiển thị trong panel MapDetails.`
+                        message: `Đã lấy thành công ${formattedData.summary.totalRecords} bản ghi từ trạm ${formattedData.stationName}. Dữ liệu sẽ hiển thị trong panel MapDetails.`,
                     };
                 }
             }
-            
+
             // Không có dữ liệu
             return {
                 success: false,
-                message: result.message || "Không có dữ liệu trong khoảng thời gian đã chọn"
+                message: result.message || "Không có dữ liệu trong khoảng thời gian đã chọn",
             };
         } catch (error) {
             console.error("Error handling IoT data:", error);
             return {
                 success: false,
-                message: "Có lỗi xảy ra khi lấy dữ liệu. Vui lòng thử lại."
+                message: "Có lỗi xảy ra khi lấy dữ liệu. Vui lòng thử lại.",
             };
         }
     };
@@ -283,7 +285,7 @@ function LeftMenuMap({
         };
 
         loadIoTStationStats();
-        
+
         // Tự động refresh stats mỗi 3 phút (để sync với backend)
         const interval = setInterval(loadIoTStationStats, 3 * 60 * 1000);
         return () => clearInterval(interval);
@@ -441,8 +443,8 @@ function LeftMenuMap({
                     diff > 0
                         ? `Tăng ${diff.toFixed(2)} ‰ so với `
                         : diff < 0
-                            ? `Giảm ${Math.abs(diff).toFixed(2)} ‰ so với`
-                            : "Không thay đổi so với",
+                          ? `Giảm ${Math.abs(diff).toFixed(2)} ‰ so với`
+                          : "Không thay đổi so với",
                 color: diff > 0 ? "#dc3545" : diff < 0 ? "#198754" : "#6c757d",
                 icon: diff > 0 ? "▲" : diff < 0 ? "▼" : "■",
             };
@@ -490,8 +492,8 @@ function LeftMenuMap({
         const contentHtml = loading
             ? `<div class="popup-loading"><i class="fa-solid fa-spinner fa-spin"></i><p>Đang tải dữ liệu...</p></div>`
             : error
-                ? `<div class="popup-error"><i class="fa-solid fa-circle-exclamation"></i><p>${escapeHtml(error)}</p></div>`
-                : `
+              ? `<div class="popup-error"><i class="fa-solid fa-circle-exclamation"></i><p>${escapeHtml(error)}</p></div>`
+              : `
                     <div class="popup-main-value">
                         <span class="value-label">Độ mặn hiện tại</span>
                         <span class="value-number" style="color: ${riskInfo.color}">
@@ -547,9 +549,7 @@ function LeftMenuMap({
             });
 
             const endDate = new Date().toISOString().split("T")[0];
-            const startDate = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
-                .toISOString()
-                .split("T")[0];
+            const startDate = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
             const dataResult = await fetchIoTData(result.SerialNumber, {
                 startDate,
@@ -623,7 +623,8 @@ function LeftMenuMap({
             },
             icon: "droplet",
             name: result.TenDiem,
-            popupHtml: '<div class="popup-loading"><i class="fa-solid fa-spinner fa-spin"></i><p>Đang tải dữ liệu...</p></div>',
+            popupHtml:
+                '<div class="popup-loading"><i class="fa-solid fa-spinner fa-spin"></i><p>Đang tải dữ liệu...</p></div>',
         });
 
         try {
@@ -654,7 +655,8 @@ function LeftMenuMap({
             },
             icon: "cloud-rain",
             name: result.TenTram,
-            popupHtml: '<div class="popup-loading"><i class="fa-solid fa-spinner fa-spin"></i><p>Đang tải dữ liệu...</p></div>',
+            popupHtml:
+                '<div class="popup-loading"><i class="fa-solid fa-spinner fa-spin"></i><p>Đang tải dữ liệu...</p></div>',
         });
 
         try {
@@ -729,7 +731,13 @@ function LeftMenuMap({
                     geometry: geojson,
                     id: result.id || result.mahuyen || result.maxa || result.MaHuyen || result.MaXa,
                     icon: "marker",
-                    name: result.name || result.tenhuyen || result.tenxa || result.TenHuyen || result.TenXa || "Điểm",
+                    name:
+                        result.name ||
+                        result.tenhuyen ||
+                        result.tenxa ||
+                        result.TenHuyen ||
+                        result.TenXa ||
+                        "Điểm",
                 });
             } else if (geojson.type === "Polygon" || geojson.type === "MultiPolygon") {
                 const bounds = getBoundsFromCoordinates(geojson.coordinates);
@@ -738,7 +746,13 @@ function LeftMenuMap({
                     type: "Feature",
                     geometry: geojson,
                     id: result.id || result.mahuyen || result.maxa || result.MaHuyen || result.MaXa,
-                    name: result.name || result.tenhuyen || result.tenxa || result.TenHuyen || result.TenXa || "Vùng",
+                    name:
+                        result.name ||
+                        result.tenhuyen ||
+                        result.tenxa ||
+                        result.TenHuyen ||
+                        result.TenXa ||
+                        "Vùng",
                 });
             }
         } catch (err) {
@@ -876,91 +890,97 @@ function LeftMenuMap({
                                 </div>
 
                                 {state.openHydrometDropdown && (
-                                <div className="category-layers">
-                                    <div className="layer-item monitoring-layer">
-                                        <div className="layer-toggle">
-                                            <input
-                                                type="checkbox"
-                                                id="layer-hydromet-rain-stations"
-                                                className="layer-checkbox"
-                                                checked={state.enabledLayers.includes("hydrometRainStations")}
-                                                onChange={(e) =>
-                                                    handleHydrometLayerToggle(
+                                    <div className="category-layers">
+                                        <div className="layer-item monitoring-layer">
+                                            <div className="layer-toggle">
+                                                <input
+                                                    type="checkbox"
+                                                    id="layer-hydromet-rain-stations"
+                                                    className="layer-checkbox"
+                                                    checked={state.enabledLayers.includes(
                                                         "hydrometRainStations",
-                                                        e.target.checked,
-                                                    )
-                                                }
-                                            />
-                                            <label
-                                                htmlFor="layer-hydromet-rain-stations"
-                                                className="layer-label"
-                                            >
-                                                <div className="layer-info">
-                                                    <div className="layer-details">
-                                                        <span className="layer-name">Điểm đo mưa</span>
+                                                    )}
+                                                    onChange={(e) =>
+                                                        handleHydrometLayerToggle(
+                                                            "hydrometRainStations",
+                                                            e.target.checked,
+                                                        )
+                                                    }
+                                                />
+                                                <label
+                                                    htmlFor="layer-hydromet-rain-stations"
+                                                    className="layer-label"
+                                                >
+                                                    <div className="layer-info">
+                                                        <div className="layer-details">
+                                                            <span className="layer-name">Điểm đo mưa</span>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </label>
+                                                </label>
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    <div className="layer-item monitoring-layer">
-                                        <div className="layer-toggle">
-                                            <input
-                                                type="checkbox"
-                                                id="layer-hydromet-meteorology-stations"
-                                                className="layer-checkbox"
-                                                checked={state.enabledLayers.includes("hydrometMeteorologyStations")}
-                                                onChange={(e) =>
-                                                    handleHydrometLayerToggle(
+                                        <div className="layer-item monitoring-layer">
+                                            <div className="layer-toggle">
+                                                <input
+                                                    type="checkbox"
+                                                    id="layer-hydromet-meteorology-stations"
+                                                    className="layer-checkbox"
+                                                    checked={state.enabledLayers.includes(
                                                         "hydrometMeteorologyStations",
-                                                        e.target.checked,
-                                                    )
-                                                }
-                                            />
-                                            <label
-                                                htmlFor="layer-hydromet-meteorology-stations"
-                                                className="layer-label"
-                                            >
-                                                <div className="layer-info">
-                                                    <div className="layer-details">
-                                                        <span className="layer-name">Trạm khí tượng</span>
+                                                    )}
+                                                    onChange={(e) =>
+                                                        handleHydrometLayerToggle(
+                                                            "hydrometMeteorologyStations",
+                                                            e.target.checked,
+                                                        )
+                                                    }
+                                                />
+                                                <label
+                                                    htmlFor="layer-hydromet-meteorology-stations"
+                                                    className="layer-label"
+                                                >
+                                                    <div className="layer-info">
+                                                        <div className="layer-details">
+                                                            <span className="layer-name">Trạm khí tượng</span>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </label>
+                                                </label>
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    <div className="layer-item monitoring-layer">
-                                        <div className="layer-toggle">
-                                            <input
-                                                type="checkbox"
-                                                id="layer-hydromet-hydrology-stations"
-                                                className="layer-checkbox"
-                                                checked={state.enabledLayers.includes("hydrometHydrologyStations")}
-                                                onChange={(e) =>
-                                                    handleHydrometLayerToggle(
+                                        <div className="layer-item monitoring-layer">
+                                            <div className="layer-toggle">
+                                                <input
+                                                    type="checkbox"
+                                                    id="layer-hydromet-hydrology-stations"
+                                                    className="layer-checkbox"
+                                                    checked={state.enabledLayers.includes(
                                                         "hydrometHydrologyStations",
-                                                        e.target.checked,
-                                                    )
-                                                }
-                                            />
-                                            <label
-                                                htmlFor="layer-hydromet-hydrology-stations"
-                                                className="layer-label"
-                                            >
-                                                <div className="layer-info">
-                                                    <div className="layer-details">
-                                                        <span className="layer-name">Trạm thủy văn</span>
+                                                    )}
+                                                    onChange={(e) =>
+                                                        handleHydrometLayerToggle(
+                                                            "hydrometHydrologyStations",
+                                                            e.target.checked,
+                                                        )
+                                                    }
+                                                />
+                                                <label
+                                                    htmlFor="layer-hydromet-hydrology-stations"
+                                                    className="layer-label"
+                                                >
+                                                    <div className="layer-info">
+                                                        <div className="layer-details">
+                                                            <span className="layer-name">Trạm thủy văn</span>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </label>
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
                                 )}
                             </div>
-                            
+
                             {/* Irrigation Works (Công trình thủy lợi) */}
                             <div className="category-item">
                                 <div
@@ -1195,7 +1215,9 @@ function LeftMenuMap({
                                                         <label htmlFor={optionId} className="layer-label">
                                                             <div className="layer-info">
                                                                 <div className="layer-details">
-                                                                    <span className="layer-name">{option.label}</span>
+                                                                    <span className="layer-name">
+                                                                        {option.label}
+                                                                    </span>
                                                                     <span className="layer-desc">
                                                                         {option.description}
                                                                     </span>
@@ -1211,8 +1233,6 @@ function LeftMenuMap({
                             </div>
                         </div>
                     </div>
-
-
                 </div>
             </>
         );

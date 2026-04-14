@@ -204,7 +204,9 @@
             border-radius: 6px;
             border: 1px solid #ced4da;
             padding: 0.75rem;
-            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+            transition:
+                border-color 0.15s ease-in-out,
+                box-shadow 0.15s ease-in-out;
 
             &:focus {
                 border-color: #667eea;

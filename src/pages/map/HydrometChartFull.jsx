@@ -10,9 +10,7 @@ const ExportPreviewTable = ({ data }) => {
 
     const sortedData = React.useMemo(() => {
         const dateKey = data[0]?.date ? "date" : "Ngày";
-        const effectiveSort = sortConfig.key
-            ? sortConfig
-            : { key: dateKey, direction: "desc" };
+        const effectiveSort = sortConfig.key ? sortConfig : { key: dateKey, direction: "desc" };
 
         const sorted = [...data].sort((a, b) => {
             let aValue = a[effectiveSort.key];
@@ -113,7 +111,7 @@ const ExportPreviewTable = ({ data }) => {
             Htb_NB: { label: "Mực nước trung bình", unit: "cm" },
             Hx_NB: { label: "Mực nước cao nhất", unit: "cm" },
             Hm_NB: { label: "Mực nước thấp nhất", unit: "cm" },
-            
+
             // Water level parameters - Phú An station
             Htb_PA: { label: "Mực nước trung bình", unit: "cm" },
             Hx_PA: { label: "Mực nước cao nhất", unit: "cm" },
@@ -124,7 +122,10 @@ const ExportPreviewTable = ({ data }) => {
     };
 
     return (
-        <div className="table-responsive mb-3 map-data-table-wrap" style={{ maxHeight: "80vh", overflowY: "auto" }}>
+        <div
+            className="table-responsive mb-3 map-data-table-wrap"
+            style={{ maxHeight: "80vh", overflowY: "auto" }}
+        >
             <table className="table table-bordered table-sm table-striped map-data-table">
                 <thead className="table-light sticky-top">
                     <tr>
@@ -180,14 +181,14 @@ const ExportPreviewTable = ({ data }) => {
 const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
     // Check if user is logged in
     const isLoggedIn = localStorage.getItem("access_token");
-    
+
     // Get display name for the station using utility function
     const displayStationName = getDisplayStationName(TenTam, kiHieu);
     const filenameSafeName = getFilenameSafeStationName(displayStationName);
 
     const [data, setData] = useState([]);
     const [filteredChartData, setFilteredChartData] = useState([]);
-    
+
     const [chartDateRange, setChartDateRange] = useState({
         startDate: "",
         endDate: "",
@@ -200,10 +201,10 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
     const convertVietnameseDateToISO = (dateStr) => {
         if (typeof dateStr === "string" && dateStr.includes("/")) {
             const parts = dateStr.split("/");
-            
+
             if (parts.length === 3) {
                 const [first, second, year] = parts;
-                
+
                 // Detect format based on values (MM/DD/YYYY is common from API)
                 let month, day;
                 if (parseInt(first) <= 12 && parseInt(second) <= 31) {
@@ -219,7 +220,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                     month = first;
                     day = second;
                 }
-                
+
                 return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
             }
         }
@@ -238,7 +239,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
             const sortedData = validHydrometData.sort((a, b) => {
                 const dateA = a.date || a.Ngày;
                 const dateB = b.date || b.Ngày;
-                
+
                 // Convert dates to comparable format
                 const parseDate = (dateStr) => {
                     if (dateStr.includes("/")) {
@@ -246,7 +247,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                     }
                     return new Date(dateStr);
                 };
-                
+
                 return parseDate(dateA) - parseDate(dateB);
             });
 
@@ -257,7 +258,8 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
             if (sortedData.length > 0) {
                 // Get actual first (earliest) and last (latest) dates
                 const firstDate = sortedData[0].date || sortedData[0].Ngày;
-                const lastDate = sortedData[sortedData.length - 1].date || sortedData[sortedData.length - 1].Ngày;
+                const lastDate =
+                    sortedData[sortedData.length - 1].date || sortedData[sortedData.length - 1].Ngày;
 
                 const startDateISO = firstDate.includes("/")
                     ? convertVietnameseDateToISO(firstDate)
@@ -347,18 +349,18 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
             if (typeof dateValue === "string" && dateValue.includes("/")) {
                 const parts = dateValue.split("/");
                 const [first, second, year] = parts;
-                
+
                 let month, day;
                 if (parseInt(first) <= 12 && parseInt(second) <= 31) {
                     // MM/DD/YYYY format (common from API)
                     month = parseInt(first) - 1; // JS months are 0-based
                     day = parseInt(second);
                 } else {
-                    // DD/MM/YYYY format  
+                    // DD/MM/YYYY format
                     day = parseInt(first);
                     month = parseInt(second) - 1;
                 }
-                
+
                 return new Date(parseInt(year), month, day);
             } else {
                 return new Date(dateValue);
@@ -411,7 +413,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
             alert("Bạn cần đăng nhập để tải xuống dữ liệu CSV");
             return;
         }
-        
+
         if (!data.length) return;
 
         const dataToExport = filteredData.length > 0 ? filteredData : data;
@@ -445,17 +447,17 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                 R_TTH: "Lượng mưa (mm)",
                 R_TSH: "Lượng mưa (mm)",
                 R_TD: "Lượng mưa (mm)",
-                
+
                 // Temperature parameters - Tân Sơn Hòa station
                 Ttb_TSH: "Nhiệt độ không khí trung bình (°C)",
                 Tx_TSH: "Nhiệt độ không khí cao nhất (°C)",
                 Tm_TSH: "Nhiệt độ không khí thấp nhất (°C)",
-                
+
                 // Water level parameters - Nhà Bè station
                 Htb_NB: "Mực nước trung bình (cm)",
                 Hx_NB: "Mực nước cao nhất (cm)",
                 Hm_NB: "Mực nước thấp nhất (cm)",
-                
+
                 // Water level parameters - Phú An station
                 Htb_PA: "Mực nước trung bình (cm)",
                 Hx_PA: "Mực nước cao nhất (cm)",
@@ -485,7 +487,9 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
 
-        const startDateStr = new Date(chartDateRange.startDate).toLocaleDateString("vi-VN").replace(/\//g, "-");
+        const startDateStr = new Date(chartDateRange.startDate)
+            .toLocaleDateString("vi-VN")
+            .replace(/\//g, "-");
         const endDateStr = new Date(chartDateRange.endDate).toLocaleDateString("vi-VN").replace(/\//g, "-");
 
         link.download = `khituong_thuyvan_${filenameSafeName}_${startDateStr}_${endDateStr}.csv`;
@@ -497,34 +501,34 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
             alert("Bạn cần đăng nhập để tải xuống biểu đồ");
             return;
         }
-        
+
         const chartElement = document.getElementById("hydromet-chart");
         const titleElement = document.getElementById("hydromet-chart-title");
-        
+
         if (chartElement) {
             try {
                 // Create a temporary container that includes both title and chart
-                const tempContainer = document.createElement('div');
-                tempContainer.style.padding = '20px';
-                tempContainer.style.backgroundColor = '#ffffff';
-                tempContainer.style.fontFamily = 'Arial, sans-serif';
-                
+                const tempContainer = document.createElement("div");
+                tempContainer.style.padding = "20px";
+                tempContainer.style.backgroundColor = "#ffffff";
+                tempContainer.style.fontFamily = "Arial, sans-serif";
+
                 // Clone the title
                 const titleClone = titleElement ? titleElement.cloneNode(true) : null;
                 if (titleClone) {
-                    titleClone.style.textAlign = 'center';
-                    titleClone.style.marginBottom = '20px';
-                    titleClone.style.color = '#000';
+                    titleClone.style.textAlign = "center";
+                    titleClone.style.marginBottom = "20px";
+                    titleClone.style.color = "#000";
                     tempContainer.appendChild(titleClone);
                 }
-                
+
                 // Clone the chart
                 const chartClone = chartElement.cloneNode(true);
                 tempContainer.appendChild(chartClone);
-                
+
                 // Temporarily add to body (hidden)
-                tempContainer.style.position = 'absolute';
-                tempContainer.style.left = '-9999px';
+                tempContainer.style.position = "absolute";
+                tempContainer.style.left = "-9999px";
                 document.body.appendChild(tempContainer);
 
                 const canvas = await html2canvas(tempContainer, {
@@ -532,7 +536,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                     scale: 2,
                     logging: false,
                     width: tempContainer.scrollWidth,
-                    height: tempContainer.scrollHeight
+                    height: tempContainer.scrollHeight,
                 });
 
                 // Remove temporary container
@@ -558,10 +562,16 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
         return new Date(dateValue).toLocaleDateString("vi-VN");
     };
 
-    const startDate = filteredChartData?.length > 0 ? formatDateForDisplay(filteredChartData[0].date || filteredChartData[0].Ngày) : null;
+    const startDate =
+        filteredChartData?.length > 0
+            ? formatDateForDisplay(filteredChartData[0].date || filteredChartData[0].Ngày)
+            : null;
     const endDate =
         filteredChartData?.length > 0
-            ? formatDateForDisplay(filteredChartData[filteredChartData.length - 1].date || filteredChartData[filteredChartData.length - 1].Ngày)
+            ? formatDateForDisplay(
+                  filteredChartData[filteredChartData.length - 1].date ||
+                      filteredChartData[filteredChartData.length - 1].Ngày,
+              )
             : null;
 
     return (
@@ -623,7 +633,8 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                     setPresetRange("all");
                                     setFilteredChartData(data);
                                     const firstDate = data[0]?.date || data[0]?.Ngày;
-                                    const lastDate = data[data.length - 1]?.date || data[data.length - 1]?.Ngày;
+                                    const lastDate =
+                                        data[data.length - 1]?.date || data[data.length - 1]?.Ngày;
                                     if (firstDate && lastDate) {
                                         setChartDateRange({
                                             startDate: firstDate.includes("/")
@@ -683,11 +694,15 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                                 📊 Hiển thị: <strong>{filteredChartData.length}</strong> /{" "}
                                                 <strong>{data.length}</strong> ngày có dữ liệu
                                             </div>
-                                            <button 
-                                                className={`btn ${isLoggedIn ? 'btn-info' : 'btn-secondary'}`} 
+                                            <button
+                                                className={`btn ${isLoggedIn ? "btn-info" : "btn-secondary"}`}
                                                 onClick={downloadChart}
                                                 disabled={!isLoggedIn}
-                                                title={!isLoggedIn ? "Bạn cần đăng nhập để tải xuống biểu đồ" : ""}
+                                                title={
+                                                    !isLoggedIn
+                                                        ? "Bạn cần đăng nhập để tải xuống biểu đồ"
+                                                        : ""
+                                                }
                                             >
                                                 {isLoggedIn ? "Tải ảnh biểu đồ" : "Đăng nhập để tải"}
                                             </button>
@@ -725,7 +740,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                                 </strong>
                                             </div>
                                             <button
-                                                className={`btn ${isLoggedIn ? 'btn-success' : 'btn-secondary'}`}
+                                                className={`btn ${isLoggedIn ? "btn-success" : "btn-secondary"}`}
                                                 onClick={downloadCSV}
                                                 disabled={data.length === 0 || !isLoggedIn}
                                                 title={!isLoggedIn ? "Bạn cần đăng nhập để xuất dữ liệu" : ""}

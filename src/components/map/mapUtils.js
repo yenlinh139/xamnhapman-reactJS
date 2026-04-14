@@ -90,7 +90,8 @@ export const handleFeatureHighlight = (
             zIndexOffset: 1000,
         }).addTo(map);
         highlightedMarkerRef.current.bindPopup(
-            popupHtml || `
+            popupHtml ||
+                `
                 <div class="highlight-popup">
                     <h4 style="margin:0 0 8px;color:${markerConfig.color};">
                         <i class="fa-solid fa-${markerConfig.icon}"></i> ${name}

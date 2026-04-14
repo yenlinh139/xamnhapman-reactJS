@@ -118,7 +118,9 @@ const SALINITY_RISK_META = {
 };
 
 const getIoTSalinityRiskMeta = (value, stationCode = "") => {
-    const baseCode = String(stationCode || "").replace(/_IoT$/i, "").replace(/_iot$/i, "");
+    const baseCode = String(stationCode || "")
+        .replace(/_IoT$/i, "")
+        .replace(/_iot$/i, "");
     const classification = getSingleStationClassification(value, baseCode);
     const riskMeta = SALINITY_RISK_META[classification.class] || SALINITY_RISK_META["no-data"];
 
@@ -197,9 +199,7 @@ const IoTExportPreviewTable = ({ data, groupBy = "none", stationCode = "" }) => 
     };
 
     const rows = useMemo(() => {
-        const effectiveSort = sortConfig.key
-            ? sortConfig
-            : { key: "time", direction: "desc" };
+        const effectiveSort = sortConfig.key ? sortConfig : { key: "time", direction: "desc" };
 
         return [...safeData]
             .filter((item) => item?.Date || item?.date_time)
@@ -318,7 +318,9 @@ const IoTExportPreviewTable = ({ data, groupBy = "none", stationCode = "" }) => 
                                 >
                                     {hasSaltValue ? (
                                         <div className="d-flex justify-content-end align-items-center gap-2">
-                                            <span className="fw-semibold">{Number(row.salt_value).toFixed(4)}</span>
+                                            <span className="fw-semibold">
+                                                {Number(row.salt_value).toFixed(4)}
+                                            </span>
                                             <span
                                                 className="badge rounded-pill"
                                                 title={saltRisk.description}
@@ -341,7 +343,8 @@ const IoTExportPreviewTable = ({ data, groupBy = "none", stationCode = "" }) => 
                                         : "-"}
                                 </td>
                                 <td className="text-end">
-                                    {row.daily_rainfall_value !== undefined && row.daily_rainfall_value !== null
+                                    {row.daily_rainfall_value !== undefined &&
+                                    row.daily_rainfall_value !== null
                                         ? `${Number(row.daily_rainfall_value).toFixed(4)}`
                                         : "-"}
                                 </td>
@@ -362,7 +365,7 @@ const IoTExportPreviewTable = ({ data, groupBy = "none", stationCode = "" }) => 
 const IoTChartFull = ({ show, iotData, onClose }) => {
     // Check if user is logged in
     const isLoggedIn = localStorage.getItem("access_token");
-    
+
     const [queryOptions, setQueryOptions] = useState({
         startDate: "",
         endDate: "",
@@ -481,11 +484,7 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                 [name]: value,
             };
 
-            if (
-                nextOptions.startDate &&
-                nextOptions.endDate &&
-                nextOptions.startDate > nextOptions.endDate
-            ) {
+            if (nextOptions.startDate && nextOptions.endDate && nextOptions.startDate > nextOptions.endDate) {
                 if (name === "startDate") {
                     nextOptions.endDate = value;
                 }
@@ -503,7 +502,7 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
             alert("Bạn cần đăng nhập để tải xuống biểu đồ");
             return;
         }
-        
+
         try {
             const chartContainer = document.createElement("div");
             chartContainer.style.backgroundColor = "white";
@@ -561,12 +560,8 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
 
     const data = displayData;
 
-    const startDate = data?.length > 0
-        ? formatDateLabel(getIoTRowTime(data[0]))
-        : null;
-    const endDate = data?.length > 0
-        ? formatDateLabel(getIoTRowTime(data[data.length - 1]))
-        : null;
+    const startDate = data?.length > 0 ? formatDateLabel(getIoTRowTime(data[0])) : null;
+    const endDate = data?.length > 0 ? formatDateLabel(getIoTRowTime(data[data.length - 1])) : null;
 
     return (
         <div
@@ -675,10 +670,15 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                                             </div>
                                             <div
                                                 className="map-chart-footer d-flex justify-content-between align-items-center"
-                                                style={{ flexShrink: 0, padding: "8px 0", borderTop: "1px solid #e9ecef" }}
+                                                style={{
+                                                    flexShrink: 0,
+                                                    padding: "8px 0",
+                                                    borderTop: "1px solid #e9ecef",
+                                                }}
                                             >
                                                 <div className="text-muted" style={{ fontSize: "12px" }}>
-                                                    Thời gian: <strong>{startDate || "-"}</strong> đến <strong>{endDate || "-"}</strong>
+                                                    Thời gian: <strong>{startDate || "-"}</strong> đến{" "}
+                                                    <strong>{endDate || "-"}</strong>
                                                 </div>
                                                 <div className="d-flex align-items-center gap-2">
                                                     <div className="text-muted" style={{ fontSize: "12px" }}>
@@ -727,7 +727,14 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
 
                                     {data.length > 0 ? (
                                         <>
-                                            <div style={{ flex: 1, minHeight: 0, overflow: "auto", paddingRight: 4 }}>
+                                            <div
+                                                style={{
+                                                    flex: 1,
+                                                    minHeight: 0,
+                                                    overflow: "auto",
+                                                    paddingRight: 4,
+                                                }}
+                                            >
                                                 <IoTExportPreviewTable
                                                     data={data}
                                                     groupBy={queryOptions.groupBy}
@@ -735,15 +742,18 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                                                 />
                                             </div>
 
-                                        <div
-                                            className="d-flex gap-2 justify-content-between align-items-center pt-2"
-                                            style={{ flexShrink: 0 }}
-                                        >
-                                            <div className="text-muted small">
-                                                Thời gian: <strong>{startDate || "-"}</strong> đến <strong>{endDate || "-"}</strong>
+                                            <div
+                                                className="d-flex gap-2 justify-content-between align-items-center pt-2"
+                                                style={{ flexShrink: 0 }}
+                                            >
+                                                <div className="text-muted small">
+                                                    Thời gian: <strong>{startDate || "-"}</strong> đến{" "}
+                                                    <strong>{endDate || "-"}</strong>
+                                                </div>
+                                                <div className="text-muted small">
+                                                    Hiển thị {data.length} bản ghi
+                                                </div>
                                             </div>
-                                            <div className="text-muted small">Hiển thị {data.length} bản ghi</div>
-                                        </div>
                                         </>
                                     ) : (
                                         <div className="flex-grow-1 d-flex align-items-center justify-content-center">

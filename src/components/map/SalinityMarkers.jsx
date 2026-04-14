@@ -6,21 +6,21 @@ import { getSalinityIcon } from "@components/map/mapMarkers";
 import { getSingleStationClassification } from "../../common/salinityClassification";
 
 const ensureStationPanes = (mapInstance) => {
-  const paneConfigs = [
-    ["hydrometMarkerPane", 610],
-    ["hydrometTooltipPane", 611],
-    ["salinityMarkerPane", 620],
-    ["salinityTooltipPane", 621],
-    ["iotMarkerPane", 630],
-    ["iotTooltipPane", 631],
-  ];
+    const paneConfigs = [
+        ["hydrometMarkerPane", 610],
+        ["hydrometTooltipPane", 611],
+        ["salinityMarkerPane", 620],
+        ["salinityTooltipPane", 621],
+        ["iotMarkerPane", 630],
+        ["iotTooltipPane", 631],
+    ];
 
-  paneConfigs.forEach(([name, zIndex]) => {
-    if (!mapInstance.getPane(name)) {
-      mapInstance.createPane(name);
-    }
-    mapInstance.getPane(name).style.zIndex = String(zIndex);
-  });
+    paneConfigs.forEach(([name, zIndex]) => {
+        if (!mapInstance.getPane(name)) {
+            mapInstance.createPane(name);
+        }
+        mapInstance.getPane(name).style.zIndex = String(zIndex);
+    });
 };
 
 export const getSalinityTooltipClass = (salinity, stationCode = null) => {
@@ -49,38 +49,35 @@ const formatPopupDateValue = (value, fallback = "Chưa có dữ liệu") => {
 };
 
 export const createSalinityPopup = (point, latestSalinity, latestDate, trend, previousDate) => {
-  const pointLatestValue = Number(point?.latest_value);
-  const fallbackLatestValue = Number(latestSalinity);
-  const salinityValue = Number.isFinite(pointLatestValue)
-    ? pointLatestValue
-    : Number.isFinite(fallbackLatestValue)
-      ? fallbackLatestValue
-      : null;
+    const pointLatestValue = Number(point?.latest_value);
+    const fallbackLatestValue = Number(latestSalinity);
+    const salinityValue = Number.isFinite(pointLatestValue)
+        ? pointLatestValue
+        : Number.isFinite(fallbackLatestValue)
+          ? fallbackLatestValue
+          : null;
 
-  const previousValue = Number(point?.previous_value);
-  const hasValidSalinity = Number.isFinite(salinityValue);
-  const formattedSalinity = hasValidSalinity ? salinityValue.toFixed(2) : "N/A";
-  // const formattedPreviousValue = Number.isFinite(previousValue) ? `${previousValue.toFixed(2)} ‰` : "N/A";
-  const descriptionText = point.MoTa || point.PhanLoai || "Không có mô tả";
-  const latestDateText = latestDate || formatPopupDateValue(point?.latest_date, "Chưa có thời gian quan trắc");
-  const previousDateText = previousDate || formatPopupDateValue(point?.previous_date, "Chưa có dữ liệu");
-  const startDateText = formatPopupDateValue(point?.start_date, "Không xác định");
-  const endDateText = formatPopupDateValue(point?.end_date, "Không xác định");
-  const frequencyText = point?.TanSuat || "Không xác định";
-  const totalRecordsText = Number.isFinite(Number(point?.total_records))
-    ? Number(point.total_records).toLocaleString("vi-VN")
-    : "--";
+    const previousValue = Number(point?.previous_value);
+    const hasValidSalinity = Number.isFinite(salinityValue);
+    const formattedSalinity = hasValidSalinity ? salinityValue.toFixed(2) : "N/A";
+    // const formattedPreviousValue = Number.isFinite(previousValue) ? `${previousValue.toFixed(2)} ‰` : "N/A";
+    const descriptionText = point.MoTa || point.PhanLoai || "Không có mô tả";
+    const latestDateText =
+        latestDate || formatPopupDateValue(point?.latest_date, "Chưa có thời gian quan trắc");
+    const previousDateText = previousDate || formatPopupDateValue(point?.previous_date, "Chưa có dữ liệu");
+    const startDateText = formatPopupDateValue(point?.start_date, "Không xác định");
+    const endDateText = formatPopupDateValue(point?.end_date, "Không xác định");
+    const frequencyText = point?.TanSuat || "Không xác định";
+    const totalRecordsText = Number.isFinite(Number(point?.total_records))
+        ? Number(point.total_records).toLocaleString("vi-VN")
+        : "--";
 
-  const latDecimal = convertDMSToDecimal(point?.ViDo);
-  const lngDecimal = convertDMSToDecimal(point?.KinhDo);
-  const latDisplay = Number.isFinite(latDecimal)
-    ? latDecimal.toFixed(6)
-    : point.ViDo || "Không xác định";
-  const lngDisplay = Number.isFinite(lngDecimal)
-    ? lngDecimal.toFixed(6)
-    : point.KinhDo || "Không xác định";
-  const stationCodeForClick = String(point.KiHieu || "").replace(/'/g, "\\'");
-  const stationNameForClick = String(point.TenDiem || "").replace(/'/g, "\\'");
+    const latDecimal = convertDMSToDecimal(point?.ViDo);
+    const lngDecimal = convertDMSToDecimal(point?.KinhDo);
+    const latDisplay = Number.isFinite(latDecimal) ? latDecimal.toFixed(6) : point.ViDo || "Không xác định";
+    const lngDisplay = Number.isFinite(lngDecimal) ? lngDecimal.toFixed(6) : point.KinhDo || "Không xác định";
+    const stationCodeForClick = String(point.KiHieu || "").replace(/'/g, "\\'");
+    const stationNameForClick = String(point.TenDiem || "").replace(/'/g, "\\'");
 
     const stationCode = point.KiHieu;
     const classification = getSingleStationClassification(salinityValue, stationCode);
@@ -116,7 +113,7 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
       
       <div class="popup-content">
         <div class="popup-main-value">
-          <span class="value-label">Giá trị mới nhất</span>
+          <span class="value-label">Độ mặn</span>
           <span class="value-number" style="color: ${statusColor}">
             ${formattedSalinity} ‰
           </span>
@@ -209,7 +206,7 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
 
 export const renderSalinityPoints = async (mapInstance, setSalinityData, setSelectedPoint) => {
     try {
-    ensureStationPanes(mapInstance);
+        ensureStationPanes(mapInstance);
 
         const points = await fetchSalinityPoints();
         const latLngs = [];
@@ -226,17 +223,21 @@ export const renderSalinityPoints = async (mapInstance, setSalinityData, setSele
             // Use latest/previous values directly from fetchSalinityPoints API response
             const latestSalinity = point.latest_value;
             const previousSalinity = point.previous_value;
-            const latestDate = point.latest_date ? 
-                new Date(point.latest_date).toLocaleDateString("vi-VN") : 
-                null;
-            const previousDate = point.previous_date ? 
-                new Date(point.previous_date).toLocaleDateString("vi-VN") : 
-                null;
+            const latestDate = point.latest_date
+                ? new Date(point.latest_date).toLocaleDateString("vi-VN")
+                : null;
+            const previousDate = point.previous_date
+                ? new Date(point.previous_date).toLocaleDateString("vi-VN")
+                : null;
 
             // Calculate trend from latest and previous values (no API call needed)
             let trend = null;
-            if (latestSalinity !== null && latestSalinity !== undefined &&
-                previousSalinity !== null && previousSalinity !== undefined) {
+            if (
+                latestSalinity !== null &&
+                latestSalinity !== undefined &&
+                previousSalinity !== null &&
+                previousSalinity !== undefined
+            ) {
                 const diff = latestSalinity - previousSalinity;
                 if (Math.abs(diff) > 0.01) {
                     trend = {
@@ -256,8 +257,8 @@ export const renderSalinityPoints = async (mapInstance, setSalinityData, setSele
             const marker = L.marker([lat, lng], {
                 icon,
                 isSalinityPoint: true,
-              pane: "salinityMarkerPane",
-              zIndexOffset: 2000,
+                pane: "salinityMarkerPane",
+                zIndexOffset: 2000,
             }).addTo(mapInstance);
 
             latLngs.push([lat, lng]);
@@ -270,19 +271,17 @@ export const renderSalinityPoints = async (mapInstance, setSalinityData, setSele
                 pane: "salinityTooltipPane",
             });
 
+            const popupHTML = createSalinityPopup(point, latestSalinity, latestDate, trend, previousDate);
+
+            marker.bindPopup(popupHTML, {
+                maxWidth: 300,
+                className: "custom-popup",
+                autoClose: true,
+                closeOnClick: true,
+            });
+
             marker.on("click", async () => {
                 try {
-                    const popupHTML = createSalinityPopup(
-                        point,
-                        latestSalinity,
-                        latestDate,
-                        trend,
-                        previousDate,
-                    );
-                    marker.bindPopup(popupHTML, {
-                        maxWidth: 300,
-                        className: "custom-popup",
-                    });
                     marker.openPopup();
 
                     // Store point info for later (data will be fetched on demand when clicking "Xem biểu đồ")

@@ -6,16 +6,15 @@ import { getSingleStationClassification } from "@common/salinityClassification";
 const IoTDetails = ({ iotData, onClose, onOpenFullChart }) => {
     const [selectedDate, setSelectedDate] = useState("");
     if (!iotData) {
-        console.log('❌ No iotData provided');
+        console.log("❌ No iotData provided");
         return null;
     }
 
     // Check for dataPoints first, then fallback to data
-    const dataPoints = iotData.dataPoints && iotData.dataPoints.length > 0 
-        ? iotData.dataPoints 
-        : iotData.data || [];
+    const dataPoints =
+        iotData.dataPoints && iotData.dataPoints.length > 0 ? iotData.dataPoints : iotData.data || [];
     const hasData = dataPoints.length > 0;
-    
+
     if (!hasData) {
         return null;
     }
@@ -27,18 +26,22 @@ const IoTDetails = ({ iotData, onClose, onOpenFullChart }) => {
         // Sử dụng Date hoặc date_time tùy vào data structure
         const itemDateField = item.Date || item.date_time;
         if (!itemDateField) return false;
-        
+
         const itemDate = new Date(itemDateField).toLocaleDateString("vi-VN");
         const selectedDateFormatted = selectedDate ? new Date(selectedDate).toLocaleDateString("vi-VN") : "";
         return itemDate === selectedDateFormatted;
     });
 
-    const startDate = dataPoints.length > 0 
-        ? new Date(dataPoints[0].Date || dataPoints[0].date_time).toLocaleDateString("vi-VN") 
-        : null;
-    const endDate = dataPoints.length > 0 
-        ? new Date(dataPoints[dataPoints.length - 1].Date || dataPoints[dataPoints.length - 1].date_time).toLocaleDateString("vi-VN") 
-        : null;
+    const startDate =
+        dataPoints.length > 0
+            ? new Date(dataPoints[0].Date || dataPoints[0].date_time).toLocaleDateString("vi-VN")
+            : null;
+    const endDate =
+        dataPoints.length > 0
+            ? new Date(
+                  dataPoints[dataPoints.length - 1].Date || dataPoints[dataPoints.length - 1].date_time,
+              ).toLocaleDateString("vi-VN")
+            : null;
 
     const getRiskLevel = (value) => {
         const classification = getSingleStationClassification(value, stationCode);
@@ -100,7 +103,9 @@ const IoTDetails = ({ iotData, onClose, onOpenFullChart }) => {
             <div className="row g-2 mb-3">
                 <div className="col-6">
                     <div className="card card-body p-2 text-center">
-                        <div className="fw-bold text-primary">{summary?.totalRecordsInRange || summary?.totalRecords || dataPoints.length}</div>
+                        <div className="fw-bold text-primary">
+                            {summary?.totalRecordsInRange || summary?.totalRecords || dataPoints.length}
+                        </div>
                         <small className="text-muted">Bản ghi {summary?.rangeLabel || "đang hiển thị"}</small>
                     </div>
                 </div>

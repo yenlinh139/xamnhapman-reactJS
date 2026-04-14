@@ -89,6 +89,11 @@ const toInputDateTimeValue = (rawValue) => {
     return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
+const toInputDateDisplay = (rawValue) => {
+    if (!rawValue) return "";
+    return formatDateDisplay(rawValue);
+};
+
 const toDisplayDateTime = (rawValue) => {
     if (!rawValue) return "-";
     const parsed = new Date(rawValue);
@@ -131,7 +136,8 @@ const buildPaginationState = (payload, fallbackPage, fallbackLimit, fallbackLeng
 };
 
 const getStationTotalRecordsValue = (station) => {
-    const total = station?.total_records ?? station?.totalRecords ?? station?.record_count ?? station?.count ?? 0;
+    const total =
+        station?.total_records ?? station?.totalRecords ?? station?.record_count ?? station?.count ?? 0;
     const numericTotal = Number(total);
     return Number.isFinite(numericTotal) ? numericTotal : 0;
 };
@@ -191,6 +197,10 @@ const IoTManagementTab = ({ userInfo }) => {
         return Array.from(seenStations.values());
     }, [filters.serialNumber, iotDataRows, stationOptions]);
 
+    const dataFormStationOptions = useMemo(() => {
+        return [...stationFilterOptions].sort((a, b) => a.name.localeCompare(b.name, "vi"));
+    }, [stationFilterOptions]);
+
     const loadStationOptions = useCallback(async () => {
         try {
             const result = await fetchIoTStations();
@@ -237,7 +247,9 @@ const IoTManagementTab = ({ userInfo }) => {
                       }),
                   )
                 : stationOptions.reduce((sum, station) => sum + getStationTotalRecordsValue(station), 0);
-            const resolvedTotal = hasExplicitTotal ? explicitTotal : selectedStationTotal || basePagination.total || rows.length;
+            const resolvedTotal = hasExplicitTotal
+                ? explicitTotal
+                : selectedStationTotal || basePagination.total || rows.length;
             const resolvedLimit = basePagination.limit || limit;
 
             setIotDataRows(rows);
@@ -254,7 +266,9 @@ const IoTManagementTab = ({ userInfo }) => {
             console.error("Error loading IoT data:", loadError);
             setIotDataRows([]);
             setPagination({ page: currentPage, totalPages: 1, total: 0, limit });
-            setError(loadError?.response?.data?.message || loadError?.message || "Không tải được dữ liệu IoT.");
+            setError(
+                loadError?.response?.data?.message || loadError?.message || "Không tải được dữ liệu IoT.",
+            );
         } finally {
             setDataLoading(false);
         }
@@ -269,9 +283,7 @@ const IoTManagementTab = ({ userInfo }) => {
             const nextStartDate = inputDateFilter.startDate
                 ? parseDisplayDateToIso(inputDateFilter.startDate)
                 : "";
-            const nextEndDate = inputDateFilter.endDate
-                ? parseDisplayDateToIso(inputDateFilter.endDate)
-                : "";
+            const nextEndDate = inputDateFilter.endDate ? parseDisplayDateToIso(inputDateFilter.endDate) : "";
 
             const startDateValid = !inputDateFilter.startDate || Boolean(nextStartDate);
             const endDateValid = !inputDateFilter.endDate || Boolean(nextEndDate);
@@ -317,7 +329,7 @@ const IoTManagementTab = ({ userInfo }) => {
         setDataForm({
             id: row.id || row._id || "",
             serial_number: row.serial_number || row.serialNumber || row.DeviceSerialNumber || "",
-            date_time: toInputDateTimeValue(row.date_time || row.Date || row.timestamp),
+            date_time: toInputDateDisplay(row.date_time || row.Date || row.timestamp),
             salt_value: row.salt_value ?? row.salt_value_avg ?? "",
             distance_value: row.distance_value ?? row.distance_value_avg ?? "",
             daily_rainfall_value: row.daily_rainfall_value ?? row.daily_rainfall_value_sum ?? "",
@@ -330,9 +342,10 @@ const IoTManagementTab = ({ userInfo }) => {
         event.preventDefault();
 
         try {
+            const isoDate = parseDisplayDateToIso(dataForm.date_time);
             const payload = sanitizePayload({
                 serial_number: dataForm.serial_number,
-                date_time: dataForm.date_time ? new Date(dataForm.date_time).toISOString() : "",
+                date_time: isoDate ? new Date(isoDate).toISOString() : "",
                 salt_value: toNullableNumber(dataForm.salt_value),
                 distance_value: toNullableNumber(dataForm.distance_value),
                 daily_rainfall_value: toNullableNumber(dataForm.daily_rainfall_value),
@@ -340,7 +353,7 @@ const IoTManagementTab = ({ userInfo }) => {
             });
 
             if (!payload.serial_number || !payload.date_time) {
-                ToastCommon(TOAST.ERROR, "Vui lòng chọn trạm và thời gian đo");
+                ToastCommon(TOAST.ERROR, "Vui lòng chọn trạm và nhập thời gian đo đúng định dạng dd/mm/yyyy");
                 return;
             }
 
@@ -410,7 +423,10 @@ const IoTManagementTab = ({ userInfo }) => {
                 "Thời gian": toDisplayDateTime(row.date_time || row.Date || row.timestamp),
                 "Độ mặn (‰)": formatMetric(row.salt_value ?? row.salt_value_avg, 4),
                 "Mực nước (m)": formatMetric(row.distance_value ?? row.distance_value_avg, 4),
-                "Lượng mưa ngày (mm)": formatMetric(row.daily_rainfall_value ?? row.daily_rainfall_value_sum, 4),
+                "Lượng mưa ngày (mm)": formatMetric(
+                    row.daily_rainfall_value ?? row.daily_rainfall_value_sum,
+                    4,
+                ),
                 "Nhiệt độ (°C)": formatMetric(row.temp_value ?? row.temp_value_avg, 1),
             }));
 
@@ -468,10 +484,9 @@ const IoTManagementTab = ({ userInfo }) => {
                                 onBlur={() =>
                                     setInputDateFilter((prev) => ({
                                         ...prev,
-                                        startDate:
-                                            parseDisplayDateToIso(prev.startDate)
-                                                ? formatDateDisplay(parseDisplayDateToIso(prev.startDate))
-                                                : prev.startDate,
+                                        startDate: parseDisplayDateToIso(prev.startDate)
+                                            ? formatDateDisplay(parseDisplayDateToIso(prev.startDate))
+                                            : prev.startDate,
                                     }))
                                 }
                                 className="filter-input"
@@ -496,10 +511,9 @@ const IoTManagementTab = ({ userInfo }) => {
                                 onBlur={() =>
                                     setInputDateFilter((prev) => ({
                                         ...prev,
-                                        endDate:
-                                            parseDisplayDateToIso(prev.endDate)
-                                                ? formatDateDisplay(parseDisplayDateToIso(prev.endDate))
-                                                : prev.endDate,
+                                        endDate: parseDisplayDateToIso(prev.endDate)
+                                            ? formatDateDisplay(parseDisplayDateToIso(prev.endDate))
+                                            : prev.endDate,
                                     }))
                                 }
                                 className="filter-input"
@@ -575,14 +589,34 @@ const IoTManagementTab = ({ userInfo }) => {
                             </thead>
                             <tbody>
                                 {iotDataRows.map((row, index) => (
-                                    <tr key={row.id || row._id || `${row.serial_number}-${row.date_time}-${index}`}>
+                                    <tr
+                                        key={
+                                            row.id ||
+                                            row._id ||
+                                            `${row.serial_number}-${row.date_time}-${index}`
+                                        }
+                                    >
                                         <td>{(currentPage - 1) * limit + index + 1}</td>
-                                        <td>{toDisplayDateTime(row.date_time || row.Date || row.timestamp)}</td>
+                                        <td>
+                                            {toDisplayDateTime(row.date_time || row.Date || row.timestamp)}
+                                        </td>
                                         <td>{row.station_name || row.stationName || "Trạm IoT"}</td>
-                                        <td>{row.serial_number || row.serialNumber || row.DeviceSerialNumber || "-"}</td>
+                                        <td>
+                                            {row.serial_number ||
+                                                row.serialNumber ||
+                                                row.DeviceSerialNumber ||
+                                                "-"}
+                                        </td>
                                         <td>{formatMetric(row.salt_value ?? row.salt_value_avg, 4)}</td>
-                                        <td>{formatMetric(row.distance_value ?? row.distance_value_avg, 4)}</td>
-                                        <td>{formatMetric(row.daily_rainfall_value ?? row.daily_rainfall_value_sum, 4)}</td>
+                                        <td>
+                                            {formatMetric(row.distance_value ?? row.distance_value_avg, 4)}
+                                        </td>
+                                        <td>
+                                            {formatMetric(
+                                                row.daily_rainfall_value ?? row.daily_rainfall_value_sum,
+                                                4,
+                                            )}
+                                        </td>
                                         <td>{formatMetric(row.temp_value ?? row.temp_value_avg, 1)}</td>
                                         {userInfo && (
                                             <td>
@@ -595,7 +629,9 @@ const IoTManagementTab = ({ userInfo }) => {
                                                     </button>
                                                     <button
                                                         className="btn btn-sm btn-outline-danger"
-                                                        onClick={() => setDeleteConfig({ type: "data", target: row })}
+                                                        onClick={() =>
+                                                            setDeleteConfig({ type: "data", target: row })
+                                                        }
                                                     >
                                                         Xóa
                                                     </button>
@@ -623,35 +659,83 @@ const IoTManagementTab = ({ userInfo }) => {
             )}
 
             {showDataModal && (
-                <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+                <div
+                    className="modal fade show d-block"
+                    tabIndex="-1"
+                    style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+                >
                     <div className="modal-dialog modal-lg modal-dialog-centered">
                         <div className="modal-content">
                             <form onSubmit={handleSaveData}>
                                 <div className="modal-header">
                                     <h5 className="modal-title">
-                                        {dataModalMode === "create" ? "Thêm dữ liệu IoT" : "Cập nhật dữ liệu IoT"}
+                                        {dataModalMode === "create"
+                                            ? "Thêm dữ liệu IoT"
+                                            : "Cập nhật dữ liệu IoT"}
                                     </h5>
-                                    <button type="button" className="btn-close" onClick={() => setShowDataModal(false)}></button>
+                                    <button
+                                        type="button"
+                                        className="btn-close"
+                                        onClick={() => setShowDataModal(false)}
+                                    ></button>
                                 </div>
                                 <div className="modal-body">
                                     <div className="row g-3">
                                         <div className="col-md-6">
-                                            <label className="form-label">Serial Number</label>
-                                            <input
+                                            <label className="form-label">
+                                                Tên trạm IoT <span className="text-danger">*</span>
+                                            </label>
+                                            <select
                                                 className="form-control"
                                                 value={dataForm.serial_number}
-                                                onChange={(e) => setDataForm((prev) => ({ ...prev, serial_number: e.target.value }))}
-                                                placeholder="Nhập serial number"
+                                                onChange={(e) =>
+                                                    setDataForm((prev) => ({
+                                                        ...prev,
+                                                        serial_number: e.target.value,
+                                                    }))
+                                                }
                                                 required
-                                            />
+                                            >
+                                                <option value="" disabled>
+                                                    Chọn trạm IoT
+                                                </option>
+                                                {dataFormStationOptions.map((station) => (
+                                                    <option key={station.serial} value={station.serial}>
+                                                        {station.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <small className="text-muted d-block mt-1">
+                                                Frontend tự map sang Serial Number khi lưu dữ liệu.
+                                            </small>
                                         </div>
                                         <div className="col-md-6">
-                                            <label className="form-label">Thời gian đo</label>
+                                            <label className="form-label">
+                                                Thời gian đo <span className="text-danger">*</span>
+                                            </label>
                                             <input
-                                                type="datetime-local"
+                                                type="text"
                                                 className="form-control"
                                                 value={dataForm.date_time}
-                                                onChange={(e) => setDataForm((prev) => ({ ...prev, date_time: e.target.value }))}
+                                                onChange={(e) =>
+                                                    setDataForm((prev) => ({
+                                                        ...prev,
+                                                        date_time: normalizeDateInputText(e.target.value),
+                                                    }))
+                                                }
+                                                onBlur={() =>
+                                                    setDataForm((prev) => ({
+                                                        ...prev,
+                                                        date_time: parseDisplayDateToIso(prev.date_time)
+                                                            ? formatDateDisplay(
+                                                                  parseDisplayDateToIso(prev.date_time),
+                                                              )
+                                                            : prev.date_time,
+                                                    }))
+                                                }
+                                                placeholder="dd/mm/yyyy"
+                                                inputMode="numeric"
+                                                maxLength={10}
                                                 required
                                             />
                                         </div>
@@ -662,7 +746,12 @@ const IoTManagementTab = ({ userInfo }) => {
                                                 step="0.0001"
                                                 className="form-control"
                                                 value={dataForm.salt_value}
-                                                onChange={(e) => setDataForm((prev) => ({ ...prev, salt_value: e.target.value }))}
+                                                onChange={(e) =>
+                                                    setDataForm((prev) => ({
+                                                        ...prev,
+                                                        salt_value: e.target.value,
+                                                    }))
+                                                }
                                             />
                                         </div>
                                         <div className="col-md-6">
@@ -672,7 +761,12 @@ const IoTManagementTab = ({ userInfo }) => {
                                                 step="0.0001"
                                                 className="form-control"
                                                 value={dataForm.distance_value}
-                                                onChange={(e) => setDataForm((prev) => ({ ...prev, distance_value: e.target.value }))}
+                                                onChange={(e) =>
+                                                    setDataForm((prev) => ({
+                                                        ...prev,
+                                                        distance_value: e.target.value,
+                                                    }))
+                                                }
                                             />
                                         </div>
                                         <div className="col-md-6">
@@ -682,7 +776,12 @@ const IoTManagementTab = ({ userInfo }) => {
                                                 step="0.0001"
                                                 className="form-control"
                                                 value={dataForm.daily_rainfall_value}
-                                                onChange={(e) => setDataForm((prev) => ({ ...prev, daily_rainfall_value: e.target.value }))}
+                                                onChange={(e) =>
+                                                    setDataForm((prev) => ({
+                                                        ...prev,
+                                                        daily_rainfall_value: e.target.value,
+                                                    }))
+                                                }
                                             />
                                         </div>
                                         <div className="col-md-6">
@@ -692,13 +791,22 @@ const IoTManagementTab = ({ userInfo }) => {
                                                 step="0.1"
                                                 className="form-control"
                                                 value={dataForm.temp_value}
-                                                onChange={(e) => setDataForm((prev) => ({ ...prev, temp_value: e.target.value }))}
+                                                onChange={(e) =>
+                                                    setDataForm((prev) => ({
+                                                        ...prev,
+                                                        temp_value: e.target.value,
+                                                    }))
+                                                }
                                             />
                                         </div>
                                     </div>
                                 </div>
                                 <div className="modal-footer">
-                                    <button type="button" className="btn btn-secondary" onClick={() => setShowDataModal(false)}>
+                                    <button
+                                        type="button"
+                                        className="btn btn-secondary"
+                                        onClick={() => setShowDataModal(false)}
+                                    >
                                         Hủy
                                     </button>
                                     <button type="submit" className="btn btn-primary">
@@ -713,7 +821,9 @@ const IoTManagementTab = ({ userInfo }) => {
 
             {deleteConfig?.type && deleteConfig?.target && (
                 <ModalConfirm
-                    title={deleteConfig.type === "station" ? "Xác nhận xóa trạm IoT" : "Xác nhận xóa dữ liệu IoT"}
+                    title={
+                        deleteConfig.type === "station" ? "Xác nhận xóa trạm IoT" : "Xác nhận xóa dữ liệu IoT"
+                    }
                     message={`Bạn có chắc chắn muốn xóa bản ghi IoT lúc ${toDisplayDateTime(deleteConfig.target.date_time || deleteConfig.target.Date || deleteConfig.target.timestamp)}?`}
                     onConfirm={confirmDelete}
                     onCancel={() => setDeleteConfig({ type: null, target: null })}

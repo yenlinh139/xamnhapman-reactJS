@@ -28,13 +28,13 @@ const MapDetails = ({
     if (!shouldShow) {
         return null;
     }
-    
+
     // Sử dụng thông tin từ selectedPoint hoặc selectedStation
     const displayPoint = selectedPoint || {
-        tenDiem: selectedStation?.thongTin?.TenTam || 'Trạm khí tượng thủy văn',
-        kiHieu: selectedStation?.maTram || 'Unknown'
+        tenDiem: selectedStation?.thongTin?.TenTam || "Trạm khí tượng thủy văn",
+        kiHieu: selectedStation?.maTram || "Unknown",
     };
-    
+
     const validData = (Array.isArray(salinityData) ? salinityData : [])
         .map((item) => {
             const normalizedSalinity =
@@ -69,7 +69,6 @@ const MapDetails = ({
                 overflowY: "auto",
             }}
         >
-            
             {/* Header + Mini chart: chỉ hiển thị khi có dữ liệu salinity */}
             {validData && validData.length > 0 ? (
                 <>
@@ -98,7 +97,9 @@ const MapDetails = ({
 
                     <div onClick={onOpenFullChart} style={{ cursor: "pointer" }} className="hover-shadow">
                         <SaltMiniChart salinityData={salinityData} />
-                        <p className="text-center mt-2 text-primary small">Click để xem chi tiết (cần đăng nhập để xuất dữ liệu)</p>
+                        <p className="text-center mt-2 text-primary small">
+                            Click để xem chi tiết (cần đăng nhập để xuất dữ liệu)
+                        </p>
                     </div>
                 </>
             ) : (
@@ -121,7 +122,7 @@ const MapDetails = ({
                     {hydrometData && hydrometData.length > 0 ? (
                         <>
                             <h6 className="fw-bold mb-2">
-                                Yếu tố khí tượng thủy văn 
+                                Yếu tố khí tượng thủy văn
                                 <span className="badge bg-secondary ms-2">{hydrometData.length} điểm</span>
                             </h6>
                             <div
@@ -325,13 +326,17 @@ const MapDetails = ({
 
                                                         const paramInfo = getParamInfo(key);
                                                         const displayValue =
-                                                            typeof value === "number" ? value.toFixed(2) : value;
+                                                            typeof value === "number"
+                                                                ? value.toFixed(2)
+                                                                : value;
 
                                                         return (
                                                             <div key={key} className="col-md-6">
                                                                 <div
                                                                     className="p-2 rounded text-white small"
-                                                                    style={{ backgroundColor: paramInfo.color }}
+                                                                    style={{
+                                                                        backgroundColor: paramInfo.color,
+                                                                    }}
                                                                 >
                                                                     <div className="fw-bold">
                                                                         {paramInfo.label}
@@ -352,7 +357,7 @@ const MapDetails = ({
                         </>
                     ) : (
                         <div className="text-center text-muted py-3">
-                            <i className="bi bi-graph-down" style={{ fontSize: '1.5rem' }}></i>
+                            <i className="bi bi-graph-down" style={{ fontSize: "1.5rem" }}></i>
                             <p className="small mb-0 mt-2">Không có dữ liệu khí tượng thủy văn</p>
                         </div>
                     )}
@@ -360,7 +365,7 @@ const MapDetails = ({
             )}
 
             {/* Đã loại bỏ phần hiển thị dữ liệu IoT chi tiết trong MapDetails. Khi bấm nút sẽ mở modal ngoài. */}
-            
+
             {/* Hiển thị thông báo khi chỉ có IoT data hoặc hydromet data mà không có salinity data */}
             {!validData?.length && (selectedPoint || selectedStation) && (
                 <div className="empty-state text-center py-4">
@@ -369,13 +374,10 @@ const MapDetails = ({
                     </div>
                     <h6 className="text-muted">Không có dữ liệu để hiển thị</h6>
                     <p className="text-muted small mb-0">
-                        {selectedPoint ? `Điểm: ${selectedPoint.tenDiem}` : ''}
-                        {selectedStation ? `Trạm: ${selectedStation.tenTram || selectedStation.maTram}` : ''}
+                        {selectedPoint ? `Điểm: ${selectedPoint.tenDiem}` : ""}
+                        {selectedStation ? `Trạm: ${selectedStation.tenTram || selectedStation.maTram}` : ""}
                     </p>
-                    <button 
-                        className="btn btn-sm btn-outline-secondary mt-2"
-                        onClick={onClose}
-                    >
+                    <button className="btn btn-sm btn-outline-secondary mt-2" onClick={onClose}>
                         Đóng
                     </button>
                 </div>

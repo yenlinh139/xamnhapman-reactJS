@@ -75,6 +75,7 @@ const SALINITY_EXPORT_COLUMNS = [
     { key: "COT", label: "Cầu Ông Thìn (COT)" },
     { key: "CKC", label: "Cống Kênh C (CKC)" },
     { key: "KXAH", label: "Kênh Xáng - An Hạ (KXAH)" },
+    { key: "KXD2", label: "Kênh Xáng đứng 2 (KXD2)" },
     { key: "MNB", label: "Mũi Nhà Bè (MNB)" },
     { key: "PCL", label: "Phà Cát Lái (PCL)" },
 ];
@@ -385,156 +386,163 @@ const SalinityManagement = () => {
                         <>
                             {/* Filter Section */}
                             <div className="filter-section">
-                        <div className="filter-row">
-                            <div className="filter-left">
-                                <div className="filter-group">
-                                    <label htmlFor="startDate">Từ ngày:</label>
-                                    <input
-                                        type="text"
-                                        id="startDate"
-                                        value={inputDateFilter.startDate}
-                                        onChange={(e) =>
-                                            setInputDateFilter((prev) => ({
-                                                ...prev,
-                                                startDate: normalizeDateInputText(e.target.value),
-                                            }))
-                                        }
-                                        onBlur={() =>
-                                            setInputDateFilter((prev) => ({
-                                                ...prev,
-                                                startDate:
-                                                    parseDisplayDateToIso(prev.startDate)
-                                                        ? formatDateDisplay(parseDisplayDateToIso(prev.startDate))
-                                                        : prev.startDate,
-                                            }))
-                                        }
-                                        className="filter-input"
-                                        placeholder="dd/mm/yyyy"
-                                        inputMode="numeric"
-                                        maxLength={10}
-                                    />
-                                </div>
-                                <div className="filter-group">
-                                    <label htmlFor="endDate">Đến ngày:</label>
-                                    <input
-                                        type="text"
-                                        id="endDate"
-                                        value={inputDateFilter.endDate}
-                                        onChange={(e) =>
-                                            setInputDateFilter((prev) => ({
-                                                ...prev,
-                                                endDate: normalizeDateInputText(e.target.value),
-                                            }))
-                                        }
-                                        onBlur={() =>
-                                            setInputDateFilter((prev) => ({
-                                                ...prev,
-                                                endDate:
-                                                    parseDisplayDateToIso(prev.endDate)
-                                                        ? formatDateDisplay(parseDisplayDateToIso(prev.endDate))
-                                                        : prev.endDate,
-                                            }))
-                                        }
-                                        className="filter-input"
-                                        placeholder="dd/mm/yyyy"
-                                        inputMode="numeric"
-                                        maxLength={10}
-                                    />
-                                </div>
-                                <div className="filter-actions d-flex gap-2 flex-wrap">
-                                    <button className="btn btn-secondary" onClick={clearFilters}>
-                                        Xóa bộ lọc
-                                    </button>
-                                    <button
-                                        className="btn btn-success"
-                                        onClick={() => exportFilteredData("xlsx")}
-                                        disabled={loading || isExporting}
-                                    >
-                                        <i className="fas fa-file-excel me-1"></i>
-                                        {isExporting ? "Đang xuất..." : "Xuất Excel"}
-                                    </button>
-                                    <button
-                                        className="btn btn-outline-primary"
-                                        onClick={() => exportFilteredData("csv")}
-                                        disabled={loading || isExporting}
-                                    >
-                                        <i className="fas fa-file-csv me-1"></i>
-                                        {isExporting ? "Đang xuất..." : "Xuất CSV"}
-                                    </button>
+                                <div className="filter-row">
+                                    <div className="filter-left">
+                                        <div className="filter-group">
+                                            <label htmlFor="startDate">Từ ngày:</label>
+                                            <input
+                                                type="text"
+                                                id="startDate"
+                                                value={inputDateFilter.startDate}
+                                                onChange={(e) =>
+                                                    setInputDateFilter((prev) => ({
+                                                        ...prev,
+                                                        startDate: normalizeDateInputText(e.target.value),
+                                                    }))
+                                                }
+                                                onBlur={() =>
+                                                    setInputDateFilter((prev) => ({
+                                                        ...prev,
+                                                        startDate: parseDisplayDateToIso(prev.startDate)
+                                                            ? formatDateDisplay(
+                                                                  parseDisplayDateToIso(prev.startDate),
+                                                              )
+                                                            : prev.startDate,
+                                                    }))
+                                                }
+                                                className="filter-input"
+                                                placeholder="dd/mm/yyyy"
+                                                inputMode="numeric"
+                                                maxLength={10}
+                                            />
+                                        </div>
+                                        <div className="filter-group">
+                                            <label htmlFor="endDate">Đến ngày:</label>
+                                            <input
+                                                type="text"
+                                                id="endDate"
+                                                value={inputDateFilter.endDate}
+                                                onChange={(e) =>
+                                                    setInputDateFilter((prev) => ({
+                                                        ...prev,
+                                                        endDate: normalizeDateInputText(e.target.value),
+                                                    }))
+                                                }
+                                                onBlur={() =>
+                                                    setInputDateFilter((prev) => ({
+                                                        ...prev,
+                                                        endDate: parseDisplayDateToIso(prev.endDate)
+                                                            ? formatDateDisplay(
+                                                                  parseDisplayDateToIso(prev.endDate),
+                                                              )
+                                                            : prev.endDate,
+                                                    }))
+                                                }
+                                                className="filter-input"
+                                                placeholder="dd/mm/yyyy"
+                                                inputMode="numeric"
+                                                maxLength={10}
+                                            />
+                                        </div>
+                                        <div className="filter-actions d-flex gap-2 flex-wrap">
+                                            <button className="btn btn-secondary" onClick={clearFilters}>
+                                                Xóa bộ lọc
+                                            </button>
+                                            <button
+                                                className="btn btn-success"
+                                                onClick={() => exportFilteredData("xlsx")}
+                                                disabled={loading || isExporting}
+                                            >
+                                                <i className="fas fa-file-excel me-1"></i>
+                                                {isExporting ? "Đang xuất..." : "Xuất Excel"}
+                                            </button>
+                                            <button
+                                                className="btn btn-outline-primary"
+                                                onClick={() => exportFilteredData("csv")}
+                                                disabled={loading || isExporting}
+                                            >
+                                                <i className="fas fa-file-csv me-1"></i>
+                                                {isExporting ? "Đang xuất..." : "Xuất CSV"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="filter-right">
+                                        {userInfo && (
+                                            <button
+                                                className="btn btn-primary"
+                                                onClick={handleCreateSalinity}
+                                            >
+                                                <i className="fas fa-plus"></i>
+                                                Thêm dữ liệu mới
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                            <div className="filter-right">
-                                {userInfo && (
-                                    <button className="btn btn-primary" onClick={handleCreateSalinity}>
-                                        <i className="fas fa-plus"></i>
-                                        Thêm dữ liệu mới
+
+                            {/* Bulk Actions */}
+                            {selectedRecords.length > 0 && userInfo && (
+                                <div className="bulk-actions">
+                                    <span className="selection-count">
+                                        Đã chọn {selectedRecords.length} bản ghi
+                                    </span>
+                                    <button className="btn btn-danger" onClick={handleDeleteRange}>
+                                        <i className="fas fa-trash"></i>
+                                        Xóa đã chọn
                                     </button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Bulk Actions */}
-                    {selectedRecords.length > 0 && userInfo && (
-                        <div className="bulk-actions">
-                            <span className="selection-count">Đã chọn {selectedRecords.length} bản ghi</span>
-                            <button className="btn btn-danger" onClick={handleDeleteRange}>
-                                <i className="fas fa-trash"></i>
-                                Xóa đã chọn
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Error Message */}
-                    {error && (
-                        <div className="error-message">
-                            <i className="fas fa-exclamation-triangle"></i>
-                            {error}
-                        </div>
-                    )}
-
-                    {/* Data Table */}
-                    <div className="table-container">
-                        <SalinityTable
-                            key={`salinity-table-${salinityData.length}-${currentPage}-${JSON.stringify(filterDate)}`}
-                            data={salinityData}
-                            onEdit={handleEditSalinity}
-                            onDelete={handleDeleteSalinity}
-                            selectedRecords={selectedRecords}
-                            onRecordSelection={handleRecordSelection}
-                            onSelectAll={handleSelectAll}
-                            canEdit={!!userInfo}
-                            canDelete={!!userInfo}
-                            loading={loading}
-                        />
-                    </div>
-
-                    {/* Pagination */}
-                    {pagination && pagination.totalPages > 1 && (
-                        <div className="pagination-container">
-                            <PaginationSalinity
-                                currentPage={currentPage}
-                                totalPages={pagination.totalPages}
-                                onPageChange={handlePageChange}
-                                totalRecords={pagination.total}
-                                recordsPerPage={limit}
-                            />
-                        </div>
-                    )}
-
-                    {/* No Data Message */}
-                    {!loading && salinityData.length === 0 && (
-                        <div className="no-data">
-                            <i className="fas fa-water"></i>
-                            <h3>Không có dữ liệu độ mặn</h3>
-                            <p>Chưa có dữ liệu độ mặn nào được ghi nhận.</p>
-                            {userInfo && (
-                                <button className="btn btn-primary" onClick={handleCreateSalinity}>
-                                    Thêm dữ liệu đầu tiên
-                                </button>
+                                </div>
                             )}
-                        </div>
-                    )}
+
+                            {/* Error Message */}
+                            {error && (
+                                <div className="error-message">
+                                    <i className="fas fa-exclamation-triangle"></i>
+                                    {error}
+                                </div>
+                            )}
+
+                            {/* Data Table */}
+                            <div className="table-container">
+                                <SalinityTable
+                                    key={`salinity-table-${salinityData.length}-${currentPage}-${JSON.stringify(filterDate)}`}
+                                    data={salinityData}
+                                    onEdit={handleEditSalinity}
+                                    onDelete={handleDeleteSalinity}
+                                    selectedRecords={selectedRecords}
+                                    onRecordSelection={handleRecordSelection}
+                                    onSelectAll={handleSelectAll}
+                                    canEdit={!!userInfo}
+                                    canDelete={!!userInfo}
+                                    loading={loading}
+                                />
+                            </div>
+
+                            {/* Pagination */}
+                            {pagination && pagination.totalPages > 1 && (
+                                <div className="pagination-container">
+                                    <PaginationSalinity
+                                        currentPage={currentPage}
+                                        totalPages={pagination.totalPages}
+                                        onPageChange={handlePageChange}
+                                        totalRecords={pagination.total}
+                                        recordsPerPage={limit}
+                                    />
+                                </div>
+                            )}
+
+                            {/* No Data Message */}
+                            {!loading && salinityData.length === 0 && (
+                                <div className="no-data">
+                                    <i className="fas fa-water"></i>
+                                    <h3>Không có dữ liệu độ mặn</h3>
+                                    <p>Chưa có dữ liệu độ mặn nào được ghi nhận.</p>
+                                    {userInfo && (
+                                        <button className="btn btn-primary" onClick={handleCreateSalinity}>
+                                            Thêm dữ liệu đầu tiên
+                                        </button>
+                                    )}
+                                </div>
+                            )}
                         </>
                     )}
 
