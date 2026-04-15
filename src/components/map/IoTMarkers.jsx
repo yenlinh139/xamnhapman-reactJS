@@ -122,8 +122,8 @@ const getLatestIoTSaltValue = (station) => {
 
 const LOCAL_IOT_STATION_IMAGES = {
     CKC: [IoTCongKenhCImage],
-    KXAH: [IoTCongAnHaImage],
-    COT: [IoTCongVuonThomImage],
+    CAH: [IoTCongAnHaImage],
+    CVT: [IoTCongVuonThomImage],
     default: [IoTCongKenhCImage],
 };
 
@@ -150,7 +150,7 @@ const getIoTStationImages = (station = {}) => {
     const baseCode =
         normalizeStationCode(station?.station_code || station?.StationCode) ||
         inferStationCodeFromName(station?.station_name || station?.StationName);
-
+    
     return LOCAL_IOT_STATION_IMAGES[baseCode] || LOCAL_IOT_STATION_IMAGES.default;
 };
 
