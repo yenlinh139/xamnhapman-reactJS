@@ -7,6 +7,35 @@ import { getSingleStationClassification } from "@common/salinityClassification";
 import "@styles/components/_hydrometChart.scss";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
 
+const parseNumber = (value) => {
+    if (value === null || value === undefined || value === "" || value === "NULL") {
+        return null;
+    }
+
+    if (typeof value === "number") {
+        return Number.isFinite(value) ? value : null;
+    }
+
+    const raw = String(value).trim();
+    if (!raw) return null;
+
+    // Keep backend dot-decimal values intact; only normalize optional comma input.
+    const normalized = raw.includes(".") ? raw.replace(/,/g, "") : raw.replace(",", ".");
+
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+};
+
+const formatNumberVi = (value, fractionDigits = 2) => {
+    const parsed = parseNumber(value);
+    if (parsed === null) return "-";
+
+    return parsed.toLocaleString("vi-VN", {
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: fractionDigits,
+    });
+};
+
 const ExportPreviewTable = ({ data, kiHieu }) => {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
@@ -104,7 +133,7 @@ const ExportPreviewTable = ({ data, kiHieu }) => {
                                         color: "white",
                                     }}
                                 >
-                                    {Number(item.salinity).toFixed(2)}
+                                    {formatNumberVi(item.salinity, 2)}
                                 </td>
                             </tr>
                         );

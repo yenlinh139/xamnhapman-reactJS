@@ -48,6 +48,15 @@ const formatPopupDateValue = (value, fallback = "Chưa có dữ liệu") => {
     return parsed.toLocaleDateString("vi-VN");
 };
 
+const formatDecimalDisplay = (value, digits = 2) => {
+  const numeric = Number.parseFloat(value);
+  if (!Number.isFinite(numeric)) return "--";
+  return numeric.toLocaleString("vi-VN", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+};
+
 export const createSalinityPopup = (point, latestSalinity, latestDate, trend, previousDate) => {
     const pointLatestValue = Number(point?.latest_value);
     const fallbackLatestValue = Number(latestSalinity);
@@ -59,7 +68,7 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
 
     const previousValue = Number(point?.previous_value);
     const hasValidSalinity = Number.isFinite(salinityValue);
-    const formattedSalinity = hasValidSalinity ? salinityValue.toFixed(2) : "N/A";
+    const formattedSalinity = hasValidSalinity ? formatDecimalDisplay(salinityValue, 2) : "N/A";
     // const formattedPreviousValue = Number.isFinite(previousValue) ? `${previousValue.toFixed(2)} ‰` : "N/A";
     const descriptionText = point.MoTa || point.PhanLoai || "Không có mô tả";
     const latestDateText =
@@ -74,8 +83,8 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
 
     const latDecimal = convertDMSToDecimal(point?.ViDo);
     const lngDecimal = convertDMSToDecimal(point?.KinhDo);
-    const latDisplay = Number.isFinite(latDecimal) ? latDecimal.toFixed(6) : point.ViDo || "Không xác định";
-    const lngDisplay = Number.isFinite(lngDecimal) ? lngDecimal.toFixed(6) : point.KinhDo || "Không xác định";
+    const latDisplay = Number.isFinite(latDecimal) ? formatDecimalDisplay(latDecimal, 6) : point.ViDo || "Không xác định";
+    const lngDisplay = Number.isFinite(lngDecimal) ? formatDecimalDisplay(lngDecimal, 6) : point.KinhDo || "Không xác định";
     const stationCodeForClick = String(point.KiHieu || "").replace(/'/g, "\\'");
     const stationNameForClick = String(point.TenDiem || "").replace(/'/g, "\\'");
 
@@ -242,9 +251,9 @@ export const renderSalinityPoints = async (mapInstance, setSalinityData, setSele
                 if (Math.abs(diff) > 0.01) {
                     trend = {
                         text:
-                            diff > 0
-                                ? `Tăng ${diff.toFixed(2)} ‰ so với `
-                                : `Giảm ${Math.abs(diff).toFixed(2)} ‰ so với`,
+                        diff > 0
+                          ? `Tăng ${formatDecimalDisplay(diff, 2)} ‰ so với `
+                          : `Giảm ${formatDecimalDisplay(Math.abs(diff), 2)} ‰ so với`,
                         color: diff > 0 ? "#dc3545" : "#198754",
                         icon: diff > 0 ? "▲" : "▼",
                     };

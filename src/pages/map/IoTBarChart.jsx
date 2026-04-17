@@ -43,6 +43,16 @@ const toNumberOrNull = (value) => {
     return Number.isNaN(numeric) ? null : numeric;
 };
 
+const formatNumberVi = (value, fractionDigits = 2) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return "-";
+
+    return parsed.toLocaleString("vi-VN", {
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: fractionDigits,
+    });
+};
+
 const normalizeHeight = (height) => {
     if (typeof height === "number") {
         return `${height}px`;
@@ -226,18 +236,18 @@ const IoTBarChart = ({ data, height = 300, isCompact = false, groupBy = "none", 
                                 }
 
                                 if (name === SENSOR_MAP.distance.name)
-                                    return [`${value} cm`, SENSOR_MAP.distance.name];
+                                    return [`${formatNumberVi(value, 2)} cm`, SENSOR_MAP.distance.name];
                                 if (name === SENSOR_MAP.rainfall.name)
-                                    return [`${value} mm`, SENSOR_MAP.rainfall.name];
+                                    return [`${formatNumberVi(value, 2)} mm`, SENSOR_MAP.rainfall.name];
                                 if (name === SENSOR_MAP.salt.name) {
                                     const riskLabel = payload?.payload?.saltRiskLabel
                                         ? ` (${payload.payload.saltRiskLabel})`
                                         : "";
-                                    return [`${value} ‰${riskLabel}`, SENSOR_MAP.salt.name];
+                                    return [`${formatNumberVi(value, 2)} ‰${riskLabel}`, SENSOR_MAP.salt.name];
                                 }
                                 if (name === SENSOR_MAP.temp.name)
-                                    return [`${value} °C`, SENSOR_MAP.temp.name];
-                                return [value, name];
+                                    return [`${formatNumberVi(value, 2)} °C`, SENSOR_MAP.temp.name];
+                                return [formatNumberVi(value, 2), name];
                             }}
                         />
 

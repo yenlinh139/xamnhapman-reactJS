@@ -98,8 +98,8 @@ export const handleFeatureHighlight = (
                     </h4>
                     <p style="font-size:12px;color:#666;margin:0">
                         <strong>Tọa độ:</strong><br>
-                        Kinh độ: ${lng.toFixed(6)}<br>
-                        Vĩ độ: ${lat.toFixed(6)}
+                        Kinh độ: ${lng.toFixed(6).replace(".", ",")}<br>
+                        Vĩ độ: ${lat.toFixed(6).replace(".", ",")}
                     </p>
                 </div>
             `,

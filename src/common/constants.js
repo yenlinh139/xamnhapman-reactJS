@@ -7,6 +7,8 @@ export const TOAST = {
 export const ROUTES = {
     home: "/",
     login: "/dang-nhap",
+    forgotPassword: "/quen-mat-khau",
+    resetPassword: "/reset-password/:token",
     users: "/quan-ly-nguoi-dung",
     salinity: "/quan-ly-do-man",
     salinityReport: "/bao-cao-do-man",

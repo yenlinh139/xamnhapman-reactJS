@@ -83,3 +83,38 @@ export const logout = () => {
         await persistor.purge();
     };
 };
+
+export const forgotPassword = (params) => {
+    return async () => {
+        try {
+            await axios.post(import.meta.env.VITE_BASE_URL + "/forgot-password", {
+                email: params.email,
+            });
+
+            ToastCommon(
+                TOAST.SUCCESS,
+                "Liên kết đặt lại mật khẩu đã được gửi, vui lòng kiểm tra email của bạn.",
+            );
+        } catch (error) {
+            ToastCommon(TOAST.ERROR, error.response?.data?.message || error.message || "Không thể gửi email.");
+        }
+    };
+};
+
+export const resetPassword = (params) => {
+    return async () => {
+        try {
+            await axios.post(import.meta.env.VITE_BASE_URL + "/reset-password", {
+                token: params.token,
+                password: params.password,
+            });
+
+            ToastCommon(TOAST.SUCCESS, "Đặt lại mật khẩu thành công.");
+            if (typeof params.onSuccess === "function") {
+                params.onSuccess();
+            }
+        } catch (error) {
+            ToastCommon(TOAST.ERROR, error.response?.data?.message || error.message || "Không thể đặt lại mật khẩu.");
+        }
+    };
+};

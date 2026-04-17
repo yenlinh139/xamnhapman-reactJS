@@ -149,7 +149,10 @@ const SalinityTable = ({
         if (isNaN(numericValue)) {
             return <span className="salinity-value no-data">--</span>;
         }
-        const roundedValue = numericValue.toFixed(2);
+        const roundedValue = numericValue.toLocaleString("vi-VN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
         return <span className="salinity-value">{roundedValue}‰</span>;
     };
 

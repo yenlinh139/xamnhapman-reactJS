@@ -4,17 +4,17 @@ import { createBaseMaps, createWMSLayer } from "@components/map/mapStyles";
 const formatDistance = (meters) => {
     if (!Number.isFinite(meters)) return "0 m";
     if (meters >= 1000) {
-        return `${(meters / 1000).toFixed(2)} km`;
+        return `${(meters / 1000).toFixed(2).replace(".", ",")} km`;
     }
-    return `${meters.toFixed(1)} m`;
+    return `${meters.toFixed(1).replace(".", ",")} m`;
 };
 
 const formatArea = (squareMeters) => {
     if (!Number.isFinite(squareMeters)) return "0 m²";
     if (squareMeters >= 1000000) {
-        return `${(squareMeters / 1000000).toFixed(2)} km²`;
+        return `${(squareMeters / 1000000).toFixed(2).replace(".", ",")} km²`;
     }
-    return `${squareMeters.toFixed(0)} m²`;
+    return `${squareMeters.toFixed(0).replace(".", ",")} m²`;
 };
 
 const updateMeasurementTooltip = (layer) => {
