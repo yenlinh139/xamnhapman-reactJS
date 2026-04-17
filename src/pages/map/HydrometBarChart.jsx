@@ -12,6 +12,16 @@ import {
     Legend,
 } from "recharts";
 
+const formatNumberVi = (value, fractionDigits = 1) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return "-";
+
+    return parsed.toLocaleString("vi-VN", {
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: fractionDigits,
+    });
+};
+
 const isTemperatureSeriesKey = (key = "") => {
     const normalized = String(key).trim();
     return /^(Ttb|Tx|Tm)(_|$)/i.test(normalized) || /^T_/i.test(normalized);
@@ -183,7 +193,7 @@ const CustomTooltip = ({ active, payload, hasWaterSeries, isRainOnlyChart }) => 
                 {data.rainfall !== undefined && data.rainfall !== null && (
                     <div className="mb-2 p-2 bg-primary bg-opacity-10 rounded">
                         <div className="small text-muted mb-1">🌧️ Lượng mưa</div>
-                        <div className="fs-6 fw-bold text-primary">{data.rainfall.toFixed(1)} mm</div>
+                        <div className="fs-6 fw-bold text-primary">{formatNumberVi(data.rainfall, 2)} mm</div>
                         <div className="small">
                             {data.rainfall === 0
                                 ? "☀️ Không mưa"
@@ -209,7 +219,7 @@ const CustomTooltip = ({ active, payload, hasWaterSeries, isRainOnlyChart }) => 
                                     <div className="p-1 bg-success bg-opacity-10 rounded text-center">
                                         <div className="small text-muted">trung bình</div>
                                         <div className="fw-bold text-success small">
-                                            {data.ttb.toFixed(1)}
+                                            {formatNumberVi(data.ttb, 2)}
                                             {hasWaterSeries ? "cm" : "°C"}
                                         </div>
                                     </div>
@@ -220,7 +230,7 @@ const CustomTooltip = ({ active, payload, hasWaterSeries, isRainOnlyChart }) => 
                                     <div className="p-1 bg-danger bg-opacity-10 rounded text-center">
                                         <div className="small text-muted">tối cao</div>
                                         <div className="fw-bold text-danger small">
-                                            {data.tx.toFixed(1)}
+                                            {formatNumberVi(data.tx, 2)}
                                             {hasWaterSeries ? "cm" : "°C"}
                                         </div>
                                     </div>
@@ -231,7 +241,7 @@ const CustomTooltip = ({ active, payload, hasWaterSeries, isRainOnlyChart }) => 
                                     <div className="p-1 bg-info bg-opacity-10 rounded text-center">
                                         <div className="small text-muted">tối thấp</div>
                                         <div className="fw-bold text-info small">
-                                            {data.tm.toFixed(1)}
+                                            {formatNumberVi(data.tm, 2)}
                                             {hasWaterSeries ? "cm" : "°C"}
                                         </div>
                                     </div>

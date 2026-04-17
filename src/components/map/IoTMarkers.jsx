@@ -146,6 +146,15 @@ const inferStationCodeFromName = (stationName) => {
     return "";
 };
 
+const formatDecimalDisplay = (value, digits = 2) => {
+    const numeric = Number.parseFloat(value);
+    if (!Number.isFinite(numeric)) return "--";
+    return numeric.toLocaleString("vi-VN", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+    });
+};
+
 const getIoTStationImages = (station = {}) => {
     const baseCode =
         normalizeStationCode(station?.station_code || station?.StationCode) ||
@@ -312,12 +321,12 @@ export const createIoTPopup = (station) => {
     })();
 
     // Format values
-    const saltDisplay = hasSaltValue ? `${latestSaltValue.toFixed(2)} ${saltUnit}` : "N/A";
+    const saltDisplay = hasSaltValue ? `${formatDecimalDisplay(latestSaltValue, 2)} ${saltUnit}` : "N/A";
     const previousHourSaltDisplay = Number.isFinite(previousSaltValue)
-        ? `${previousSaltValue.toFixed(2)} ${saltUnit}`
+        ? `${formatDecimalDisplay(previousSaltValue, 2)} ${saltUnit}`
         : "--";
     const previousDaySaltDisplay = Number.isFinite(previousDayAvgSalt)
-        ? `${previousDayAvgSalt.toFixed(2)} ${saltUnit}`
+        ? `${formatDecimalDisplay(previousDayAvgSalt, 2)} ${saltUnit}`
         : "--";
 
     // Format latest hour end time
@@ -367,7 +376,7 @@ export const createIoTPopup = (station) => {
 
         return {
             icon: diff > 0 ? "↑" : "↓",
-            text: `${diff > 0 ? "Tăng" : "Giảm"} ${absDiff.toFixed(2)} ${saltUnit} so với`,
+            text: `${diff > 0 ? "Tăng" : "Giảm"} ${formatDecimalDisplay(absDiff, 2)} ${saltUnit} so với`,
             color: diff > 0 ? "#dc3545" : "#28a745",
             date: baselineLabel,
             directionClass: diff > 0 ? "trend-up" : "trend-down",
@@ -384,10 +393,10 @@ export const createIoTPopup = (station) => {
     const lngDecimal = convertDMSToDecimal(station?.longitude);
     const latDecimal = convertDMSToDecimal(station?.latitude);
     const latDisplay = Number.isFinite(latDecimal)
-        ? latDecimal.toFixed(6)
+        ? formatDecimalDisplay(latDecimal, 6)
         : station.latitude || "Không xác định";
     const lngDisplay = Number.isFinite(lngDecimal)
-        ? lngDecimal.toFixed(6)
+        ? formatDecimalDisplay(lngDecimal, 6)
         : station.longitude || "Không xác định";
 
     const stationCode = station.station_code || "N/A";

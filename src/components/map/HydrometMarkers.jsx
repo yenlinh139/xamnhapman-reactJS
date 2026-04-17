@@ -250,6 +250,16 @@ const formatHydrometDateLabel = (value) => {
     });
 };
 
+const formatHydrometNumber = (value, digits = 2) => {
+    const numeric = Number.parseFloat(value);
+    if (!Number.isFinite(numeric)) return "--";
+
+    return numeric.toLocaleString("vi-VN", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+    });
+};
+
 const summarizeHydrometElement = (value) => {
     if (!value) return null;
 
@@ -302,8 +312,7 @@ const getWaterLevelAlertMeta = (value, unit = "") => {
 };
 
 const createMetricCard = ({ label, value, unit, color }) => {
-    const numericValue = Number.parseFloat(value);
-    const displayValue = Number.isFinite(numericValue) ? numericValue.toFixed(1) : "--";
+    const displayValue = formatHydrometNumber(value, 2);
 
     return `
             <div class="param-item metric-card">
@@ -532,7 +541,7 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
                                 ? `<div class="popup-main-value">
                     <span class="value-label">${primaryLabel}</span>
                     <span class="value-number" style="color: ${statusColor}">
-                        ${primaryValue.toFixed(1)} ${primaryUnit}
+                        ${formatHydrometNumber(primaryValue, 2)} ${primaryUnit}
                     </span>
                 </div>`
                                 : ""
@@ -608,7 +617,7 @@ const createParameterCards = (rainfall, temperature, humidity, excludedPrimaryKe
             <div class="param-content">
               <span class="param-label">${details.label}</span>
               <span class="param-value" style="color: ${details.color}">
-                ${details.value.toFixed(1)} ${details.unit}
+                                ${formatHydrometNumber(details.value, 2)} ${details.unit}
               </span>
             </div>
           </div>
@@ -630,7 +639,7 @@ const createParameterCards = (rainfall, temperature, humidity, excludedPrimaryKe
             <div class="param-content">
               <span class="param-label">${details.label}</span>
               <span class="param-value" style="color: ${details.color}">
-                ${details.value.toFixed(1)} ${details.unit}
+                                ${formatHydrometNumber(details.value, 2)} ${details.unit}
               </span>
             </div>
           </div>
@@ -652,7 +661,7 @@ const createParameterCards = (rainfall, temperature, humidity, excludedPrimaryKe
             <div class="param-content">
               <span class="param-label">${details.label}</span>
               <span class="param-value" style="color: ${details.color}">
-                ${details.value.toFixed(1)} ${details.unit}
+                                ${formatHydrometNumber(details.value, 2)} ${details.unit}
               </span>
             </div>
           </div>
@@ -699,7 +708,7 @@ const createSecondaryParameterCards = (
             <div class="param-content">
               <span class="param-label">${details.label}</span>
               <span class="param-value" style="color: ${details.color}">
-                ${details.value.toFixed(1)} ${details.unit}
+                                ${formatHydrometNumber(details.value, 2)} ${details.unit}
               </span>
             </div>
           </div>

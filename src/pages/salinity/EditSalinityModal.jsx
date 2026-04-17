@@ -5,6 +5,41 @@ import { updateSalinityData } from "../../stores/actions/salinityActions";
 import { ToastCommon } from "@/components/ToastCommon";
 import { TOAST } from "@/common/constants";
 
+const parseLocalizedNumber = (value) => {
+    if (value === "" || value === null || value === undefined) return null;
+
+    const raw = String(value).trim();
+    if (!raw) return null;
+
+    const normalized = raw.includes(",") ? raw.replace(/\./g, "").replace(",", ".") : raw;
+    const numericValue = Number(normalized);
+    return Number.isFinite(numericValue) ? numericValue : null;
+};
+
+const formatLocalizedInputValue = (value, digits = 2) => {
+    const numericValue = parseLocalizedNumber(value);
+    if (numericValue === null) return "";
+
+    return numericValue.toLocaleString("vi-VN", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+    });
+};
+
+const normalizeLocalizedInputText = (value) => {
+    const sanitized = String(value || "")
+        .replace(/\s+/g, "")
+        .replace(/[^\d,\.]/g, "")
+        .replace(/\./g, ",");
+
+    const firstCommaIndex = sanitized.indexOf(",");
+    if (firstCommaIndex === -1) return sanitized;
+
+    const integerPart = sanitized.slice(0, firstCommaIndex).replace(/,/g, "");
+    const decimalPart = sanitized.slice(firstCommaIndex + 1).replace(/,/g, "");
+    return `${integerPart},${decimalPart}`;
+};
+
 const EditSalinityModal = ({ record, onClose, onSuccess }) => {
     const dispatch = useDispatch();
     const [loading, setLoading] = useState(false);
@@ -40,14 +75,20 @@ const EditSalinityModal = ({ record, onClose, onSuccess }) => {
         if (record) {
             const data = {
                 Ngày: record.Ngày || "",
-                CRT: record.CRT !== null && record.CRT !== "NULL" ? record.CRT : "",
-                CTT: record.CTT !== null && record.CTT !== "NULL" ? record.CTT : "",
-                COT: record.COT !== null && record.COT !== "NULL" ? record.COT : "",
-                CKC: record.CKC !== null && record.CKC !== "NULL" ? record.CKC : "",
-                KXAH: record.KXAH !== null && record.KXAH !== "NULL" ? record.KXAH : "",
-                KXD2: record.KXD2 !== null && record.KXD2 !== "NULL" ? record.KXD2 : "",
-                MNB: record.MNB !== null && record.MNB !== "NULL" ? record.MNB : "",
-                PCL: record.PCL !== null && record.PCL !== "NULL" ? record.PCL : "",
+                CRT: record.CRT !== null && record.CRT !== "NULL" ? formatLocalizedInputValue(record.CRT, 2) : "",
+                CTT: record.CTT !== null && record.CTT !== "NULL" ? formatLocalizedInputValue(record.CTT, 2) : "",
+                COT: record.COT !== null && record.COT !== "NULL" ? formatLocalizedInputValue(record.COT, 2) : "",
+                CKC: record.CKC !== null && record.CKC !== "NULL" ? formatLocalizedInputValue(record.CKC, 2) : "",
+                KXAH:
+                    record.KXAH !== null && record.KXAH !== "NULL"
+                        ? formatLocalizedInputValue(record.KXAH, 2)
+                        : "",
+                KXD2:
+                    record.KXD2 !== null && record.KXD2 !== "NULL"
+                        ? formatLocalizedInputValue(record.KXD2, 2)
+                        : "",
+                MNB: record.MNB !== null && record.MNB !== "NULL" ? formatLocalizedInputValue(record.MNB, 2) : "",
+                PCL: record.PCL !== null && record.PCL !== "NULL" ? formatLocalizedInputValue(record.PCL, 2) : "",
             };
             setFormData(data);
             setOriginalData(data);
@@ -60,7 +101,7 @@ const EditSalinityModal = ({ record, onClose, onSuccess }) => {
 
         setFormData((prev) => ({
             ...prev,
-            [name]: value,
+            [name]: name === "Ngày" ? value : normalizeLocalizedInputText(value),
         }));
 
         // Clear error when user starts typing
@@ -79,7 +120,8 @@ const EditSalinityModal = ({ record, onClose, onSuccess }) => {
         // Validate salinity values (if provided)
         Object.keys(stations).forEach((station) => {
             const value = formData[station];
-            if (value && (isNaN(value) || parseFloat(value) < 0)) {
+            const numericValue = parseLocalizedNumber(value);
+            if (value && (numericValue === null || numericValue < 0)) {
                 newErrors[station] = "Giá trị độ mặn phải là số dương";
             }
         });
@@ -110,7 +152,8 @@ const EditSalinityModal = ({ record, onClose, onSuccess }) => {
             Object.keys(stations).forEach((station) => {
                 if (formData[station] !== originalData[station]) {
                     const value = formData[station];
-                    submitData[station] = value !== "" ? parseFloat(value) : "NULL";
+                    const numericValue = parseLocalizedNumber(value);
+                    submitData[station] = value !== "" && numericValue !== null ? Number(numericValue.toFixed(2)) : "NULL";
                 }
             });
 
@@ -185,17 +228,24 @@ const EditSalinityModal = ({ record, onClose, onSuccess }) => {
                                         )}
                                     </label>
                                     <input
-                                        type="number"
+                                        type="text"
                                         id={key}
                                         name={key}
                                         value={formData[key]}
                                         onChange={handleChange}
+                                        onBlur={(e) => {
+                                            const { name, value } = e.target;
+                                            if (!value) return;
+                                            setFormData((prev) => ({
+                                                ...prev,
+                                                [name]: formatLocalizedInputValue(value, 2),
+                                            }));
+                                        }}
                                         className={`form-input ${errors[key] ? "error" : ""} ${
                                             formData[key] !== originalData[key] ? "changed" : ""
                                         }`}
                                         placeholder="Nhập giá trị độ mặn"
-                                        step="0.1"
-                                        min="0"
+                                        inputMode="decimal"
                                     />
                                     {errors[key] && <span className="error-text">{errors[key]}</span>}
                                     {originalData[key] && formData[key] !== originalData[key] && (

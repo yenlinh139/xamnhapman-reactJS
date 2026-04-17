@@ -15,6 +15,8 @@ import UserManagement from "@pages/users/UserManagement";
 import SalinityManagement from "@pages/salinity/SalinityManagement";
 import SalinityReport from "@pages/salinity/SalinityReport";
 import Feedback from "@pages/feedback/Feedback";
+import ForgotPassword from "@pages/login/ForgotPassword";
+import ResetPassword from "@pages/login/ResetPassword";
 
 const App = () => {
     return (
@@ -24,6 +26,8 @@ const App = () => {
                     <Route path={ROUTES.home} element={<Home />} />
                     <Route path={ROUTES.verify_email} element={<VerifyEmail />} />
                     <Route path={ROUTES.login} element={<WrapperLogin />} />
+                    <Route path={ROUTES.forgotPassword} element={<ForgotPassword />} />
+                    <Route path={ROUTES.resetPassword} element={<ResetPassword />} />
                     <Route path={ROUTES.map} element={<Map />} />
                     <Route path={ROUTES.salinityReport} element={<SalinityReport />} />
                     <Route element={<ProtectedRoute />}>

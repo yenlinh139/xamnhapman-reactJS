@@ -2,13 +2,23 @@ import React from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { getSingleStationClassification } from "../../common/salinityClassification";
 
+const formatNumberVi = (value, fractionDigits = 2) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return "-";
+
+    return parsed.toLocaleString("vi-VN", {
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: fractionDigits,
+    });
+};
+
 const calculateTrend = (current, previous) => {
     if (!previous) return null;
     const diff = current - previous;
     return {
-        difference: diff.toFixed(2),
+        difference: diff,
         direction: diff > 0 ? "increase" : diff < 0 ? "decrease" : "stable",
-        percentage: ((Math.abs(diff) / previous) * 100).toFixed(1),
+        percentage: (Math.abs(diff) / previous) * 100,
     };
 };
 
@@ -21,7 +31,7 @@ const CustomTooltip = ({ active, payload }) => {
         return (
             <div className="bg-white border p-2 rounded shadow-sm">
                 <p className="mb-1">Ngày: {formattedDate}</p>
-                <p className="mb-1">Độ mặn: {Number(currentValue.salinity).toFixed(2)} ‰</p>
+                <p className="mb-1">Độ mặn: {formatNumberVi(currentValue.salinity, 2)} ‰</p>
                 {trend && (
                     <p
                         className="mb-0"
@@ -40,7 +50,7 @@ const CustomTooltip = ({ active, payload }) => {
                             : trend.direction === "decrease"
                               ? "Giảm"
                               : "Không đổi"}{" "}
-                        {Math.abs(trend.difference)} ‰ ({trend.percentage}%)
+                        {formatNumberVi(Math.abs(trend.difference), 2)} ‰ ({formatNumberVi(trend.percentage, 2)}%)
                     </p>
                 )}
             </div>
