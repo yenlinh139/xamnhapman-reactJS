@@ -207,7 +207,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 14px auto 4px;
+    padding: 5px;
     cursor: pointer;
     gap: 5px;
     border: none;
@@ -219,7 +219,7 @@
     }
 
     &:hover {
-        color: var(--primary);
+        color: var(--hoverPrimary);
     }
 
     span {

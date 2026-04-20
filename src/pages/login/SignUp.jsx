@@ -66,7 +66,7 @@ function SignUp({ onSwitchTab }) {
         }
 
         if (passwordValue !== confirmPasswordValue) {
-            nextErrors.confirmPassword = "Mật khẩu xác nhận không khớp.";
+            nextErrors.confirmPassword = "Mật khẩu xác nhận chưa trùng khớp với mật khẩu đã nhập";
             setErrors(nextErrors);
             focusField(confirmPassword);
             return false;
@@ -191,11 +191,14 @@ function SignUp({ onSwitchTab }) {
                 <button type="submit" className="btnLogin btnLoginSubmit">
                     Đăng ký
                 </button>
-                <button type="button" className="register-text" onClick={() => onSwitchTab?.(false)}>
+                <button type="button" className="register-text mt-3" onClick={() => onSwitchTab?.(false)}>
                     Đã có tài khoản?
                     <span>
                         Đăng nhập <i className="fas fa-arrow-right ms-1"></i>
                     </span>
+                </button>
+                <button type="button" className="register-text" onClick={() => navigate(ROUTES.map)}>
+                    Truy cập không cần tài khoản
                 </button>
             </form>
         </div>

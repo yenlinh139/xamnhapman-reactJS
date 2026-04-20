@@ -34,10 +34,10 @@ export const layerStyles = {
     },
     hydrometStations: { type: "point", color: "#990000" },
     hydrometRainStations: { type: "point", color: "#0d6efd" },
-    hydrometMeteorologyStations: { type: "point", color: "#fd7e14" },
-    hydrometHydrologyStations: { type: "point", color: "#198754" },
-    DiaPhanHuyen: { type: "polygon", color: "#FF7D31" },
-    DiaPhanXa: { type: "polygon", color: "#BEB297" },
+    hydrometMeteorologyStations: { type: "point", color: "#000000" },
+    hydrometHydrologyStations: { type: "point", color: "#0d6efd" },
+    DiaPhanHuyen: { type: "polygon", color: "#fff" },
+    DiaPhanXa: { type: "polygon", color: "#fff" },
     ThuyHe_line: { type: "line", color: "#495cc8" },
     ThuyHe_polygon: { type: "polygon", color: "#3191f8" },
     HienTrangSDD_2020: {
@@ -330,13 +330,15 @@ export const updateLegendVisibility = (overlayLayers) => {
             } else if (layerName === "hydrometStations") {
                 symbolHTML = `<span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:50%;margin-right:5px;border:1px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.25);"></span>`;
             } else if (layerName === "hydrometRainStations") {
-                symbolHTML = `<span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:50%;margin-right:5px;border:1px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.25);"></span>`;
+                symbolHTML = `<span style="display:inline-block;width:12px;height:12px;background:${color};border-radius:50%;margin-right:5px;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.25);"></span>`;
             } else if (layerName === "hydrometMeteorologyStations") {
-                symbolHTML = `<span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:50%;margin-right:5px;border:1px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.25);"></span>`;
+                symbolHTML = `<span style="display:inline-block;width:14px;height:14px;background:${color};clip-path:polygon(50% 0%, 0% 100%, 100% 100%);margin-right:5px;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.25);"></span>`;
             } else if (layerName === "hydrometHydrologyStations") {
-                symbolHTML = `<span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:50%;margin-right:5px;border:1px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.25);"></span>`;
+                symbolHTML = `<span style="display:inline-block;width:14px;height:14px;background:${color};clip-path:polygon(50% 0%, 0% 100%, 100% 100%);transform:rotate(180deg);margin-right:5px;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.25);"></span>`;
             } else if (layerName === "iotStations") {
                 symbolHTML = `<i class="fa-solid fa-tower-broadcast" style="color: ${color}; margin-right: 5px;"></i>`;
+            } else if (layerName === "HoChuaThuongLuu") {
+                symbolHTML = `<i class="fa-solid fa-water" style="color: ${color}; margin-right: 5px;"></i>`;
             } else if (type === "point") {
                 symbolHTML = `<span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:50%;margin-right:5px;"></span>`;
             } else if (type === "line") {

@@ -136,10 +136,13 @@ const Login = ({ onSwitchTab }) => {
                     </button>
                     <button
                         type="button"
-                        className="register-text"
+                        className="register-text mt-3"
                         onClick={() => navigate(ROUTES.forgotPassword)}
                     >
-                        Quên mật khẩu?
+                        Quên mật khẩu?{" "}
+                        <span>
+                            Đặt lại mật khẩu
+                        </span>
                     </button>
                 </form>
                 <button type="button" className="register-text" onClick={() => onSwitchTab?.(true)}>
@@ -147,6 +150,9 @@ const Login = ({ onSwitchTab }) => {
                     <span>
                         Đăng ký ngay <i className="fas fa-arrow-right ms-1"></i>
                     </span>
+                </button>
+                <button type="button" className="register-text" onClick={() => navigate(ROUTES.map)}>
+                    Truy cập không cần tài khoản
                 </button>
             </div>
         </>

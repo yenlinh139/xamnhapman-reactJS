@@ -1,159 +1,192 @@
 .footer {
-    background-color: #d6e2fa;
-    padding: 30px 0;
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.9), transparent 30%),
+        linear-gradient(180deg, #dfeafe 0%, #c8dbfb 100%);
+    padding: 28px 0 0;
     font-size: 14px;
     color: var(--textColorDark);
 
+    &::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: linear-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+        background-size: 28px 28px;
+        opacity: 0.35;
+        pointer-events: none;
+    }
+
+    .container {
+        position: relative;
+        z-index: 1;
+    }
+
+    .footer-logos {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 14px;
+        align-items: center;
+        justify-items: center;
+        margin-bottom: 18px;
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.42);
+        border: 1px solid rgba(255, 255, 255, 0.65);
+        border-radius: 24px;
+        box-shadow: 0 12px 30px rgba(30, 64, 175, 0.08);
+        backdrop-filter: blur(6px);
+    }
+
+    .footer-logo-item {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 104px;
+        padding: 12px;
+        transition:
+            transform 0.2s ease,
+            box-shadow 0.2s ease,
+            border-color 0.2s ease;
+
+        &:hover {
+            transform: translateY(-2px);
+            border-color: rgba(37, 99, 235, 0.22);
+            box-shadow: 0 10px 22px rgba(37, 99, 235, 0.12);
+        }
+    }
+
     .footer-content {
         display: grid;
-        grid-template-columns: 1.5fr 0.5fr 1fr 1fr;
-        gap: 20px;
-        margin-right: 20px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0;
+        margin-right: 0;
+        background: rgba(255, 255, 255, 0.34);
+        border-top: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 24px 24px 0 0;
+        overflow: hidden;
+        box-shadow: 0 -8px 24px rgba(30, 64, 175, 0.06);
+    }
+
+    .footer-content--compact {
+        margin-bottom: 0;
     }
 
     .footer-section {
+        padding: 18px 20px 16px;
+        background: rgba(255, 255, 255, 0.18);
+
+        &.footer-section--wide {
+            min-height: 118px;
+        }
+
         h4 {
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 10px;
+            font-size: 17px;
+            font-weight: 900;
+            margin-bottom: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #123a7a;
         }
 
         ul {
             list-style: none;
             padding: 0;
+            margin: 0;
 
             li {
-                margin-bottom: 8px;
+                margin-bottom: 10px;
+                font-size: 14px;
+                line-height: 1.45;
+                color: #1f2937;
+                position: relative;
+                padding-left: 16px;
 
-                a {
-                    text-decoration: none;
-                    color: var(--textColorDark);
-                    transition: color 0.3s ease;
-
-                    &:hover {
-                        color: var(--hoverPrimary);
-                        font-weight: 600;
-                    }
+                &::before {
+                    content: "•";
+                    position: absolute;
+                    left: 0;
+                    top: -1px;
+                    color: #2563eb;
+                    font-size: 18px;
+                    line-height: 1;
                 }
-            }
-        }
-
-        p {
-            margin-bottom: 10px;
-        }
-
-        a {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            text-decoration: none;
-            font-size: 14px;
-            color: var(--textColorDark);
-            transition:
-                color 0.3s ease,
-                transform 0.2s ease;
-
-            i {
-                font-size: 16px;
-                width: 20px;
-            }
-
-            &:hover {
-                color: var(--hoverPrimary); // Màu cam khi hover
-                transform: translateX(3px);
-
-                i {
-                    color: var(--hoverPrimary);
-                }
-            }
-        }
-        .footer-contact {
-            i {
-                font-size: 16px;
-                width: 20px;
             }
         }
     }
 
     .footer-logo {
-        max-width: 150px;
-        margin-bottom: 10px;
-    }
-    .social-icons {
-        display: flex;
-        gap: 12px;
-        margin-top: 10px;
-        a {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            border: 1px solid var(--textColorDark);
-            background-color: #d1e0ff; // Màu nền vòng tròn
-            color: var(--textColorDark);
-            font-size: 18px;
-            transition:
-                background-color 0.3s ease,
-                color 0.3s ease,
-                transform 0.2s ease;
-            text-align: center;
-
-            i {
-                display: flex; // Đảm bảo icon không bị lệch
-                align-items: center;
-                justify-content: center;
-                width: 100%; // Đảm bảo icon giãn đều theo thẻ cha
-                height: 100%;
-            }
-            &:hover {
-                transform: scale(1.1); // Hiệu ứng phóng to nhẹ khi hover
-            }
-            &:nth-child(1):hover {
-                border-color: #1877f2;
-                i {
-                    color: #1877f2;
-                }
-            }
-
-            &:nth-child(2):hover {
-                i {
-                    color: #ff0000;
-                }
-                border-color: #ff0000;
-            }
-
-            &:nth-child(3):hover {
-                i {
-                    color: #1da1f2;
-                }
-                border-color: #1da1f2;
-            }
-
-            &:nth-child(4):hover {
-                i {
-                    color: #c13584;
-                }
-                border-color: #c13584;
-            }
-
-            &:nth-child(5):hover {
-                i {
-                    color: #db4437;
-                }
-                border-color: #db4437;
-            }
-        }
+        width: 100%;
+        max-width: 120px;
+        max-height: 76px;
+        object-fit: contain;
+        display: block;
     }
 }
 .bottom-home {
-    background-color: var(--blue); // Sử dụng biến màu nền
+    background: linear-gradient(90deg, #123a7a 0%, #1d4ed8 100%);
     color: var(--textColorWhite);
-    padding: 8px 0;
+    padding: 10px 0;
     display: flex;
     justify-content: center;
     align-items: center;
     text-align: center;
     font-size: 13px;
+}
+
+@media (max-width: 992px) {
+    .footer {
+        .footer-logos {
+            padding: 14px;
+        }
+
+        .footer-content {
+            grid-template-columns: 1fr;
+        }
+
+        .footer-section {
+            &:not(:last-child) {
+                border-right: none;
+                border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+            }
+        }
+    }
+}
+
+@media (max-width: 576px) {
+    .footer {
+        .footer-logos {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            padding: 12px;
+        }
+
+        .footer-logo-item {
+            min-height: 86px;
+            padding: 10px;
+        }
+
+        .footer-logo {
+            max-width: 96px;
+            max-height: 62px;
+        }
+
+        .footer-section {
+            padding: 14px 14px 12px;
+
+            h4 {
+                font-size: 15px;
+            }
+
+            ul li {
+                font-size: 13px;
+            }
+        }
+
+        .footer-content {
+            border-radius: 18px 18px 0 0;
+        }
+    }
 }

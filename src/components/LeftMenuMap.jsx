@@ -5,6 +5,7 @@ import { convertDMSToDecimal, dmsToDecimal } from "@components/convertDMSToDecim
 import { mapLayers, irrigationLayers } from "@pages/map/dataLayers";
 import { createSalinityPopup } from "./map/SalinityMarkers";
 import { createHydrometPopup } from "./map/HydrometMarkers";
+import { createLayerPopupContent } from "./map/wmsPopupTemplates";
 import IoTStationModal from "./IoTStationModal";
 import {
     fetchIoTStations,
@@ -528,6 +529,130 @@ function LeftMenuMap({
         `;
     };
 
+    const parseGeoJsonValue = (rawValue) => {
+        if (!rawValue) return null;
+
+        let parsedValue = rawValue;
+        if (typeof parsedValue === "string") {
+            try {
+                parsedValue = JSON.parse(parsedValue);
+            } catch {
+                return null;
+            }
+        }
+
+        if (parsedValue?.type === "Feature") {
+            return parsedValue;
+        }
+
+        if (parsedValue?.type && parsedValue?.coordinates) {
+            return {
+                type: "Feature",
+                geometry: parsedValue,
+                properties: parsedValue?.properties || {},
+            };
+        }
+
+        if (parsedValue?.geometry?.type) {
+            return {
+                type: "Feature",
+                geometry: parsedValue.geometry,
+                properties: parsedValue?.properties || {},
+            };
+        }
+
+        return null;
+    };
+
+    const SEARCH_TYPE_TO_LAYER = {
+        ho_chua: "HoChuaThuongLuu",
+        cttl_cong: "CTTL_2023_Cong",
+        cttl_tram_bom: "CTTL_2023_TramBom",
+        cttl_de_bao: "CTTL_2023_DeBao_BoBao",
+        cttl_kenh_muong: "CTTL_2023_KenhMuong",
+        cttl_2030_noi_dong: "CTTL_2030_NoiDong",
+        cttl_2030_nong_thon_moi: "CTTL_2030_NongThonMoi",
+        cttl_2030_vung_thuy_loi: "CTTL_2030_VungThuyLoi",
+        cttl_2030_vung_he_thong: "CTTL_2030_Vung_HeThong",
+        xa: "DiaPhanXa",
+        huyen: "DiaPhanHuyen",
+    };
+
+    const resolveSearchResultPoint = (result) => {
+        const lat = normalizeCoordinate(
+            result?.lat ?? result?.latitude ?? result?.ViDo ?? result?.vido ?? result?.centerLat,
+        );
+        const lng = normalizeCoordinate(
+            result?.lng ?? result?.longitude ?? result?.KinhDo ?? result?.kinhdo ?? result?.centerLng,
+        );
+
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            return { lat, lng };
+        }
+
+        const geoJson =
+            parseGeoJsonValue(result?.geom || result?.geometry || result?.geojson)?.geometry || null;
+        if (geoJson?.type === "Point" && Array.isArray(geoJson?.coordinates)) {
+            const [pointLng, pointLat] = geoJson.coordinates;
+            const normalizedLat = normalizeCoordinate(pointLat);
+            const normalizedLng = normalizeCoordinate(pointLng);
+
+            if (Number.isFinite(normalizedLat) && Number.isFinite(normalizedLng)) {
+                return { lat: normalizedLat, lng: normalizedLng };
+            }
+        }
+
+        return null;
+    };
+
+    const resolveSearchResultName = (result) => {
+        return (
+            result?.name ||
+            result?.StationName ||
+            result?.TenDiem ||
+            result?.TenTram ||
+            result?.TenHo ||
+            result?.TenCongDap ||
+            result?.TenTramBom ||
+            result?.TenKenhMuong ||
+            result?.TenDeBao ||
+            result?.tenXa ||
+            result?.tenHuyen ||
+            result?.Ten ||
+            result?.VungThuyLoi ||
+            "Địa điểm"
+        );
+    };
+
+    const resolveSearchResultId = (result) => {
+        return (
+            result?.id ||
+            result?.SerialNumber ||
+            result?.KiHieu ||
+            result?.maXa ||
+            result?.MaXa ||
+            result?.maHuyen ||
+            result?.MaHuyen ||
+            result?.StationCode ||
+            resolveSearchResultName(result)
+        );
+    };
+
+    const buildSearchSummaryPopup = (result) => {
+        const mappedLayer = SEARCH_TYPE_TO_LAYER[result?.type];
+        if (!mappedLayer) return null;
+
+        const popupProps = {
+            ...result,
+            tenXa: result?.tenXa || result?.TenXa,
+            tenHuyen: result?.tenHuyen || result?.TenHuyen,
+            maXa: result?.maXa || result?.MaXa,
+            maHuyen: result?.maHuyen || result?.MaHuyen,
+        };
+
+        return createLayerPopupContent(mappedLayer, popupProps);
+    };
+
     const buildSearchPopupHtml = (result, options = {}) => {
         if (result.type === "iot_station") {
             return buildIoTSearchPopupHtml(result, options);
@@ -709,8 +834,8 @@ function LeftMenuMap({
             }
 
             if (result.type === "iot_station") {
-                const lat = normalizeCoordinate(result.ViDo);
-                const lng = normalizeCoordinate(result.KinhDo);
+                const lat = normalizeCoordinate(result.ViDo ?? result.lat);
+                const lng = normalizeCoordinate(result.KinhDo ?? result.lng);
                 if (lat && lng) {
                     setSelectedLocation({ lat, lng, zoom: 15 });
                     handleIoTSearchResultClick(result, lat, lng);
@@ -718,9 +843,29 @@ function LeftMenuMap({
                 return;
             }
 
-            const geojson = result.geom;
-            if (!geojson || !geojson.type) {
-                console.warn("⚠️ No valid geojson found in result");
+            const feature = parseGeoJsonValue(result.geom || result.geometry || result.geojson);
+            const geojson = feature?.geometry || null;
+            const summaryPopupHtml = buildSearchSummaryPopup(result);
+            const point = resolveSearchResultPoint(result);
+            const id = resolveSearchResultId(result);
+            const name = resolveSearchResultName(result);
+
+            if (!geojson?.type) {
+                if (point) {
+                    setSelectedLocation({ lat: point.lat, lng: point.lng, zoom: 15 });
+                    setHighlightedFeature({
+                        id,
+                        geometry: {
+                            type: "Point",
+                            coordinates: [point.lng, point.lat],
+                        },
+                        icon: result?.type === "ho_chua" ? "water" : "marker",
+                        name,
+                        popupHtml: summaryPopupHtml || undefined,
+                    });
+                } else {
+                    console.warn("⚠️ No valid geojson/point found in result", result);
+                }
                 return;
             }
 
@@ -729,15 +874,10 @@ function LeftMenuMap({
                 setSelectedLocation({ lat, lng, zoom: 14 });
                 setHighlightedFeature({
                     geometry: geojson,
-                    id: result.id || result.mahuyen || result.maxa || result.MaHuyen || result.MaXa,
+                    id,
                     icon: "marker",
-                    name:
-                        result.name ||
-                        result.tenhuyen ||
-                        result.tenxa ||
-                        result.TenHuyen ||
-                        result.TenXa ||
-                        "Điểm",
+                    name,
+                    popupHtml: summaryPopupHtml || undefined,
                 });
             } else if (geojson.type === "Polygon" || geojson.type === "MultiPolygon") {
                 const bounds = getBoundsFromCoordinates(geojson.coordinates);
@@ -745,14 +885,9 @@ function LeftMenuMap({
                 setHighlightedFeature({
                     type: "Feature",
                     geometry: geojson,
-                    id: result.id || result.mahuyen || result.maxa || result.MaHuyen || result.MaXa,
-                    name:
-                        result.name ||
-                        result.tenhuyen ||
-                        result.tenxa ||
-                        result.TenHuyen ||
-                        result.TenXa ||
-                        "Vùng",
+                    id,
+                    name,
+                    popupHtml: summaryPopupHtml || undefined,
                 });
             }
         } catch (err) {
@@ -800,7 +935,7 @@ function LeftMenuMap({
                                 >
                                     <div className="category-info">
                                         <i className="fa-solid fa-droplet category-icon"></i>
-                                        <span className="category-name">Quan trắc mặn</span>
+                                        <span className="category-name">Xâm nhập mặn</span>
                                     </div>
                                     <i
                                         className={`fa-solid fa-chevron-right expand-icon ${
@@ -1009,7 +1144,8 @@ function LeftMenuMap({
                                         {irrigationLayers.items.map((menu, index) => {
                                             const uniqueIndex = `irrigation-${index}`;
                                             const isOpen = state.openIrrigationSubIndex === uniqueIndex;
-                                            const isSingleLayer = Array.isArray(menu.layers) && menu.layers.length === 1;
+                                            const isSingleLayer =
+                                                Array.isArray(menu.layers) && menu.layers.length === 1;
 
                                             if (isSingleLayer) {
                                                 const singleLayer = menu.layers[0];
@@ -1020,7 +1156,9 @@ function LeftMenuMap({
                                                                 type="checkbox"
                                                                 id={`layer-${singleLayer}`}
                                                                 className="layer-checkbox"
-                                                                checked={state.enabledLayers.includes(singleLayer)}
+                                                                checked={state.enabledLayers.includes(
+                                                                    singleLayer,
+                                                                )}
                                                                 onChange={(e) =>
                                                                     handleLayerToggle(
                                                                         singleLayer,
@@ -1033,7 +1171,9 @@ function LeftMenuMap({
                                                                 className="layer-label"
                                                             >
                                                                 <span className="layer-name">
-                                                                    {menu.nameItem?.[0] || menu.name || singleLayer}
+                                                                    {menu.nameItem?.[0] ||
+                                                                        menu.name ||
+                                                                        singleLayer}
                                                                 </span>
                                                             </label>
                                                         </div>

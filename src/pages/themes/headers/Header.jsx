@@ -4,18 +4,21 @@ import imageLogo from "@assets/logo.png";
 import { NavLink, useNavigate } from "react-router-dom";
 import { ROUTES } from "@common/constants";
 import { logout } from "@stores/actions/authActions";
+import SettingUser from "@pages/setting/SettingUser";
 
 function Header() {
-    const [query, setQuery] = useState("");
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const { userInfo } = useSelector((state) => state.authStore);
-
-    // Kiểm tra xem user có quyền truy cập các tab không (role !== 0)
-    const hasAccess = userInfo && userInfo.role == 1;
-
-    // Kiểm tra xem user đã đăng nhập chưa
-    const isLoggedIn = localStorage.getItem("access_token");
+    const [isSettingModalOpen, setIsSettingModalOpen] = useState(false);
+    const isLoggedIn = Boolean(localStorage.getItem("access_token"));
+    const parsedRole = Number(userInfo?.role);
+    const roleId = Number.isFinite(parsedRole) ? parsedRole : 0;
+    const isGuest = roleId === 0;
+    const isTechnician = roleId === 2;
+    const isAdmin = roleId === 1;
+    const canManageData = isTechnician || isAdmin;
+    const canManageUsers = isAdmin;
 
     // Xử lý đăng xuất
     const handleLogout = () => {
@@ -29,53 +32,36 @@ function Header() {
                 <div className="container d-flex justify-content-between align-items-center">
                     {/* Thông tin liên hệ */}
                     <div className="contact-info">
-                        <a href="tel:+84395245029">
-                            <i className="fa-solid fa-phone"></i>
-                            <span>+84 395 245 029</span>
+                        <a
+                            className="footer-contact"
+                            href="https://maps.app.goo.gl/swSbkG8NGr2TL1pT9"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            <i className="fa-solid fa-location-dot"></i>
+                            <span>Trường Đại học Nông Lâm TPHCM</span>
                         </a>
                         <span> | </span>
-                        <a href="mailto:21166139@st.hcmuaf.edu.vn">
+                        <a href="tel:+84983613551">
+                            <i className="fa-solid fa-phone"></i>
+                            <span>+84 983 613 551</span>
+                        </a>
+                        <span> | </span>
+                        <a href="mailto:nguyenduyliem@hcmuaf.edu.vn">
                             <i className="fa-solid fa-envelope"></i>
-                            <span>21166139@st.hcmuaf.edu.vn</span>
+                            <span>nguyenduyliem@hcmuaf.edu.vn</span>
+                        </a>
+                        <span> | </span>
+                        <a
+                            className="footer-contact"
+                            href="https://www.facebook.com/nguyenduyliem.gis"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            <i className="fa-brands fa-facebook-f"></i>
+                            <span>facebook.com/nguyenduyliem.gis</span>
                         </a>
                     </div>
-                    {/* Mạng xã hội */}
-                    <ul className="icon-group list-unstyled m-0">
-                        <li>
-                            <a href="https://www.facebook.com/YenLinh.lhlb/">
-                                <i className="fa-brands fa-facebook-f"></i>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="https://www.youtube.com">
-                                <i className="fa-brands fa-youtube"></i>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="https://twitter.com">
-                                <i className="fa-brands fa-twitter"></i>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="https://www.instagram.com">
-                                <i className="fa-brands fa-instagram"></i>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="https://www.google.com">
-                                <i className="fa-brands fa-google"></i>
-                            </a>
-                        </li>
-                        <li className="login-menu">
-                            <NavLink
-                                to={localStorage.getItem("access_token") ? ROUTES.setting : ROUTES.login}
-                                className="login-link"
-                            >
-                                <i className="fa-solid fa-user"></i>
-                                <span>Tài khoản</span>
-                            </NavLink>
-                        </li>
-                    </ul>
                 </div>
             </div>
             <header className="headerMenu">
@@ -90,51 +76,78 @@ function Header() {
                     {/* Menu */}
                     <nav className="nav-menu">
                         <ul className="d-flex list-unstyled m-0">
-                            {!hasAccess && (
-                                <li className="text-center">
-                                    <NavLink to={ROUTES.home}>TRANG CHỦ</NavLink>
-                                </li>
-                            )}
                             <li className="text-center">
                                 <NavLink to={ROUTES.map}>BẢN ĐỒ</NavLink>
                             </li>
-                            <li className="text-center">
-                                <NavLink to={ROUTES.salinityReport}>BÁO CÁO ĐỘ MẶN</NavLink>
-                            </li>
-                            {hasAccess && (
-                                <li className="text-center">
-                                    <NavLink to={ROUTES.salinity}>QUẢN LÝ ĐỘ MẶN</NavLink>
-                                </li>
-                            )}
-                            {hasAccess && (
-                                <li className="text-center">
-                                    <NavLink to={ROUTES.users}>QUẢN LÝ NGƯỜI DÙNG</NavLink>
-                                </li>
-                            )}
-                            {isLoggedIn && (
-                                <>
-                                    {!hasAccess && (
-                                        <li className="text-center">
-                                            <NavLink to={ROUTES.feedback}>GÓP Ý</NavLink>
-                                        </li>
-                                    )}
-
-                                    <li className="text-center">
-                                        <button onClick={handleLogout} className="nav-logout-btn">
-                                            ĐĂNG XUẤT
-                                        </button>
-                                    </li>
-                                </>
-                            )}
-                            {!isLoggedIn && (
+                            {!isLoggedIn ? (
                                 <li className="text-center">
                                     <NavLink to={ROUTES.login}>ĐĂNG NHẬP</NavLink>
                                 </li>
+                            ) : (
+                                <>
+                                    <li className="text-center">
+                                        <NavLink to={ROUTES.salinityReport}>BẢN TIN XÂM NHẬP MẶN</NavLink>
+                                    </li>
+                                    <li className="text-center">
+                                        <NavLink to={ROUTES.feedback}>LIÊN HỆ</NavLink>
+                                    </li>
+                                    {canManageData && (
+                                        <li className="text-center">
+                                            <NavLink to={ROUTES.salinity}>QUẢN TRỊ DỮ LIỆU</NavLink>
+                                        </li>
+                                    )}
+                                    {canManageUsers && (
+                                        <li className="text-center">
+                                            <NavLink to={ROUTES.users}>QUẢN TRỊ TÀI KHOẢN</NavLink>
+                                        </li>
+                                    )}
+                                    <li className="text-center user-dropdown">
+                                        <button
+                                            type="button"
+                                            className="user-button"
+                                            data-bs-toggle="dropdown"
+                                            aria-expanded="false"
+                                        >
+                                            <div className="user-info">
+                                                <span className="user-name">
+                                                    {userInfo?.name || (isGuest ? "Khách" : "Tài khoản")}
+                                                </span>
+                                            </div>
+                                            <i className="fa-solid fa-chevron-down dropdown-arrow"></i>
+                                        </button>
+
+                                        <ul className="dropdown-menu">
+                                            <li>
+                                                <button
+                                                    type="button"
+                                                    className="dropdown-item"
+                                                    onClick={() => setIsSettingModalOpen(true)}
+                                                >
+                                                    <span>Cài đặt</span>
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <hr className="dropdown-divider" />
+                                            </li>
+                                            <li>
+                                                <button
+                                                    type="button"
+                                                    className="dropdown-item"
+                                                    onClick={handleLogout}
+                                                >
+                                                    <span>Đăng xuất</span>
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                </>
                             )}
                         </ul>
                     </nav>
                 </div>
             </header>
+
+            <SettingUser isOpen={isSettingModalOpen} onClose={() => setIsSettingModalOpen(false)} />
         </>
     );
 }

@@ -74,14 +74,10 @@ const ForgotPassword = () => {
                         />
                         {errors.email && <div className="field-error">* {errors.email}</div>}
                         <button type="submit" className="btnLogin btnLoginSubmit">
-                            Gửi link đặt lại mật khẩu
+                            Đặt lại mật khẩu
                         </button>
                     </form>
-                    <button
-                        type="button"
-                        className="register-text"
-                        onClick={() => navigate(ROUTES.login)}
-                    >
+                    <button type="button" className="register-text mt-3" onClick={() => navigate(ROUTES.login)}>
                         Quay lại
                         <span>
                             Đăng nhập <i className="fas fa-arrow-right ms-1"></i>

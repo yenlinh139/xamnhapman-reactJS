@@ -72,6 +72,7 @@ export const handleFeatureHighlight = (
             droplet: { icon: "droplet", color: "#007bff" },
             "cloud-rain": { icon: "cloud-rain", color: "#16a34a" },
             "tower-broadcast": { icon: "tower-broadcast", color: "#f59e0b" },
+            water: { icon: "water", color: "#0ea5e9" },
             router: { icon: "tower-broadcast", color: "#f59e0b" },
         };
         const markerConfig = iconMap[iconType] || iconMap.droplet;

@@ -8,7 +8,141 @@ import { useDispatch, useSelector } from "react-redux";
 import { logout } from "@stores/actions/authActions";
 import { NavLink } from "react-router-dom";
 import { ROUTES } from "@common/constants";
+import SettingUser from "@pages/setting/SettingUser";
 import "@styles/components/AreaStationsPanel.scss";
+
+const SEARCH_TYPE_META = {
+    iot_station: {
+        priority: 1,
+        icon: "fa-solid fa-tower-broadcast",
+        subtitle: "Trạm IoT",
+        apiRef: "/iot/stations",
+        titleResolver: (result) => result?.StationName || result?.name,
+    },
+    diem_do_man: {
+        priority: 2,
+        icon: "fa-solid fa-droplet",
+        subtitle: "Điểm đo mặn",
+        apiRef: "/salinity-points",
+        titleResolver: (result) => result?.TenDiem || result?.name,
+    },
+    khi_tuong_thuy_van: {
+        priority: 3,
+        icon: "fa-solid fa-cloud-rain",
+        subtitle: "Trạm khí tượng thủy văn",
+        apiRef: "/hydrometeorology-stations",
+        titleResolver: (result) => result?.TenTram || result?.name,
+    },
+    ho_chua: {
+        priority: 4,
+        icon: "fa-solid fa-water",
+        subtitle: "Hồ chứa thượng lưu",
+        apiRef: "/reservoir-points",
+        titleResolver: (result) => result?.TenHo || result?.name,
+    },
+    cttl_cong: {
+        priority: 5,
+        icon: "fa-solid fa-bridge-water",
+        subtitle: "CTTL 2023 - Cống",
+        titleResolver: (result) => result?.TenCongDap || result?.name,
+    },
+    cttl_tram_bom: {
+        priority: 5,
+        icon: "fa-solid fa-faucet-drip",
+        subtitle: "CTTL 2023 - Trạm bơm",
+        titleResolver: (result) => result?.TenTramBom || result?.name,
+    },
+    cttl_de_bao: {
+        priority: 5,
+        icon: "fa-solid fa-road-barrier",
+        subtitle: "CTTL 2023 - Đê bao, bờ bao",
+        titleResolver: (result) => result?.TenDeBao || result?.name,
+    },
+    cttl_kenh_muong: {
+        priority: 5,
+        icon: "fa-solid fa-water",
+        subtitle: "CTTL 2023 - Kênh mương",
+        titleResolver: (result) => result?.TenKenhMuong || result?.name,
+    },
+    cttl_2030_noi_dong: {
+        priority: 5,
+        icon: "fa-solid fa-draw-polygon",
+        subtitle: "CTTL 2030 - Nội đồng",
+        titleResolver: (result) => result?.Ten || result?.name,
+    },
+    cttl_2030_nong_thon_moi: {
+        priority: 5,
+        icon: "fa-solid fa-seedling",
+        subtitle: "CTTL 2030 - Nông thôn mới",
+        titleResolver: (result) => result?.Ten || result?.name,
+    },
+    cttl_2030_vung_thuy_loi: {
+        priority: 5,
+        icon: "fa-solid fa-layer-group",
+        subtitle: "CTTL 2030 - Vùng thủy lợi",
+        titleResolver: (result) => result?.VungThuyLoi || result?.name,
+    },
+    cttl_2030_vung_he_thong: {
+        priority: 5,
+        icon: "fa-solid fa-network-wired",
+        subtitle: "CTTL 2030 - Vùng, hệ thống",
+        titleResolver: (result) => result?.Ten || result?.name,
+    },
+    xa: {
+        priority: 6,
+        icon: "fa-solid fa-draw-polygon",
+        subtitle: "Địa giới hành chính - Xã",
+        titleResolver: (result) => result?.tenXa || result?.TenXa || result?.name,
+    },
+    huyen: {
+        priority: 7,
+        icon: "fa-solid fa-map-location-dot",
+        subtitle: "Địa giới hành chính - Huyện",
+        titleResolver: (result) => result?.tenHuyen || result?.TenHuyen || result?.name,
+    },
+};
+
+const normalizeSearchResult = (result = {}) => {
+    const type = String(result?.type || "").toLowerCase();
+    const typeMeta = SEARCH_TYPE_META[type] || null;
+    const searchSubtitle =
+        type === "khi_tuong_thuy_van"
+            ? result?.PhanLoai || result?.phanLoai || typeMeta?.subtitle || "Trạm khí tượng thủy văn"
+            : typeMeta?.subtitle || "Đối tượng bản đồ";
+
+    const title =
+        typeMeta?.titleResolver?.(result) ||
+        result?.name ||
+        result?.StationName ||
+        result?.TenDiem ||
+        result?.TenTram ||
+        result?.TenHo ||
+        result?.tenXa ||
+        result?.tenHuyen ||
+        "Khu vực";
+
+    const apiRef = result?.apiRef || typeMeta?.apiRef || null;
+    const scopeText = result?.tenHuyen || result?.TenHuyen || result?.VungThuyLoi || "";
+
+    return {
+        ...result,
+        _searchType: type,
+        _searchPriority: Number(typeMeta?.priority ?? result?.priority ?? 99),
+        _searchIcon: typeMeta?.icon || "fa-solid fa-location-dot",
+        _searchTitle: title,
+        _searchSubtitle: searchSubtitle,
+        _searchMeta: [scopeText, apiRef].filter(Boolean).join(" • "),
+    };
+};
+
+const compareSearchResults = (a, b) => {
+    const priorityDelta = (a?._searchPriority ?? 99) - (b?._searchPriority ?? 99);
+    if (priorityDelta !== 0) return priorityDelta;
+
+    return String(a?._searchTitle || "").localeCompare(String(b?._searchTitle || ""), "vi", {
+        sensitivity: "base",
+    });
+};
 
 const Map = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -23,10 +157,20 @@ const Map = () => {
     const [selectedLocation, setSelectedLocation] = useState(null);
     const [highlightedFeature, setHighlightedFeature] = useState(null);
     const [iotData, setIotData] = useState(null);
+    const [isSettingModalOpen, setIsSettingModalOpen] = useState(false);
     const [leafletMapInstance, setLeafletMapInstance] = useState(null);
     const mapInstanceRef = useRef(null);
     const searchContainerRef = useRef(null);
-    const hasAccess = userInfo && userInfo.role == 1;
+    const mobileNavRef = useRef(null);
+    const mobileToggleRef = useRef(null);
+    const isLoggedIn = Boolean(localStorage.getItem("access_token"));
+    const parsedRole = Number(userInfo?.role);
+    const roleId = Number.isFinite(parsedRole) ? parsedRole : 0;
+    const isGuest = roleId === 0;
+    const isTechnician = roleId === 2;
+    const isAdmin = roleId === 1;
+    const canManageData = isTechnician || isAdmin;
+    const canManageUsers = isAdmin;
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -39,25 +183,82 @@ const Map = () => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    useEffect(() => {
+        const desktopBreakpoint = 992;
+
+        const resetMobileMenuOnDesktop = () => {
+            if (window.innerWidth <= desktopBreakpoint) {
+                return;
+            }
+
+            const mobileNav = mobileNavRef.current;
+            const toggleButton = mobileToggleRef.current;
+
+            if (mobileNav) {
+                mobileNav.classList.remove("show", "collapsing");
+                mobileNav.style.height = "";
+            }
+
+            if (toggleButton) {
+                toggleButton.classList.add("collapsed");
+                toggleButton.setAttribute("aria-expanded", "false");
+            }
+        };
+
+        window.addEventListener("resize", resetMobileMenuOnDesktop);
+        resetMobileMenuOnDesktop();
+
+        return () => {
+            window.removeEventListener("resize", resetMobileMenuOnDesktop);
+        };
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutsideMobileMenu = (event) => {
+            const mobileNav = mobileNavRef.current;
+            const toggleButton = mobileToggleRef.current;
+
+            if (!mobileNav || !mobileNav.classList.contains("show")) {
+                return;
+            }
+
+            const clickedInsideMenu = mobileNav.contains(event.target);
+            const clickedToggle = toggleButton?.contains(event.target);
+
+            if (clickedInsideMenu || clickedToggle) {
+                return;
+            }
+
+            mobileNav.classList.remove("show", "collapsing");
+            mobileNav.style.height = "";
+
+            if (toggleButton) {
+                toggleButton.classList.add("collapsed");
+                toggleButton.setAttribute("aria-expanded", "false");
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutsideMobileMenu);
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutsideMobileMenu);
+        };
+    }, []);
+
     const handleMapReady = useCallback((instance) => {
         setLeafletMapInstance(instance);
     }, []);
 
-    const handleAreaSelect = (areaInfo) => {
-        console.log("Map.jsx - Selected area:", areaInfo);
-        console.log("Map.jsx - mapInstanceRef current:", mapInstanceRef.current);
-        console.log("Map.jsx - mapInstance from ref:", mapInstanceRef.current?.getMap());
-        // Additional handling if needed
-        if (areaInfo.area && areaInfo.type) {
-            // You can add custom handling here, like showing info popup
-            console.log(
-                `Đã chọn ${areaInfo.type}: ${areaInfo.area.name || areaInfo.area.TenTram || areaInfo.area.TenTam}`,
-            );
-        }
-    };
-
     const handleLogout = async () => {
         await dispatch(logout());
+    };
+
+    const handleOpenSettingModal = () => {
+        setIsSettingModalOpen(true);
+    };
+
+    const handleCloseSettingModal = () => {
+        setIsSettingModalOpen(false);
     };
 
     const handleSearch = async () => {
@@ -74,38 +275,10 @@ const Map = () => {
 
             // Backend trả về mảng kết quả trực tiếp hoặc object chứa results
             const searchData = Array.isArray(response.data) ? response.data : response.data.results || [];
-            setSearchResults(searchData);
-
-            // Log để debug nội dung API sau khi tìm kiếm
-            console.group(`🔍 Search API - ${searchText}`);
-            console.log("Request URL:", `/search/${encodeURIComponent(searchText)}`);
-            console.log("Raw response.data:", response.data);
-            console.log("Parsed searchData:", searchData);
-            console.log("Total results:", searchData.length);
-            console.log("Result types:", [...new Set(searchData.map((item) => item?.type).filter(Boolean))]);
-            console.table(
-                searchData.map((item, index) => ({
-                    index: index + 1,
-                    type: item?.type,
-                    name:
-                        item?.TenDiem ||
-                        item?.TenTram ||
-                        item?.StationName ||
-                        item?.tenxa ||
-                        item?.tenhuyen ||
-                        null,
-                    code:
-                        item?.KiHieu ||
-                        item?.SerialNumber ||
-                        item?.StationCode ||
-                        item?.maxa ||
-                        item?.mahuyen ||
-                        null,
-                    latitude: item?.ViDo || null,
-                    longitude: item?.KinhDo || null,
-                })),
-            );
-            console.groupEnd();
+            const normalizedSearchData = searchData
+                .map((item) => normalizeSearchResult(item))
+                .sort(compareSearchResults);
+            setSearchResults(normalizedSearchData);
         } catch (err) {
             console.error("Lỗi tìm kiếm:", err);
             setSearchResults([]);
@@ -128,42 +301,11 @@ const Map = () => {
     };
 
     const getSearchItemMeta = (result) => {
-        if (result?.type === "diem_do_man") {
-            return {
-                icon: "fa-solid fa-droplet",
-                title: result.TenDiem,
-                subtitle: "Điểm đo mặn",
-            };
-        }
-
-        if (result?.type === "khi_tuong_thuy_van") {
-            return {
-                icon: "fa-solid fa-cloud-rain",
-                title: result.TenTram,
-                subtitle: "Trạm khí tượng thủy văn",
-            };
-        }
-
-        if (result?.type === "iot_station") {
-            return {
-                icon: "fa-solid fa-tower-broadcast",
-                title: result.StationName,
-                subtitle: "Trạm IoT",
-            };
-        }
-
-        if (result?.tenxa) {
-            return {
-                icon: "fa-solid fa-draw-polygon",
-                title: result.tenxa,
-                subtitle: result.tenhuyen || "Phường/Xã",
-            };
-        }
-
         return {
-            icon: "fa-solid fa-location-dot",
-            title: result?.tenhuyen || result?.name || "Khu vực",
-            subtitle: "Địa giới hành chính",
+            icon: result?._searchIcon || "fa-solid fa-location-dot",
+            title: result?._searchTitle || result?.name || "Khu vực",
+            subtitle: result?._searchSubtitle || "Đối tượng bản đồ",
+            meta: result?._searchMeta || "",
         };
     };
 
@@ -183,6 +325,7 @@ const Map = () => {
             checked ? [...prevLayers, layerName] : prevLayers.filter((l) => l !== layerName),
         );
     };
+
     return (
         <div className="map-page-container">
             <Helmet>
@@ -288,15 +431,6 @@ const Map = () => {
                     {/* Right Section - Navigation */}
                     <div className="header-right">
                         <nav className="header-nav">
-                            <a
-                                href={ROUTES.home}
-                                className="nav-link"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                <span>Trang chủ</span>
-                            </a>
-
                             <NavLink
                                 to={ROUTES.map}
                                 className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
@@ -308,26 +442,36 @@ const Map = () => {
                                 to={ROUTES.salinityReport}
                                 className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
                             >
-                                <span>Báo cáo độ mặn</span>
+                                <span>Bản tin xâm nhập mặn</span>
                             </NavLink>
-                            {hasAccess && (
+
+                            <NavLink
+                                to={ROUTES.feedback}
+                                className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+                            >
+                                <span>Liên hệ</span>
+                            </NavLink>
+
+                            {canManageData && (
                                 <NavLink
                                     to={ROUTES.salinity}
                                     className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
                                 >
-                                    <span>Quản lý độ mặn</span>
+                                    <span>Quản trị dữ liệu</span>
                                 </NavLink>
                             )}
-                            {hasAccess && (
+
+                            {canManageUsers && (
                                 <NavLink
                                     to={ROUTES.users}
                                     className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
                                 >
-                                    <span>Quản lý người dùng</span>
+                                    <span>Quản trị tài khoản</span>
                                 </NavLink>
                             )}
+
                             {/* User Dropdown */}
-                            {userInfo?.name ? (
+                            {isLoggedIn ? (
                                 <div className="user-dropdown">
                                     <button
                                         className="user-button"
@@ -335,16 +479,20 @@ const Map = () => {
                                         aria-expanded="false"
                                     >
                                         <div className="user-info">
-                                            <span className="user-name">{userInfo?.name}</span>
+                                            <span className="user-name">{userInfo?.name || "Tài khoản"}</span>
                                         </div>
                                         <i className="fa-solid fa-chevron-down dropdown-arrow"></i>
                                     </button>
 
                                     <ul className="dropdown-menu">
                                         <li>
-                                            <NavLink to={ROUTES.setting} className="dropdown-item">
-                                                <span>Cài đặt</span>
-                                            </NavLink>
+                                            <button
+                                                type="button"
+                                                className="dropdown-item"
+                                                onClick={handleOpenSettingModal}
+                                            >
+                                                    <span>Cài đặt</span>
+                                            </button>
                                         </li>
                                         <li>
                                             <hr className="dropdown-divider" />
@@ -368,6 +516,7 @@ const Map = () => {
 
                         {/* Mobile Menu Toggle */}
                         <button
+                            ref={mobileToggleRef}
                             className="mobile-toggle"
                             type="button"
                             data-bs-toggle="collapse"
@@ -381,30 +530,9 @@ const Map = () => {
                 </div>
 
                 {/* Mobile Navigation */}
-                <div className="collapse" id="mobileNav">
+                <div ref={mobileNavRef} className="collapse" id="mobileNav">
                     <div className="mobile-nav">
-                        <div className="mobile-search">
-                            <div className="search-input-wrapper">
-                                <i className="fa-solid fa-magnifying-glass search-icon"></i>
-                                <input
-                                    type="text"
-                                    className="search-input"
-                                    placeholder="Tìm kiếm..."
-                                    value={searchText}
-                                    onChange={(e) => setSearchText(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter") {
-                                            handleSearch();
-                                        }
-                                    }}
-                                />
-                                <button className="search-button" onClick={handleSearch}>
-                                    <i className="fa-solid fa-magnifying-glass"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="mobile-links">
+                       <div className="mobile-links">
                             <NavLink to={ROUTES.home} className="mobile-link">
                                 <i className="fa-solid fa-house"></i>
                                 <span>Trang chủ</span>
@@ -425,14 +553,49 @@ const Map = () => {
                                 }
                             >
                                 <i className="fa-solid fa-chart-column"></i>
-                                <span>Báo cáo độ mặn</span>
+                                <span>Bản tin xâm nhập mặn</span>
                             </NavLink>
-                            {userInfo?.name ? (
+                            <NavLink
+                                to={ROUTES.feedback}
+                                className={({ isActive }) =>
+                                    isActive ? "mobile-link active" : "mobile-link"
+                                }
+                            >
+                                <i className="fa-solid fa-comment-dots"></i>
+                                <span>Liên hệ</span>
+                            </NavLink>
+                            {canManageData && (
+                                <NavLink
+                                    to={ROUTES.salinity}
+                                    className={({ isActive }) =>
+                                        isActive ? "mobile-link active" : "mobile-link"
+                                    }
+                                >
+                                    <i className="fa-solid fa-droplet"></i>
+                                    <span>Quản trị dữ liệu</span>
+                                </NavLink>
+                            )}
+                            {canManageUsers && (
+                                <NavLink
+                                    to={ROUTES.users}
+                                    className={({ isActive }) =>
+                                        isActive ? "mobile-link active" : "mobile-link"
+                                    }
+                                >
+                                    <i className="fa-solid fa-users"></i>
+                                    <span>Quản trị tài khoản</span>
+                                </NavLink>
+                            )}
+                            {isLoggedIn ? (
                                 <>
-                                    <NavLink to={ROUTES.setting} className="mobile-link">
+                                    <button
+                                        type="button"
+                                        className="mobile-link"
+                                        onClick={handleOpenSettingModal}
+                                    >
                                         <i className="fa-solid fa-gear"></i>
                                         <span>Cài đặt</span>
-                                    </NavLink>
+                                    </button>
                                     <button className="mobile-link logout-link" onClick={handleLogout}>
                                         <i className="fa-solid fa-right-from-bracket"></i>
                                         <span>Đăng xuất</span>
@@ -473,6 +636,8 @@ const Map = () => {
                     />
                 </div>
             </div>
+
+            <SettingUser isOpen={isSettingModalOpen} onClose={handleCloseSettingModal} />
         </div>
     );
 };

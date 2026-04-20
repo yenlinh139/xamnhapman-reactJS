@@ -1,5 +1,5 @@
-export const REQUIRE_NAME = "Họ và tên là bắt buộc";
-export const REQUIRE_EMAIL = "Email là bắt buộc";
+export const REQUIRE_NAME = "Vui lòng điền thông tin";
+export const REQUIRE_EMAIL = "Vui lòng điền thông tin";
 export const REQUIRE_TIME_END = "Thời gian kết thúc là bắt buộc";
 export const REQUIRE_TIME_START = "Thời gian bắt đầu là bắt buộc";
 export const REQUIRE_NOTE = "Ghi chú là bắt buộc";

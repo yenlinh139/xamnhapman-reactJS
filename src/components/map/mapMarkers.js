@@ -104,15 +104,13 @@ export const getHydrometIcon = (stationType = "") => {
 };
 
 export const getReservoirIcon = () => {
+    const color = "#0ea5e9";
+
     return L.divIcon({
         className: "custom-reservoir-marker",
-        html: `
-            <div class="reservoir-marker-container" title="Hồ chứa thượng lưu">
-                <span class="reservoir-water"></span>
-            </div>
-        `,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
+        html: `<i class="fa-solid fa-water" title="Hồ chứa thượng lưu" style="color: ${color}; margin-right: 5px; font-size: 1.2rem;"></i>`,
+        iconSize: [22, 22],
+        iconAnchor: [11, 11],
         popupAnchor: [0, -12],
     });
 };
