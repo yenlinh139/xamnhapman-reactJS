@@ -105,6 +105,10 @@ const SEARCH_TYPE_META = {
 const normalizeSearchResult = (result = {}) => {
     const type = String(result?.type || "").toLowerCase();
     const typeMeta = SEARCH_TYPE_META[type] || null;
+    const searchSubtitle =
+        type === "khi_tuong_thuy_van"
+            ? result?.PhanLoai || result?.phanLoai || typeMeta?.subtitle || "Trạm khí tượng thủy văn"
+            : typeMeta?.subtitle || "Đối tượng bản đồ";
 
     const title =
         typeMeta?.titleResolver?.(result) ||
@@ -126,7 +130,7 @@ const normalizeSearchResult = (result = {}) => {
         _searchPriority: Number(typeMeta?.priority ?? result?.priority ?? 99),
         _searchIcon: typeMeta?.icon || "fa-solid fa-location-dot",
         _searchTitle: title,
-        _searchSubtitle: typeMeta?.subtitle || "Đối tượng bản đồ",
+        _searchSubtitle: searchSubtitle,
         _searchMeta: [scopeText, apiRef].filter(Boolean).join(" • "),
     };
 };
@@ -244,19 +248,6 @@ const Map = () => {
     const handleMapReady = useCallback((instance) => {
         setLeafletMapInstance(instance);
     }, []);
-
-    const handleAreaSelect = (areaInfo) => {
-        console.log("Map.jsx - Selected area:", areaInfo);
-        console.log("Map.jsx - mapInstanceRef current:", mapInstanceRef.current);
-        console.log("Map.jsx - mapInstance from ref:", mapInstanceRef.current?.getMap());
-        // Additional handling if needed
-        if (areaInfo.area && areaInfo.type) {
-            // You can add custom handling here, like showing info popup
-            console.log(
-                `Đã chọn ${areaInfo.type}: ${areaInfo.area.name || areaInfo.area.TenTram || areaInfo.area.TenTam}`,
-            );
-        }
-    };
 
     const handleLogout = async () => {
         await dispatch(logout());
@@ -426,11 +417,6 @@ const Map = () => {
                                                             <span className="item-subtitle">
                                                                 {itemMeta.subtitle}
                                                             </span>
-                                                            {itemMeta.meta ? (
-                                                                <span className="item-meta">
-                                                                    {itemMeta.meta}
-                                                                </span>
-                                                            ) : null}
                                                         </span>
                                                     </button>
                                                 );
