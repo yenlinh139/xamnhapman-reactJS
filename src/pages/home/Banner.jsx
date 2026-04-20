@@ -3,6 +3,8 @@ import { NavLink } from "react-router-dom";
 import { motion } from "framer-motion";
 
 const Banner = ({ backgroundImage, title, description, buttonText, buttonLink }) => {
+    const bannerTitleText = typeof title === "string" ? title : "";
+
     return (
         <motion.div
             className="banner-modern"
@@ -81,7 +83,7 @@ const Banner = ({ backgroundImage, title, description, buttonText, buttonLink })
                     >
                         <motion.h1
                             className="banner-title"
-                            data-text={title}
+                            data-text={bannerTitleText}
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
                             whileHover={{

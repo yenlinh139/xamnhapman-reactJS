@@ -486,7 +486,11 @@
         }
 
         .header-center {
-            display: none;
+            padding: 0 50px;
+
+            .search-container {
+                max-width: 200px;
+            }
         }
 
         .header-right {

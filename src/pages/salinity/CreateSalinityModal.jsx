@@ -84,12 +84,47 @@ const normalizeDateForInput = (rawValue) => {
     return "";
 };
 
+const parseLocalizedNumber = (value) => {
+    if (value === "" || value === null || value === undefined) return null;
+
+    const raw = String(value).trim();
+    if (!raw) return null;
+
+    const normalized = raw.includes(",") ? raw.replace(/\./g, "").replace(",", ".") : raw;
+    const numeric = Number.parseFloat(normalized);
+    return Number.isFinite(numeric) ? numeric : null;
+};
+
+const formatLocalizedInputValue = (value, digits = 2) => {
+    const numeric = parseLocalizedNumber(value);
+    if (numeric === null) return "";
+
+    return numeric.toLocaleString("vi-VN", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+    });
+};
+
+const normalizeLocalizedInputText = (value) => {
+    const sanitized = String(value || "")
+        .replace(/\s+/g, "")
+        .replace(/[^\d,\.]/g, "")
+        .replace(/\./g, ",");
+
+    const firstCommaIndex = sanitized.indexOf(",");
+    if (firstCommaIndex === -1) return sanitized;
+
+    const integerPart = sanitized.slice(0, firstCommaIndex).replace(/,/g, "");
+    const decimalPart = sanitized.slice(firstCommaIndex + 1).replace(/,/g, "");
+    return `${integerPart},${decimalPart}`;
+};
+
 const parseNumericCell = (rawValue) => {
     const value = String(rawValue || "").trim();
     if (!value || value.toUpperCase() === "NULL") return "";
 
     const numeric = Number.parseFloat(value.replace(",", "."));
-    return Number.isFinite(numeric) ? String(numeric) : null;
+    return Number.isFinite(numeric) ? formatLocalizedInputValue(numeric, 2) : null;
 };
 
 const CreateSalinityModal = ({ onClose, onSuccess }) => {
@@ -124,7 +159,8 @@ const CreateSalinityModal = ({ onClose, onSuccess }) => {
     // Handle input change
     const handleChange = (e) => {
         const { name, value } = e.target;
-        const nextValue = name === "Ngày" ? normalizeDateInputText(value) : value;
+        const nextValue =
+            name === "Ngày" ? normalizeDateInputText(value) : normalizeLocalizedInputText(value);
 
         setFormData((prev) => ({
             ...prev,
@@ -269,7 +305,8 @@ const CreateSalinityModal = ({ onClose, onSuccess }) => {
         // Validate salinity values (if provided)
         Object.keys(stations).forEach((station) => {
             const value = formData[station];
-            if (value && (isNaN(value) || parseFloat(value) < 0)) {
+            const numeric = parseLocalizedNumber(value);
+            if (value && (numeric === null || numeric < 0)) {
                 newErrors[station] = "Giá trị độ mặn phải là số dương";
             }
         });
@@ -298,7 +335,8 @@ const CreateSalinityModal = ({ onClose, onSuccess }) => {
             Object.keys(stations).forEach((station) => {
                 const value = formData[station];
                 if (value !== "") {
-                    submitData[station] = value ? parseFloat(value) : "NULL";
+                    const numeric = parseLocalizedNumber(value);
+                    submitData[station] = numeric !== null ? Number(numeric.toFixed(2)) : "NULL";
                 } else {
                     submitData[station] = "NULL";
                 }
@@ -366,16 +404,23 @@ const CreateSalinityModal = ({ onClose, onSuccess }) => {
                                         {Object.entries(stations).map(([key, name]) => (
                                             <td key={key} style={{ minWidth: 120 }}>
                                                 <input
-                                                    type="number"
+                                                    type="text"
                                                     id={key}
                                                     name={key}
                                                     value={formData[key]}
                                                     onChange={handleChange}
+                                                    onBlur={(e) => {
+                                                        const { name, value } = e.target;
+                                                        if (!value) return;
+                                                        setFormData((prev) => ({
+                                                            ...prev,
+                                                            [name]: formatLocalizedInputValue(value, 2),
+                                                        }));
+                                                    }}
                                                     onPaste={(e) => handleCellPaste(key, e)}
                                                     className={`form-input ${errors[key] ? "error" : ""}`}
                                                     placeholder={name}
-                                                    step="0.1"
-                                                    min="0"
+                                                    inputMode="decimal"
                                                 />
                                             </td>
                                         ))}

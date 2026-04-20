@@ -454,7 +454,15 @@ const SalinityReport = () => {
         if (value === null || value === undefined || value === "" || value === "NULL") {
             return "--";
         }
-        return parseFloat(value).toFixed(2);
+        const numeric = parseFloat(value);
+        if (isNaN(numeric)) {
+            return "--";
+        }
+
+        return numeric.toLocaleString("vi-VN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
     };
 
     // Get salinity level class
@@ -581,7 +589,7 @@ const SalinityReport = () => {
                     label: function (context) {
                         const stationName = context.dataset.label;
                         const value = context.parsed.y;
-                        return `${stationName}: ${value.toFixed(2)} ‰`;
+                        return `${stationName}: ${formatSalinity(value)} ‰`;
                     },
                 },
             },
@@ -883,7 +891,7 @@ const SalinityReport = () => {
                                                         }
 
                                                         const max = Math.max(...validValues);
-                                                        return max.toFixed(2) + " ‰";
+                                                        return formatSalinity(max) + " ‰";
                                                     })()}
                                                 </div>
                                                 <div className="stat-label">
@@ -948,7 +956,7 @@ const SalinityReport = () => {
                                                         }
 
                                                         const max = Math.max(...validValues);
-                                                        return max.toFixed(2) + " ‰";
+                                                        return formatSalinity(max) + " ‰";
                                                     })()}
                                                 </div>
                                                 <div className="stat-label">
@@ -1012,7 +1020,7 @@ const SalinityReport = () => {
                                                         }
 
                                                         const max = Math.max(...validValues);
-                                                        return max.toFixed(2) + " ‰";
+                                                        return formatSalinity(max) + " ‰";
                                                     })()}
                                                 </div>
                                                 <div className="stat-label">
@@ -1077,7 +1085,7 @@ const SalinityReport = () => {
                                                         }
 
                                                         const max = Math.max(...validValues);
-                                                        return max.toFixed(2) + " ‰";
+                                                        return formatSalinity(max) + " ‰";
                                                     })()}
                                                 </div>
                                                 <div className="stat-label">

@@ -1,3 +1,18 @@
+.setting-modal-open {
+    overflow: hidden;
+}
+
+.setting-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
 .infoUser {
     min-height: calc(100vh - 60px);
     padding: 2rem;
@@ -12,6 +27,7 @@
         background: white;
         border-radius: 12px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        position: relative;
 
         .settings-header {
             border-radius: 12px 12px 0 0;
@@ -77,6 +93,11 @@
                     box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
                 }
 
+                &.input-error {
+                    border-color: #ef4444;
+                    background: #f8fafc;
+                }
+
                 &:disabled {
                     background: #f1f5f9;
                     cursor: not-allowed;
@@ -86,15 +107,26 @@
             .input-icon {
                 position: absolute;
                 left: 1rem;
-                bottom: 1.2rem;
+                top: 3.25rem;
                 color: #94a3b8;
                 font-size: 1.1rem;
+                pointer-events: none;
             }
 
             .error {
                 color: #ef4444;
                 font-size: 0.875rem;
                 margin-top: 0.25rem;
+                display: block;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+
+                &.error-top {
+                    display: block;
+                    margin-bottom: 0.5rem;
+                    margin-top: 0;
+                }
             }
         }
 
@@ -170,10 +202,45 @@
                     &:active {
                         transform: translateY(0);
                     }
+
+                    &:disabled {
+                        opacity: 0.6;
+                        cursor: not-allowed;
+                        transform: none;
+                    }
                 }
             }
         }
     }
+}
+
+.setting-modal.infoUser {
+    min-height: auto;
+    padding: 0;
+    background: transparent;
+    width: 100%;
+    max-width: 840px;
+}
+
+.settings-modal-container {
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+}
+
+.setting-modal-close {
+    position: absolute;
+    top: 0.9rem;
+    right: 0.9rem;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    border: 1px solid #0c4a6e;
+    background: white;
+    color: #0c4a6e;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
 }
 
 // Responsive Styles
@@ -216,5 +283,13 @@
                 justify-content: center;
             }
         }
+    }
+
+    .setting-modal-overlay {
+        padding: 0.5rem;
+    }
+
+    .setting-modal.infoUser {
+        max-width: 100%;
     }
 }

@@ -72,6 +72,7 @@ export const handleFeatureHighlight = (
             droplet: { icon: "droplet", color: "#007bff" },
             "cloud-rain": { icon: "cloud-rain", color: "#16a34a" },
             "tower-broadcast": { icon: "tower-broadcast", color: "#f59e0b" },
+            water: { icon: "water", color: "#0ea5e9" },
             router: { icon: "tower-broadcast", color: "#f59e0b" },
         };
         const markerConfig = iconMap[iconType] || iconMap.droplet;
@@ -98,8 +99,8 @@ export const handleFeatureHighlight = (
                     </h4>
                     <p style="font-size:12px;color:#666;margin:0">
                         <strong>Tọa độ:</strong><br>
-                        Kinh độ: ${lng.toFixed(6)}<br>
-                        Vĩ độ: ${lat.toFixed(6)}
+                        Kinh độ: ${lng.toFixed(6).replace(".", ",")}<br>
+                        Vĩ độ: ${lat.toFixed(6).replace(".", ",")}
                     </p>
                 </div>
             `,

@@ -117,8 +117,11 @@ export const updateUserByUser = (params) => {
                 ToastCommon(TOAST.SUCCESS, "Cập nhật thông tin thành công");
                 dispatch(getListUser());
             }
+
+            return success;
         } catch (error) {
             ToastCommon(TOAST.ERROR, error.response?.data?.message || error.message);
+            return false;
         }
     };
 };

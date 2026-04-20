@@ -1,38 +1,48 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { FaUser, FaEnvelope, FaCalendar, FaPhone, FaLock, FaKey, FaSave, FaTimes } from "react-icons/fa";
-import { REQUIRE_PASSWORD } from "@common/messageError";
-import { UPDATE } from "@common/messageConfirm";
+import { FaUser, FaEnvelope, FaLock, FaKey, FaSave, FaTimes } from "react-icons/fa";
 import { updateUserByUser } from "@stores/actions/userActions";
-import ModalConfirm from "@components/ModalConfirm";
-import { Helmet } from "react-helmet-async";
-import Header from "@pages/themes/headers/Header";
 
-function SettingUser() {
+function SettingUser({ isOpen, onClose }) {
     const dispatch = useDispatch();
     const { userInfo } = useSelector((state) => state.authStore);
 
-    const formatDateForDB = (dateString) => {
-        if (!dateString) return null; // Tránh gửi undefined
-        const parts = dateString.split("/");
-        if (parts.length === 3) {
-            return `${parts[2]}-${parts[1]}-${parts[0]}`; // Chuyển từ DD/MM/YYYY → YYYY-MM-DD
-        }
-        return dateString; // Nếu đã đúng format thì giữ nguyên
-    };
-
-    const [formState, setFormState] = useState({
+    const getInitialState = () => ({
         name: userInfo?.name || "",
         email: userInfo?.email || "",
         password: "",
         confirmPassword: "",
-        phone: userInfo?.phone || "",
     });
 
+    const [formState, setFormState] = useState(getInitialState);
+
     const [toggleUpdatePassword, setToggleUpdatePassword] = useState(false);
-    const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [errorMessages, setErrorMessages] = useState({});
-    const [updatedFormState, setUpdatedFormState] = useState({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const resetForm = () => {
+        setFormState(getInitialState());
+        setToggleUpdatePassword(false);
+        setErrorMessages({});
+    };
+
+    const handleClose = () => {
+        resetForm();
+        onClose?.();
+    };
+
+    useEffect(() => {
+        if (!isOpen) {
+            return undefined;
+        }
+
+        resetForm();
+        document.body.classList.add("setting-modal-open");
+
+        return () => {
+            document.body.classList.remove("setting-modal-open");
+        };
+    }, [isOpen, userInfo]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -42,20 +52,23 @@ function SettingUser() {
         }));
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         const errors = {};
 
-        if (toggleUpdatePassword) {
-            if (!formState.password) {
-                errors.password = REQUIRE_PASSWORD;
-            } else if (formState.password !== formState.confirmPassword) {
-                errors.confirmPassword = "Mật khẩu không khớp";
-            }
+        if (!formState.name.trim()) {
+            errors.name = "Vui lòng nhập thông tin";
         }
 
-        // Kiểm tra số điện thoại hợp lệ
-        if (formState.phone && !/^\d{10,11}$/.test(formState.phone)) {
-            errors.phone = "Số điện thoại không hợp lệ";
+        if (toggleUpdatePassword) {
+            if (!formState.password.trim()) {
+                errors.password = "Vui lòng nhập thông tin";
+            }
+
+            if (!formState.confirmPassword.trim()) {
+                errors.confirmPassword = "Vui lòng nhập thông tin";
+            } else if (formState.password !== formState.confirmPassword) {
+                errors.confirmPassword = "Mật khẩu xác nhận chưa trùng khớp với mật khẩu đã nhập";
+            }
         }
 
         if (Object.keys(errors).length > 0) {
@@ -63,23 +76,45 @@ function SettingUser() {
             return;
         }
 
-        setUpdatedFormState(updatedData);
-        setShowConfirmModal(true);
+        setErrorMessages({});
+        setIsSubmitting(true);
+
+        const updatedData = {
+            email: userInfo?.email || formState.email,
+            name: formState.name.trim(),
+            phone: userInfo?.phone || "",
+            birthday: userInfo?.birthday || null,
+            password: toggleUpdatePassword ? formState.password : "",
+        };
+
+        try {
+            const success = await dispatch(updateUserByUser(updatedData));
+
+            if (success) {
+                handleClose();
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
-    const confirmAction = () => {
-        dispatch(updateUserByUser(updatedFormState));
-        setShowConfirmModal(false);
-    };
+    if (!isOpen) {
+        return null;
+    }
 
     return (
-        <>
-            <Helmet>
-                <title>Cài đặt | Xâm nhập mặn Tp. Hồ Chí Minh</title>
-            </Helmet>
-            <Header />
-            <div className="infoUser">
-                <div className="settings-container">
+        <div className="setting-modal-overlay" onClick={handleClose}>
+            <div className="infoUser setting-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="settings-container settings-modal-container">
+                    <button
+                        type="button"
+                        className="setting-modal-close"
+                        onClick={handleClose}
+                        aria-label="Đóng form cài đặt"
+                    >
+                        <FaTimes />
+                    </button>
+
                     <div className="settings-header">
                         <h1>Cài đặt tài khoản</h1>
                         <p>Cập nhật thông tin cá nhân của bạn</p>
@@ -102,9 +137,11 @@ function SettingUser() {
                                         name="name"
                                         value={formState.name}
                                         onChange={handleChange}
+                                        className={errorMessages.name ? "input-error" : ""}
                                         placeholder="Nhập họ và tên của bạn"
                                     />
                                     <FaUser className="input-icon" />
+                                    {errorMessages.name && <span className="error">{errorMessages.name}</span>}
                                 </div>
 
                                 <div className="inputGroup">
@@ -119,22 +156,6 @@ function SettingUser() {
                                         placeholder="Nhập email của bạn"
                                     />
                                     <FaEnvelope className="input-icon" />
-                                </div>
-
-                                <div className="inputGroup">
-                                    <label htmlFor="phone">Số điện thoại</label>
-                                    <input
-                                        type="tel"
-                                        id="phone"
-                                        name="phone"
-                                        value={formState.phone}
-                                        onChange={handleChange}
-                                        placeholder="Nhập số điện thoại của bạn"
-                                    />
-                                    <FaPhone className="input-icon" />
-                                    {errorMessages.phone && (
-                                        <span className="error">{errorMessages.phone}</span>
-                                    )}
                                 </div>
                             </div>
 
@@ -158,6 +179,7 @@ function SettingUser() {
                                             name="password"
                                             value={formState.password}
                                             onChange={handleChange}
+                                            className={errorMessages.password ? "input-error" : ""}
                                             placeholder="Nhập mật khẩu mới"
                                         />
                                         <FaKey className="input-icon" />
@@ -174,6 +196,7 @@ function SettingUser() {
                                             name="confirmPassword"
                                             value={formState.confirmPassword}
                                             onChange={handleChange}
+                                            className={errorMessages.confirmPassword ? "input-error" : ""}
                                             placeholder="Xác nhận mật khẩu mới"
                                         />
                                         <FaLock className="input-icon" />
@@ -188,18 +211,12 @@ function SettingUser() {
                                 <button
                                     type="button"
                                     className="cancel-button"
-                                    onClick={() =>
-                                        setFormState({
-                                            ...userInfo,
-                                            password: "",
-                                            confirmPassword: "",
-                                        })
-                                    }
+                                    onClick={handleClose}
                                 >
                                     <FaTimes />
                                     Hủy
                                 </button>
-                                <button type="submit" className="save-button">
+                                <button type="submit" className="save-button" disabled={isSubmitting}>
                                     <FaSave />
                                     Lưu thay đổi
                                 </button>
@@ -207,16 +224,8 @@ function SettingUser() {
                         </form>
                     </div>
                 </div>
-
-                {showConfirmModal && (
-                    <ModalConfirm
-                        message={UPDATE.user}
-                        onConfirm={confirmAction}
-                        onCancel={() => setShowConfirmModal(false)}
-                    />
-                )}
             </div>
-        </>
+        </div>
     );
 }
 

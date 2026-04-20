@@ -318,7 +318,7 @@ function AreaInterestSelector({ setSelectedLocation, setHighlightedFeature }) {
             {isOpen && (
                 <div className="area-interest-panel">
                     <div className="area-field">
-                        <label className="area-label">Chọn Huyện</label>
+                        <label className="area-label">Cấp Huyện</label>
                         <select
                             className="district-select"
                             value={selectedDistrict}
@@ -331,7 +331,9 @@ function AreaInterestSelector({ setSelectedLocation, setHighlightedFeature }) {
                             disabled={districtLoading}
                         >
                             <option value="">
-                                {districtLoading ? "-- Đang tải huyện --" : "-- Chọn huyện --"}
+                                {districtLoading
+                                    ? "-- Đang tải huyện --"
+                                    : "-- Chọn quận/ huyện/ thành phố --"}
                             </option>
                             {districtList.map((district) => (
                                 <option key={district.code} value={district.code}>
@@ -342,7 +344,7 @@ function AreaInterestSelector({ setSelectedLocation, setHighlightedFeature }) {
                     </div>
 
                     <div className="area-field">
-                        <label className="area-label">Chọn Xã</label>
+                        <label className="area-label">Cấp Xã</label>
                         <select
                             className="district-select"
                             value={selectedCommune}
@@ -350,11 +352,10 @@ function AreaInterestSelector({ setSelectedLocation, setHighlightedFeature }) {
                             disabled={!selectedDistrict || communeLoading}
                         >
                             <option value="">
-                                {!selectedDistrict
-                                    ? "-- Chọn huyện trước --"
-                                    : communeLoading
+                                {communeLoading
                                       ? "-- Đang tải xã --"
-                                      : "-- Chọn xã --"}
+                                      : "-- Chọn phường/ xã --"
+                                }
                             </option>
                             {communeList.map((commune) => (
                                 <option key={commune.code} value={commune.code}>

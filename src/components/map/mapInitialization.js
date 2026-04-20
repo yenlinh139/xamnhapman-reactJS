@@ -1,20 +1,105 @@
 import L from "leaflet";
 import { createBaseMaps, createWMSLayer } from "@components/map/mapStyles";
 
+const LOCATION_CONSENT_MODAL_ID = "locationConsentModal";
+
+const fallbackLocationConfirm = () => {
+    return window.confirm(
+        [
+            "Hệ thống cần quyền vị trí để xác định vị trí thiết bị của bạn trên bản đồ.",
+            "",
+            "Ở hộp thoại trình duyệt tiếp theo:",
+            "- Allow = Cho phép",
+            "- Block = Từ chối",
+            "",
+            "Bạn có muốn tiếp tục không?",
+        ].join("\n"),
+    );
+};
+
+const shouldProceedWithLocationRequest = () => {
+    const bootstrapModal = window.bootstrap?.Modal;
+    if (!bootstrapModal || !document?.body) {
+        return Promise.resolve(fallbackLocationConfirm());
+    }
+
+    const oldModal = document.getElementById(LOCATION_CONSENT_MODAL_ID);
+    if (oldModal) {
+        oldModal.remove();
+    }
+
+    return new Promise((resolve) => {
+        const modalElement = document.createElement("div");
+        modalElement.className = "modal fade";
+        modalElement.id = LOCATION_CONSENT_MODAL_ID;
+        modalElement.tabIndex = -1;
+        modalElement.setAttribute("aria-hidden", "true");
+
+        modalElement.innerHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Cho phép truy cập vị trí</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-2">Hệ thống cần quyền vị trí để xác định vị trí thiết bị của bạn trên bản đồ.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-role="cancel">Hủy</button>
+                        <button type="button" class="btn btn-primary" data-role="confirm">Tiếp tục</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modalElement);
+
+        const modal = new bootstrapModal(modalElement, {
+            backdrop: "static",
+            keyboard: false,
+        });
+
+        let resolved = false;
+        const finalize = (accepted) => {
+            if (resolved) return;
+            resolved = true;
+            resolve(accepted);
+        };
+
+        modalElement.querySelector('[data-role="cancel"]')?.addEventListener("click", () => {
+            finalize(false);
+            modal.hide();
+        });
+
+        modalElement.querySelector('[data-role="confirm"]')?.addEventListener("click", () => {
+            finalize(true);
+            modal.hide();
+        });
+
+        modalElement.addEventListener("hidden.bs.modal", () => {
+            finalize(false);
+            modalElement.remove();
+        });
+
+        modal.show();
+    });
+};
+
 const formatDistance = (meters) => {
     if (!Number.isFinite(meters)) return "0 m";
     if (meters >= 1000) {
-        return `${(meters / 1000).toFixed(2)} km`;
+        return `${(meters / 1000).toFixed(2).replace(".", ",")} km`;
     }
-    return `${meters.toFixed(1)} m`;
+    return `${meters.toFixed(1).replace(".", ",")} m`;
 };
 
 const formatArea = (squareMeters) => {
     if (!Number.isFinite(squareMeters)) return "0 m²";
     if (squareMeters >= 1000000) {
-        return `${(squareMeters / 1000000).toFixed(2)} km²`;
+        return `${(squareMeters / 1000000).toFixed(2).replace(".", ",")} km²`;
     }
-    return `${squareMeters.toFixed(0)} m²`;
+    return `${squareMeters.toFixed(0).replace(".", ",")} m²`;
 };
 
 const updateMeasurementTooltip = (layer) => {
@@ -362,7 +447,7 @@ export const initializeMap = (container) => {
     explanationControl.addTo(mapInstance);
 
     // Add locate control
-    L.control
+    const locateControl = L.control
         .locate({
             position: "topleft",
             strings: {
@@ -371,6 +456,47 @@ export const initializeMap = (container) => {
             zoom: 15,
         })
         .addTo(mapInstance);
+
+    const locateControlContainer = locateControl?.getContainer?.();
+    const locateControlButton = locateControlContainer?.querySelector("a");
+
+    if (locateControlButton) {
+        let bypassNextLocateClick = false;
+        let isLocationRequestPending = false;
+
+        locateControlButton.addEventListener(
+            "click",
+            (event) => {
+                if (bypassNextLocateClick) {
+                    bypassNextLocateClick = false;
+                    return;
+                }
+
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                event.stopPropagation();
+
+                if (isLocationRequestPending) {
+                    return;
+                }
+
+                isLocationRequestPending = true;
+                shouldProceedWithLocationRequest()
+                    .then((accepted) => {
+                        if (!accepted) {
+                            return;
+                        }
+
+                        bypassNextLocateClick = true;
+                        locateControlButton.click();
+                    })
+                    .finally(() => {
+                        isLocationRequestPending = false;
+                    });
+            },
+            true,
+        );
+    }
 
     // Add draw controls for measuring distance and area.
     const drawnItems = new L.FeatureGroup();

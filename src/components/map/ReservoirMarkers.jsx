@@ -104,7 +104,7 @@ const formatDateTime = (value) => {
 const formatReservoirValue = (value) => {
     const numeric = Number.parseFloat(value);
     if (!Number.isFinite(numeric)) return "--";
-    return numeric.toFixed(3);
+    return numeric.toFixed(3).replace(".", ",");
 };
 
 const createReservoirPopup = ({ station, latestRecord, overview, dataCount }) => {

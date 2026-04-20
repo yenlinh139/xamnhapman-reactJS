@@ -17,6 +17,7 @@ export const WMS_POPUP_TITLES = {
     CTTL_2023_DeBao_BoBao: "Đê bao, bờ bao",
     CTTL_2023_KenhMuong: "Kênh mương",
     CTTL_2023_TramBom: "Trạm bơm",
+    HoChuaThuongLuu: "Hồ chứa thượng lưu",
     CTTL_2030_Vung_HeThong: "Công trình thủy lợi vùng, hệ thống",
     CTTL_2030_NongThonMoi: "Công trình nông thôn mới",
     CTTL_2030_NoiDong: "Công trình thủy lợi nhỏ, nội đồng",
@@ -37,6 +38,23 @@ const formatValue = (value, unit = "") => {
     }
 
     const safeValue = escapeHtml(value);
+    const safeUnit = unit ? ` ${escapeHtml(unit)}` : "";
+    return `${safeValue}${safeUnit}`;
+};
+
+const formatNumericValue = (value, digits = 2, unit = "") => {
+    if (value === null || value === undefined || value === "") {
+        return POPUP_FALLBACK;
+    }
+
+    const normalized = String(value).trim().replace(",", ".");
+    const numeric = Number.parseFloat(normalized);
+
+    if (!Number.isFinite(numeric)) {
+        return formatValue(value, unit);
+    }
+
+    const safeValue = escapeHtml(numeric.toFixed(digits).replace(".", ","));
     const safeUnit = unit ? ` ${escapeHtml(unit)}` : "";
     return `${safeValue}${safeUnit}`;
 };
@@ -132,7 +150,7 @@ export const createMetricPopup = (title, label, value) => {
         <div style="border: 1px solid #dfe5ec; border-radius: 10px; overflow: hidden; background: #fff;">
             <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(84px, 112px); align-items: stretch;">
                 <div style="background: #f5f6f8; padding: 14px; font-size: 15px; color: #5b6572;">${escapeHtml(label)}</div>
-                <div style="padding: 14px; font-size: 15px; line-height: 1.1; font-weight: 400; color: #2f3542; text-align: left; word-break: break-word;">${escapeHtml(value ?? "")}</div>
+                <div style="padding: 14px; font-size: 15px; line-height: 1.1; font-weight: 400; color: #2f3542; text-align: left; word-break: break-word;">${formatNumericValue(value, 2)}</div>
             </div>
         </div>
     `;
@@ -146,25 +164,25 @@ const rowsForLayer = (layerName, props) => {
             return [
                 { label: "Huyện", value: formatValue(props.tenHuyen) },
                 { label: "Mã huyện", value: formatValue(props.maHuyen) },
-                { label: "Diện tích (km²)", value: formatValue(props.dienTichTuNhien) },
+                { label: "Diện tích (km²)", value: formatNumericValue(props.dienTichTuNhien, 2) },
             ];
         case "DiaPhanXa":
             return [
                 { label: "Xã", value: formatValue(props.tenXa) },
                 { label: "Mã xã", value: formatValue(props.maXa) },
                 { label: "Huyện", value: formatValue(props.tenHuyen) },
-                { label: "Diện tích (km²)", value: formatValue(props.dienTichTuNhien) },
+                { label: "Diện tích (km²)", value: formatNumericValue(props.dienTichTuNhien, 2) },
             ];
         case "GiaoThong_line":
             return [
                 { label: "Tên đường", value: formatValue(props.tenDuong) },
-                { label: "Chiều dài", value: formatValue(props.chieuDai, "m") },
+                { label: "Chiều dài (m)", value: formatNumericValue(props.chieuDai, 2) },
             ];
         case "GiaoThong_polygon":
             return [
                 { label: "Tên đường", value: formatValue(props.TenDuong) },
-                { label: "Rộng", value: formatValue(props.DoRong, "m") },
-                { label: "Dài", value: formatValue(props.ChieuDai, "m") },
+                { label: "Rộng (m)", value: formatNumericValue(props.DoRong, 2) },
+                { label: "Dài (m)", value: formatNumericValue(props.ChieuDai, 2) },
                 { label: "Kết cấu", value: formatValue(props.KetCau) },
                 { label: "Tình trạng", value: formatValue(props.TinhTrang) },
                 { label: "Cấp quản lý", value: formatValue(props.CapQuanLy) },
@@ -174,15 +192,15 @@ const rowsForLayer = (layerName, props) => {
                 { label: "Tên sông/kênh", value: formatValue(props.Ten) },
                 { label: "Điểm đầu", value: formatValue(props.DiemDau) },
                 { label: "Điểm cuối", value: formatValue(props.DiemCuoi) },
-                { label: "Chiều dài", value: formatValue(props.ChieuDai, "m") },
+                { label: "Chiều dài (m)", value: formatNumericValue(props.ChieuDai, 2) },
             ];
         case "ThuyHe_polygon":
             return [
                 { label: "Tên", value: formatValue(props.Ten) },
                 { label: "Phân loại", value: formatValue(props.phanLoai) },
                 { label: "Trạng thái", value: formatValue(props.TrangThai) },
-                { label: "Rộng", value: formatValue(props.DoRong, "m") },
-                { label: "Sâu", value: formatValue(props.DoSau, "m") },
+                { label: "Rộng (m)", value: formatNumericValue(props.DoRong, 2) },
+                { label: "Sâu (m)", value: formatNumericValue(props.DoSau, 2) },
             ];
         case "HienTrangSDD_2020":
             return [
@@ -202,16 +220,16 @@ const rowsForLayer = (layerName, props) => {
                 { label: "Cụm công trình", value: formatValue(props.CumCongTrinh) },
                 { label: "Loại công trình", value: formatValue(props.LoaiCongTrinh) },
                 { label: "Hình thức", value: formatValue(props.HinhThuc) },
-                { label: "Chiều dài", value: formatValue(props.ChieuDai) },
-                { label: "Đường kính", value: formatValue(props.DuongKinh) },
-                { label: "Bề rộng", value: formatValue(props.BeRong) },
-                { label: "Chiều cao", value: formatValue(props.ChieuCao) },
-                { label: "Số cửa", value: formatValue(props.SoCua) },
-                { label: "Cao trình đáy cống", value: formatValue(props.CaoTrinhDayCong) },
-                { label: "Cao trình đỉnh cống", value: formatValue(props.CaoTrinhDinhCong) },
+                { label: "Chiều dài (m)", value: formatNumericValue(props.ChieuDai, 2) },
+                { label: "Đường kính (mm)", value: formatNumericValue(props.DuongKinh, 2) },
+                { label: "Bề rộng (m)", value: formatNumericValue(props.BeRong, 2) },
+                { label: "Chiều cao (m)", value: formatNumericValue(props.ChieuCao, 2) },
+                { label: "Số cửa", value: formatNumericValue(props.SoCua, 0) },
+                { label: "Cao trình đáy cống (m)", value: formatNumericValue(props.CaoTrinhDayCong, 2) },
+                { label: "Cao trình đỉnh cống (m)", value: formatNumericValue(props.CaoTrinhDinhCong, 2) },
                 { label: "Hình thức vận hành", value: formatValue(props.HinhThucVanHanh) },
                 { label: "Mục tiêu nhiệm vụ", value: formatValue(props.MucTieuNhiemVu) },
-                { label: "Diện tích phục vụ", value: formatValue(props.DienTichPhucVu_ha, "ha") },
+                { label: "Diện tích phục vụ (ha)", value: formatNumericValue(props.DienTichPhucVu_ha, 2, "ha") },
                 { label: "Năm sử dụng", value: formatValue(props.NamSuDung) },
                 { label: "Cấp công trình", value: formatValue(props.CapCongTrinh) },
                 { label: "Hệ thống công trình thủy lợi", value: formatValue(props.HeThongCongTrinhThuyLoi) },
@@ -221,57 +239,65 @@ const rowsForLayer = (layerName, props) => {
         case "CTTL_2023_DeBao_BoBao":
             return [
                 { label: "Tên", value: formatValue(props.Ten) },
-                { label: "Chiều dài", value: formatValue(props.ChieuDai) },
-                { label: "Cao trình đáy kênh", value: formatValue(props.CaoTrinhDayKenh) },
-                { label: "Bề rộng kênh", value: formatValue(props.BeRongKenh) },
-                { label: "Hệ số mái", value: formatValue(props.HeSoMai) },
-                { label: "Cao trình bờ trái", value: formatValue(props.CaoTrinhBoTrai) },
-                { label: "Cao trình bờ phải", value: formatValue(props.CaoTrinhBoPhai) },
-                { label: "Bề rộng bờ trái", value: formatValue(props.BeRongBoTrai) },
-                { label: "Bề rộng bờ phải", value: formatValue(props.BeRongBoPhai) },
-                { label: "Hành lang bảo vệ", value: formatValue(props.HanhLangBaoVe) },
+                { label: "Chiều dài (m)", value: formatNumericValue(props.ChieuDai, 2) },
+                { label: "Cao trình đáy kênh (m)", value: formatNumericValue(props.CaoTrinhDayKenh, 2) },
+                { label: "Bề rộng kênh (m)", value: formatNumericValue(props.BeRongKenh, 2) },
+                { label: "Hệ số mái", value: formatNumericValue(props.HeSoMai, 2) },
+                { label: "Cao trình bờ trái (m)", value: formatNumericValue(props.CaoTrinhBoTrai, 2) },
+                { label: "Cao trình bờ phải (m)", value: formatNumericValue(props.CaoTrinhBoPhai, 2) },
+                { label: "Bề rộng bờ trái (m)", value: formatNumericValue(props.BeRongBoTrai, 2) },
+                { label: "Bề rộng bờ phải (m)", value: formatNumericValue(props.BeRongBoPhai, 2) },
+                { label: "Hành lang bảo vệ", value: formatNumericValue(props.HanhLangBaoVe, 2) },
                 { label: "Cấp công trình", value: formatValue(props.CapCongTrinh) },
                 { label: "Kết cấu công trình", value: formatValue(props.KetCauCongTrinh) },
                 { label: "Mục tiêu nhiệm vụ", value: formatValue(props.MucTieuNhiemVu) },
-                { label: "Diện tích phục vụ", value: formatValue(props.DienTichPhucVu) },
+                { label: "Diện tích phục vụ (ha)", value: formatNumericValue(props.DienTichPhucVu, 2) },
                 { label: "Năm sử dụng", value: formatValue(props.NamSuDung) },
                 { label: "Hệ thống công trình thủy lợi", value: formatValue(props.HeThongCongTrinhThuyLoi) },
                 { label: "Đơn vị quản lý", value: formatValue(props.DonViQuanLy) },
                 { label: "Năm cập nhật", value: formatValue(props.NamCapNhat) },
-                { label: "Chiều dài shape", value: formatValue(props.SHAPE_Length) },
             ];
         case "CTTL_2023_KenhMuong":
             return [
                 { label: "Tên kênh mương", value: formatValue(props.TenKenhMuong) },
-                { label: "Chiều dài", value: formatValue(props.ChieuDai) },
-                { label: "Cao trình đáy kênh", value: formatValue(props.CaoTrinhDayKenh) },
-                { label: "Bề rộng kênh", value: formatValue(props.BeRongKenh) },
-                { label: "Hệ số mái", value: formatValue(props.HeSoMai) },
-                { label: "Cao trình bờ trái", value: formatValue(props.CaoTrinhBoTrai) },
-                { label: "Cao trình bờ phải", value: formatValue(props.CaoTrinhBoPhai) },
-                { label: "Bề rộng bờ trái", value: formatValue(props.BeRongBoTrai) },
-                { label: "Bề rộng bờ phải", value: formatValue(props.BeRongBoPhai) },
-                { label: "Hành lang bảo vệ", value: formatValue(props.HanhLangBaoVe) },
+                { label: "Chiều dài (m)", value: formatNumericValue(props.ChieuDai, 2) },
+                { label: "Cao trình đáy kênh (m)", value: formatNumericValue(props.CaoTrinhDayKenh, 2) },
+                { label: "Bề rộng kênh (m)", value: formatNumericValue(props.BeRongKenh, 2) },
+                { label: "Hệ số mái", value: formatNumericValue(props.HeSoMai, 2) },
+                { label: "Cao trình bờ trái (m)", value: formatNumericValue(props.CaoTrinhBoTrai, 2) },
+                { label: "Cao trình bờ phải (m)", value: formatNumericValue(props.CaoTrinhBoPhai, 2) },
+                { label: "Bề rộng bờ trái (m)", value: formatNumericValue(props.BeRongBoTrai, 2) },
+                { label: "Bề rộng bờ phải (m)", value: formatNumericValue(props.BeRongBoPhai, 2) },
+                { label: "Hành lang bảo vệ", value: formatNumericValue(props.HanhLangBaoVe, 2) },
                 { label: "Cấp công trình", value: formatValue(props.CapCongTrinh) },
                 { label: "Kết cấu công trình", value: formatValue(props.KetCauCongTrinh) },
                 { label: "Mục tiêu nhiệm vụ", value: formatValue(props.MucTieuNhiemVu) },
-                { label: "Diện tích phục vụ", value: formatValue(props.DienTichPhucVu) },
+                { label: "Diện tích phục vụ (ha)", value: formatNumericValue(props.DienTichPhucVu, 2) },
                 { label: "Năm sử dụng", value: formatValue(props.NamSuDung) },
                 { label: "Hệ thống công trình thủy lợi", value: formatValue(props.HeThongCongTrinhThuyLoi) },
                 { label: "Đơn vị quản lý", value: formatValue(props.DonViQuanLy) },
                 { label: "Năm cập nhật", value: formatValue(props.NamCapNhat) },
-                { label: "Chiều dài shape", value: formatValue(props.SHAPE_Length) },
             ];
         case "CTTL_2023_TramBom":
             return [
                 { label: "Tên trạm bơm", value: formatValue(props.TenTramBom) },
                 { label: "Loại", value: formatValue(props.Loai) },
-                { label: "Công suất", value: formatValue(props.CongSuat) },
+                { label: "Công suất", value: formatNumericValue(props.CongSuat, 2) },
                 { label: "Mục tiêu nhiệm vụ", value: formatValue(props.MucTieuNhiemVu) },
-                { label: "Diện tích phục vụ", value: formatValue(props.DienTichPhucVu_ha, "ha") },
+                { label: "Diện tích phục vụ", value: formatNumericValue(props.DienTichPhucVu_ha, 2, "ha") },
                 { label: "Hệ thống công trình thủy lợi", value: formatValue(props.HeThongCongTrinhThuyLoi) },
                 { label: "Năm sử dụng", value: formatValue(props.NamSuDung) },
                 { label: "Đơn vị quản lý", value: formatValue(props.DonViQuanLy) },
+            ];
+        case "HoChuaThuongLuu":
+            return [
+                { label: "Ký hiệu", value: formatValue(props.KiHieu) },
+                { label: "Tên hồ", value: formatValue(props.TenHo || props.name) },
+                { label: "Kinh độ", value: formatValue(props.KinhDo || props.lng) },
+                { label: "Vĩ độ", value: formatValue(props.ViDo || props.lat) },
+                { label: "Yếu tố", value: formatValue(props.YeuTo) },
+                { label: "Thời gian", value: formatValue(props.ThoiGian) },
+                { label: "Tần suất", value: formatValue(props.TanSuat) },
             ];
         case "CTTL_2030_Vung_HeThong":
         case "CTTL_2030_NongThonMoi":
@@ -279,14 +305,11 @@ const rowsForLayer = (layerName, props) => {
             return [
                 { label: "Tên", value: formatValue(props.Ten) },
                 { label: "Vùng thủy lợi", value: formatValue(props.VungThuyLoi) },
-                { label: "Chiều dài shape", value: formatValue(props.Shape_Length) },
             ];
         case "CTTL_2030_VungThuyLoi":
             return [
                 { label: "Vùng thủy lợi", value: formatValue(props.VungThuyLoi) },
                 { label: "Mô tả", value: formatValue(props.MoTa) },
-                { label: "Chiều dài shape", value: formatValue(props.Shape_Length) },
-                { label: "Diện tích shape", value: formatValue(props.Shape_Area) },
             ];
         default:
             return [];

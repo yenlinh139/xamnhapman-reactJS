@@ -3,6 +3,7 @@ import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { login } from "@stores/actions/authActions";
 import { ROUTES } from "@common/constants";
+import { INVALID_EMAIL, REQUIRE_EMAIL, REQUIRE_PASSWORD } from "@common/messageError";
 
 // eslint-disable-next-line react/prop-types
 const Login = ({ onSwitchTab }) => {
@@ -11,11 +12,46 @@ const Login = ({ onSwitchTab }) => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
 
-    // State để lưu thông báo lỗi
-    const [errorMessage, setErrorMessage] = useState("");
+    const [errors, setErrors] = useState({});
+
+    const focusField = (fieldRef) => {
+        fieldRef.current?.focus();
+        fieldRef.current?.select?.();
+    };
+
+    const validateForm = () => {
+        const emailValue = String(email.current?.value || "").trim();
+        const passwordValue = String(password.current?.value || "");
+        const nextErrors = {};
+
+        if (!emailValue) {
+            nextErrors.email = REQUIRE_EMAIL;
+            setErrors(nextErrors);
+            focusField(email);
+            return false;
+        }
+
+        if (!/^\S+@\S+\.\S+$/.test(emailValue)) {
+            nextErrors.email = INVALID_EMAIL;
+            setErrors(nextErrors);
+            focusField(email);
+            return false;
+        }
+
+        if (!passwordValue) {
+            nextErrors.password = REQUIRE_PASSWORD;
+            setErrors(nextErrors);
+            focusField(password);
+            return false;
+        }
+
+        setErrors({});
+        return true;
+    };
 
     const handleKeyPress = (event) => {
         if (event.key === "Enter") {
+            event.preventDefault();
             if (event.target.name === "email") {
                 password.current.focus(); // Chuyển focus sang ô password khi nhấn Enter ở ô email
             } else {
@@ -24,22 +60,34 @@ const Login = ({ onSwitchTab }) => {
         }
     };
 
-    const handleLogin = async () => {
-        setErrorMessage("");
+    const handleLogin = async (event) => {
+        event?.preventDefault?.();
+
+        if (!validateForm()) {
+            return;
+        }
+
         try {
             await dispatch(
                 login(
                     {
-                        email: email.current.value,
-                        password: password.current.value,
+                        email: String(email.current.value || "").trim(),
+                        password: String(password.current.value || ""),
                     },
                     () => navigate(ROUTES.map), // Điều hướng sau khi login thành công
                 ),
             );
         } catch (error) {
-            // Nếu có lỗi, hiển thị thông báo lỗi
-            if (error?.response?.data?.message) {
-                setErrorMessage(error.response.data.message); // Hiển thị thông báo lỗi
+            const backendMessage = error?.response?.data?.message || "Đăng nhập không thành công.";
+            setErrors((prev) => ({
+                ...prev,
+                form: backendMessage,
+            }));
+
+            if (backendMessage.toLowerCase().includes("email")) {
+                focusField(email);
+            } else if (backendMessage.toLowerCase().includes("mật khẩu") || backendMessage.toLowerCase().includes("password")) {
+                focusField(password);
             }
         }
     };
@@ -47,26 +95,54 @@ const Login = ({ onSwitchTab }) => {
     return (
         <>
             <div className="login">
-                <form onSubmit={(e) => e.preventDefault()}>
+                <form onSubmit={handleLogin}>
                     <input
-                        className="inputLogin"
+                        className={`inputLogin ${errors.email ? "inputLoginError" : ""}`}
                         type="email"
                         name="email"
                         placeholder="Email"
                         ref={email}
+                        onChange={() =>
+                            setErrors((prev) => ({
+                                ...prev,
+                                email: "",
+                                form: "",
+                            }))
+                        }
                         onKeyDown={handleKeyPress}
+                        aria-invalid={Boolean(errors.email)}
                     />
+                    {errors.email && <div className="field-error">* {errors.email}</div>}
                     <input
-                        className="inputLogin"
+                        className={`inputLogin ${errors.password ? "inputLoginError" : ""}`}
                         type="password"
                         name="pswd"
                         placeholder="Mật khẩu"
                         ref={password}
+                        onChange={() =>
+                            setErrors((prev) => ({
+                                ...prev,
+                                password: "",
+                                form: "",
+                            }))
+                        }
                         onKeyDown={handleKeyPress}
+                        aria-invalid={Boolean(errors.password)}
                     />
-                    {errorMessage && <div className="error-message">{errorMessage}</div>}
-                    <button type="button" className="btnLogin btnLoginSubmit" onClick={() => handleLogin()}>
+                    {errors.password && <div className="field-error">* {errors.password}</div>}
+                    {errors.form && <div className="field-error form-error">* {errors.form}</div>}
+                    <button type="submit" className="btnLogin btnLoginSubmit">
                         Đăng nhập
+                    </button>
+                    <button
+                        type="button"
+                        className="register-text mt-3"
+                        onClick={() => navigate(ROUTES.forgotPassword)}
+                    >
+                        Quên mật khẩu?{" "}
+                        <span>
+                            Đặt lại mật khẩu
+                        </span>
                     </button>
                 </form>
                 <button type="button" className="register-text" onClick={() => onSwitchTab?.(true)}>
@@ -74,6 +150,9 @@ const Login = ({ onSwitchTab }) => {
                     <span>
                         Đăng ký ngay <i className="fas fa-arrow-right ms-1"></i>
                     </span>
+                </button>
+                <button type="button" className="register-text" onClick={() => navigate(ROUTES.map)}>
+                    Truy cập không cần tài khoản
                 </button>
             </div>
         </>

@@ -110,13 +110,53 @@ const toDisplayDateTime = (rawValue) => {
 
 const toNullableNumber = (value) => {
     if (value === "" || value === null || value === undefined) return null;
-    const numericValue = Number(String(value).replace(",", "."));
+    const raw = String(value).trim();
+    if (!raw) return null;
+
+    const normalized = raw.includes(",") ? raw.replace(/\./g, "").replace(",", ".") : raw;
+    const numericValue = Number(normalized);
     return Number.isNaN(numericValue) ? null : numericValue;
+};
+
+const formatMetricInput = (value, digits = 2) => {
+    const numericValue = toNullableNumber(value);
+    if (numericValue === null) return "";
+
+    return numericValue.toLocaleString("vi-VN", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+    });
+};
+
+const normalizeMetricInputText = (value) => {
+    const sanitized = String(value || "")
+        .replace(/\s+/g, "")
+        .replace(/[^\d,\.]/g, "")
+        .replace(/\./g, ",");
+
+    const firstCommaIndex = sanitized.indexOf(",");
+    if (firstCommaIndex === -1) return sanitized;
+
+    const integerPart = sanitized.slice(0, firstCommaIndex).replace(/,/g, "");
+    const decimalPart = sanitized.slice(firstCommaIndex + 1).replace(/,/g, "");
+    return `${integerPart},${decimalPart}`;
 };
 
 const formatMetric = (value, digits = 2) => {
     const numericValue = toNullableNumber(value);
-    return numericValue === null ? "-" : numericValue.toFixed(digits);
+    return numericValue === null
+        ? "-"
+        : numericValue.toLocaleString("vi-VN", {
+              minimumFractionDigits: digits,
+              maximumFractionDigits: digits,
+          });
+};
+
+const roundMetricValue = (value, digits = 2) => {
+    const numericValue = toNullableNumber(value);
+    if (numericValue === null) return null;
+
+    return Number(numericValue.toFixed(digits));
 };
 
 const sanitizePayload = (payload) => {
@@ -331,10 +371,13 @@ const IoTManagementTab = ({ userInfo }) => {
             id: row.id || row._id || "",
             serial_number: row.serial_number || row.serialNumber || row.DeviceSerialNumber || "",
             date_time: toInputDateDisplay(row.date_time || row.Date || row.timestamp),
-            salt_value: row.salt_value ?? row.salt_value_avg ?? "",
-            distance_value: row.distance_value ?? row.distance_value_avg ?? "",
-            daily_rainfall_value: row.daily_rainfall_value ?? row.daily_rainfall_value_sum ?? "",
-            temp_value: row.temp_value ?? row.temp_value_avg ?? "",
+            salt_value: formatMetricInput(row.salt_value ?? row.salt_value_avg, 2),
+            distance_value: formatMetricInput(row.distance_value ?? row.distance_value_avg, 2),
+            daily_rainfall_value: formatMetricInput(
+                row.daily_rainfall_value ?? row.daily_rainfall_value_sum,
+                2,
+            ),
+            temp_value: formatMetricInput(row.temp_value ?? row.temp_value_avg, 2),
         });
         setShowDataModal(true);
     };
@@ -347,10 +390,10 @@ const IoTManagementTab = ({ userInfo }) => {
             const payload = sanitizePayload({
                 serial_number: dataForm.serial_number,
                 date_time: isoDate ? new Date(isoDate).toISOString() : "",
-                salt_value: toNullableNumber(dataForm.salt_value),
-                distance_value: toNullableNumber(dataForm.distance_value),
-                daily_rainfall_value: toNullableNumber(dataForm.daily_rainfall_value),
-                temp_value: toNullableNumber(dataForm.temp_value),
+                salt_value: roundMetricValue(dataForm.salt_value, 2),
+                distance_value: roundMetricValue(dataForm.distance_value, 2),
+                daily_rainfall_value: roundMetricValue(dataForm.daily_rainfall_value, 2),
+                temp_value: roundMetricValue(dataForm.temp_value, 2),
             });
 
             if (!payload.serial_number || !payload.date_time) {
@@ -422,13 +465,13 @@ const IoTManagementTab = ({ userInfo }) => {
                 "Tên trạm": row.station_name || row.stationName || "Trạm IoT",
                 "Serial Number": row.serial_number || row.serialNumber || row.DeviceSerialNumber || "",
                 "Thời gian": toDisplayDateTime(row.date_time || row.Date || row.timestamp),
-                "Độ mặn (‰)": formatMetric(row.salt_value ?? row.salt_value_avg, 4),
-                "Mực nước (m)": formatMetric(row.distance_value ?? row.distance_value_avg, 4),
+                "Độ mặn (‰)": formatMetric(row.salt_value ?? row.salt_value_avg, 2),
+                "Mực nước (m)": formatMetric(row.distance_value ?? row.distance_value_avg, 2),
                 "Lượng mưa ngày (mm)": formatMetric(
                     row.daily_rainfall_value ?? row.daily_rainfall_value_sum,
-                    4,
+                    2,
                 ),
-                "Nhiệt độ (°C)": formatMetric(row.temp_value ?? row.temp_value_avg, 1),
+                "Nhiệt độ (°C)": formatMetric(row.temp_value ?? row.temp_value_avg, 2),
             }));
 
             const worksheet = XLSX.utils.json_to_sheet(worksheetData);
@@ -584,17 +627,17 @@ const IoTManagementTab = ({ userInfo }) => {
                                                 row.DeviceSerialNumber ||
                                                 "-"}
                                         </td>
-                                        <td>{formatMetric(row.salt_value ?? row.salt_value_avg, 4)}</td>
+                                        <td>{formatMetric(row.salt_value ?? row.salt_value_avg, 2)}</td>
                                         <td>
-                                            {formatMetric(row.distance_value ?? row.distance_value_avg, 4)}
+                                            {formatMetric(row.distance_value ?? row.distance_value_avg, 2)}
                                         </td>
                                         <td>
                                             {formatMetric(
                                                 row.daily_rainfall_value ?? row.daily_rainfall_value_sum,
-                                                4,
+                                                2,
                                             )}
                                         </td>
-                                        <td>{formatMetric(row.temp_value ?? row.temp_value_avg, 1)}</td>
+                                        <td>{formatMetric(row.temp_value ?? row.temp_value_avg, 2)}</td>
                                         {userInfo && (
                                             <td>
                                                 <div className="d-flex gap-2">
@@ -719,61 +762,90 @@ const IoTManagementTab = ({ userInfo }) => {
                                         <div className="col-md-6">
                                             <label className="form-label">Độ mặn (‰)</label>
                                             <input
-                                                type="number"
-                                                step="0.0001"
+                                                type="text"
                                                 className="form-control"
                                                 value={dataForm.salt_value}
                                                 onChange={(e) =>
                                                     setDataForm((prev) => ({
                                                         ...prev,
-                                                        salt_value: e.target.value,
+                                                        salt_value: normalizeMetricInputText(e.target.value),
                                                     }))
                                                 }
+                                                onBlur={() =>
+                                                    setDataForm((prev) => ({
+                                                        ...prev,
+                                                        salt_value: formatMetricInput(prev.salt_value, 2),
+                                                    }))
+                                                }
+                                                inputMode="decimal"
                                             />
                                         </div>
                                         <div className="col-md-6">
                                             <label className="form-label">Mực nước (cm)</label>
                                             <input
-                                                type="number"
-                                                step="0.0001"
+                                                type="text"
                                                 className="form-control"
                                                 value={dataForm.distance_value}
                                                 onChange={(e) =>
                                                     setDataForm((prev) => ({
                                                         ...prev,
-                                                        distance_value: e.target.value,
+                                                        distance_value: normalizeMetricInputText(e.target.value),
                                                     }))
                                                 }
+                                                onBlur={() =>
+                                                    setDataForm((prev) => ({
+                                                        ...prev,
+                                                        distance_value: formatMetricInput(prev.distance_value, 2),
+                                                    }))
+                                                }
+                                                inputMode="decimal"
                                             />
                                         </div>
                                         <div className="col-md-6">
                                             <label className="form-label">Lượng mưa (mm)</label>
                                             <input
-                                                type="number"
-                                                step="0.0001"
+                                                type="text"
                                                 className="form-control"
                                                 value={dataForm.daily_rainfall_value}
                                                 onChange={(e) =>
                                                     setDataForm((prev) => ({
                                                         ...prev,
-                                                        daily_rainfall_value: e.target.value,
+                                                        daily_rainfall_value: normalizeMetricInputText(
+                                                            e.target.value,
+                                                        ),
                                                     }))
                                                 }
+                                                onBlur={() =>
+                                                    setDataForm((prev) => ({
+                                                        ...prev,
+                                                        daily_rainfall_value: formatMetricInput(
+                                                            prev.daily_rainfall_value,
+                                                            2,
+                                                        ),
+                                                    }))
+                                                }
+                                                inputMode="decimal"
                                             />
                                         </div>
                                         <div className="col-md-6">
                                             <label className="form-label">Nhiệt độ (°C)</label>
                                             <input
-                                                type="number"
-                                                step="0.1"
+                                                type="text"
                                                 className="form-control"
                                                 value={dataForm.temp_value}
                                                 onChange={(e) =>
                                                     setDataForm((prev) => ({
                                                         ...prev,
-                                                        temp_value: e.target.value,
+                                                        temp_value: normalizeMetricInputText(e.target.value),
                                                     }))
                                                 }
+                                                onBlur={() =>
+                                                    setDataForm((prev) => ({
+                                                        ...prev,
+                                                        temp_value: formatMetricInput(prev.temp_value, 2),
+                                                    }))
+                                                }
+                                                inputMode="decimal"
                                             />
                                         </div>
                                     </div>

@@ -386,7 +386,7 @@ const MapboxMap = forwardRef(
 
                 // Show success notification
                 ToastCommon({
-                    message: `Đã định vị: ${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+                    message: `Đã định vị: ${lat.toFixed(6).replace(".", ",")}, ${lng.toFixed(6).replace(".", ",")}`,
                     type: TOAST.SUCCESS,
                 });
             });
@@ -1211,7 +1211,13 @@ const MapboxMap = forwardRef(
                                 const formatAvg = (values, digits = 1) => {
                                     if (!values.length) return "--";
                                     const avg = values.reduce((sum, value) => sum + value, 0) / values.length;
-                                    return avg.toFixed(digits);
+                                    return avg.toFixed(digits).replace(".", ",");
+                                };
+
+                                const formatDecimalDisplay = (value, digits = 2) => {
+                                    const numeric = Number.parseFloat(value);
+                                    if (!Number.isFinite(numeric)) return "--";
+                                    return numeric.toFixed(digits).replace(".", ",");
                                 };
 
                                 const rawIotRows = Array.isArray(data.iotData) ? data.iotData : [];
@@ -1287,7 +1293,7 @@ const MapboxMap = forwardRef(
                                                 renderTile("Điểm >= 4‰", String(salinityHighRisk), salinityHighRisk > 0, "điểm cần chú ý"),
                                                 renderTile(
                                                     "Cao nhất",
-                                                    salinityTop ? `${salinityTop.numericValue.toFixed(2)} ‰` : "--",
+                                                    salinityTop ? `${formatDecimalDisplay(salinityTop.numericValue, 2)} ‰` : "--",
                                                     salinityTop && salinityTop.numericValue > 4,
                                                     salinityTop?.name || "không có dữ liệu",
                                                 ),
@@ -1335,7 +1341,7 @@ const MapboxMap = forwardRef(
                                     const meteoStationCount = (stationsInfo.meteorologyData || []).length;
                                     const hydroStationCount = (stationsInfo.hydrologyData || []).length;
                                     const topKttvLabel = kttvTopMetric
-                                        ? `${kttvTopMetric.station.name} · ${kttvTopMetric.paramName}: ${kttvTopMetric.numericValue.toFixed(2)} ${kttvTopMetric.unit}`
+                                        ? `${kttvTopMetric.station.name} · ${kttvTopMetric.paramName}: ${formatDecimalDisplay(kttvTopMetric.numericValue, 2)} ${kttvTopMetric.unit}`
                                         : "--";
 
                                     sections.push(
@@ -1579,7 +1585,7 @@ const MapboxMap = forwardRef(
                     pane: "salinityTooltipPane",
                 });
 
-                const valueDisplay = Number.isFinite(value) ? `${value.toFixed(2)} ‰` : "--";
+                const valueDisplay = Number.isFinite(value) ? `${formatDecimalDisplay(value, 2)} ‰` : "--";
                 const popupDate = date || "Ngày tìm kiếm";
                 const popupHTML = `
                 <div class="modern-popup salinity-popup">
@@ -1749,7 +1755,7 @@ const MapboxMap = forwardRef(
           <div class="popup-main-value">
             <span class="value-label">${contentLabel || "Giá trị đo"}</span>
             <span class="value-number" style="color: ${color}">
-              ${!isNaN(value) ? value.toFixed(2) : "-"} ${DonVi}
+                            ${!isNaN(value) ? formatDecimalDisplay(value, 2) : "-"} ${DonVi}
             </span>
           </div>
         `;

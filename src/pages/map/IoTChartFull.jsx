@@ -8,6 +8,35 @@ import "@styles/components/_hydrometChart.scss";
 
 const EMPTY_DATA = [];
 
+const parseNumber = (value) => {
+    if (value === null || value === undefined || value === "" || value === "NULL") {
+        return null;
+    }
+
+    if (typeof value === "number") {
+        return Number.isFinite(value) ? value : null;
+    }
+
+    const raw = String(value).trim();
+    if (!raw) return null;
+
+    // Keep backend dot-decimal values intact; only normalize optional comma input.
+    const normalized = raw.includes(".") ? raw.replace(/,/g, "") : raw.replace(",", ".");
+
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+};
+
+const formatNumberVi = (value, fractionDigits = 2) => {
+    const parsed = parseNumber(value);
+    if (parsed === null) return "-";
+
+    return parsed.toLocaleString("vi-VN", {
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: fractionDigits,
+    });
+};
+
 const getIoTRowTime = (row) => row?.Date || row?.date_time || null;
 
 const formatDateLabel = (rawValue) => {
@@ -322,7 +351,7 @@ const IoTExportPreviewTable = ({ data, groupBy = "none", stationCode = "" }) => 
                                     {hasSaltValue ? (
                                         <div className="d-flex justify-content-end align-items-center gap-2">
                                             <span className="fw-semibold">
-                                                {Number(row.salt_value).toFixed(4)}
+                                                {formatNumberVi(row.salt_value, 2)}
                                             </span>
                                             <span
                                                 className="badge rounded-pill"
@@ -342,18 +371,18 @@ const IoTExportPreviewTable = ({ data, groupBy = "none", stationCode = "" }) => 
                                 </td>
                                 <td className="text-end">
                                     {row.distance_value !== undefined && row.distance_value !== null
-                                        ? `${Number(row.distance_value).toFixed(4)}`
+                                        ? formatNumberVi(row.distance_value, 2)
                                         : "-"}
                                 </td>
                                 <td className="text-end">
                                     {row.daily_rainfall_value !== undefined &&
                                     row.daily_rainfall_value !== null
-                                        ? `${Number(row.daily_rainfall_value).toFixed(4)}`
+                                        ? formatNumberVi(row.daily_rainfall_value, 2)
                                         : "-"}
                                 </td>
                                 <td className="text-end">
                                     {row.temp_value !== undefined && row.temp_value !== null
-                                        ? `${Number(row.temp_value).toFixed(1)}`
+                                        ? formatNumberVi(row.temp_value, 2)
                                         : "-"}
                                 </td>
                             </tr>
@@ -685,19 +714,19 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
             const timeValue = toDisplayDateTime(row.Date || row.date_time, queryOptions.groupBy);
             const salinityValue =
                 row.salt_value !== undefined && row.salt_value !== null
-                    ? Number(row.salt_value).toFixed(4)
+                    ? Number(row.salt_value).toFixed(2)
                     : "";
             const waterLevelValue =
                 row.distance_value !== undefined && row.distance_value !== null
-                    ? Number(row.distance_value).toFixed(4)
+                    ? Number(row.distance_value).toFixed(2)
                     : "";
             const rainfallValue =
                 row.daily_rainfall_value !== undefined && row.daily_rainfall_value !== null
-                    ? Number(row.daily_rainfall_value).toFixed(4)
+                    ? Number(row.daily_rainfall_value).toFixed(2)
                     : "";
             const temperatureValue =
                 row.temp_value !== undefined && row.temp_value !== null
-                    ? Number(row.temp_value).toFixed(1)
+                    ? Number(row.temp_value).toFixed(2)
                     : "";
 
             return [

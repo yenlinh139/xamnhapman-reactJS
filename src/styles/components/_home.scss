@@ -189,9 +189,9 @@
 
     .roles-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 30px;
-        max-width: 1200px;
+        max-width: 1400px;
         margin: 0 auto;
         padding: 0 20px;
     }
@@ -303,6 +303,14 @@
                     box-shadow: 0 4px 15px rgba(var(--primary), 0.3);
                 }
             }
+        }
+    }
+}
+
+@media (max-width: 1200px) {
+    .user-roles-section {
+        .roles-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
     }
 }

@@ -6,42 +6,40 @@ import Header from "@pages/themes/headers/Header";
 import Footer from "@pages/themes/footer/Footer";
 import Banner from "@/pages/home/Banner";
 import { getAllFeedbackData, loadMoreFeedback, feedbackActions } from "@/stores/actions/feedbackActions";
+import { ROUTES } from "@/common/constants";
 
 const userRoles = [
     {
         title: "Người dùng chưa đăng nhập",
-        icon: "👁️",
         color: "gray",
         features: [
-            "Xem thông tin tổng quan hệ thống",
-            "Tương tác đầy đủ với bản đồ WebGIS",
-            "Xem chi tiết dữ liệu trạm khí tượng và xâm nhập mặn",
-            "Phân tích dữ liệu: lọc theo ngày, xuất biểu đồ",
-            "Tìm kiếm trạm theo tên và đơn vị hành chính",
-            "Zoom đến khu vực/trạm quan tâm",
-            "Xem thông tin nền: ranh giới, thủy văn, giao thông",
+            "Đăng kí, đăng nhập tài khoản",
+            "Xem bản đồ địa hình, giao thông, thủy hệ, sử dụng đất; số liệu quan trắc khí tượng, thủy văn, xâm nhập mặn, vận hành công trình thủy lợi",
+            "Chọn vùng quan tâm cần xem",
+            "Định vị thiết bị người dùng",
+            "Truy vấn dữ liệu theo điểm, đơn vị hành chính",
+            "Tìm kiếm dữ liệu",
         ],
     },
     {
-        title: "Người dùng đã đăng nhập",
-        icon: "👤",
-        color: "blue",
+        title: "Khách",
+        color: "gray",
         features: [
-            "Tất cả chức năng của người dùng chưa đăng nhập",
-            "Gửi đánh giá",
-            "Chỉnh sửa thông tin cá nhân",
+            "Tất cả tính năng của Người dùng chưa đăng nhập",
+            "Cài đặt tài khoản",
+            "Đăng kí nhận, xem bản tin dự báo, cảnh báo xâm nhập mặn",
+            "Liên hệ hỗ trợ, góp ý",
         ],
+    },
+    {
+        title: "Kĩ thuật viên",
+        color: "gray",
+        features: ["Tất cả tính năng của Khách", "Xuất dữ liệu", "Quản trị dữ liệu"],
     },
     {
         title: "Quản trị viên",
-        icon: "⚙️",
-        color: "red",
-        features: [
-            "Tất cả chức năng của người dùng",
-            "Quản lý thông tin người dùng hệ thống",
-            "Quản lý dữ liệu mặn và cập nhật",
-            "Các chức năng mở rộng quản trị hệ thống",
-        ],
+        color: "gray",
+        features: ["Tất cả tính năng của Kĩ thuật viên", "Quản trị tài khoản"],
     },
 ];
 
@@ -116,165 +114,80 @@ const Home = () => {
             </Helmet>
             <Header />
             <section id="about-section" className="about-section">
-                <Banner title="WEBGIS GIÁM SÁT VÀ CẢNH BÁO XÂM NHẬP MẶN TRÊN HỆ THỐNG SÔNG, KÊNH, RẠCH TẠI THÀNH PHỐ HỒ CHÍ MINH" />
-
-                {/* Introduction Section */}
-                <div className="container mt-5">
-                    <div className="introduction-section">
-                        <div className="section-header-home">
-                            <h2>Tổng quan nghiên cứu</h2>
-                        </div>
-                        <div className="section-content">
-                            <div className="content-wrapper mt-5">
-                                <div className="text-content ">
-                                    <p className="highlight-text">
-                                        Xâm nhập mặn là một trong những thách thức nghiêm trọng đối với hệ
-                                        thống sông, kênh, rạch tại Thành phố Hồ Chí Minh, ảnh hưởng đến nguồn
-                                        nước ngọt và đời sống người dân.
-                                    </p>
-                                    <p>
-                                        Trước thực trạng này, khóa luận{" "}
-                                        <strong>
-                                            "Phát triển WebGIS giám sát và cảnh báo xâm nhập mặn trên hệ thống
-                                            sông, kênh, rạch tại Thành phố Hồ Chí Minh"
-                                        </strong>{" "}
-                                        được thực hiện nhằm xây dựng một hệ thống giám sát thông minh, hỗ trợ
-                                        quản lý tài nguyên nước và đưa ra cảnh báo kịp thời.
-                                    </p>
-                                </div>
-                                <div className="stats-grid">
-                                    <div className="stat-card">
-                                        <span className="stat-icon">📍</span>
-                                        <h3>Phạm vi</h3>
-                                        <p>TP. Hồ Chí Minh</p>
-                                    </div>
-                                    <div className="stat-card">
-                                        <span className="stat-icon">📅</span>
-                                        <h3>Thời gian</h3>
-                                        <p>2007 - 2026</p>
-                                    </div>
-                                    <div className="stat-card">
-                                        <span className="stat-icon">🎯</span>
-                                        <h3>Đối tượng</h3>
-                                        <p>Xâm nhập mặn</p>
-                                    </div>
-                                    <div className="stat-card">
-                                        <span className="stat-icon">💡</span>
-                                        <h3>Giải pháp</h3>
-                                        <p>WebGIS</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <Banner
+                    title={
+                        <>
+                            WebGIS hỗ trợ quản lý, khai thác và cung cấp thông tin mặn tại
+                            <br />
+                            Thành phố Hồ Chí Minh
+                        </>
+                    }
+                    description={
+                        "WebGIS được phát triển nhằm quản lý, cung cấp thông tin quan trắc, cảnh báo, dự báo về lượng mưa, nhiệt độ không khí, mực nước, độ mặn trên hệ thống sông, kênh, rạch thuộc TPHCM và xả lũ từ hồ chứa thượng lưu."
+                    }
+                />
             </section>
             {/* System Overview */}
             <section className="system-overview-section">
                 <div className="container">
                     <div className="section-header-home">
-                        <h2>Tổng quan hệ thống</h2>
+                        <h2>Giới thiệu tính năng</h2>
                     </div>
 
                     <div className="overview-grid">
                         {/* 1. Bản đồ tương tác WebGIS */}
                         <div className="overview-card">
-                            <div className="card-image">
-                                <i
-                                    className="fa-solid fa-map"
-                                    style={{ color: "blue", fontSize: "1.5rem" }}
-                                ></i>
-                            </div>
                             <div className="card-content">
-                                <h3>Bản đồ tương tác WebGIS</h3>
+                                <h3>Hiển thị dữ liệu về xâm nhập mặn</h3>
                                 <p>
-                                    Hệ thống bản đồ trực quan với khả năng zoom, pan và tương tác thời gian
-                                    thực, hỗ trợ giám sát hiệu quả.
+                                    Bản đồ nền Google, hành chính, địa hình, giao thông, thủy hệ, sử dụng đất;
+                                    Chuỗi số liệu quan trắc khí tượng, thủy văn, xâm nhập mặn, vận hành công
+                                    trình thủy lợi
                                 </p>
                             </div>
                         </div>
 
-                        {/* 2. Giám sát khí tượng thủy văn */}
+                        {/* 2. Truy vấn dữ liệu về xâm nhập mặn */}
                         <div className="overview-card">
-                            <div className="card-image">
-                                <i
-                                    className="fa-solid fa-tower-observation"
-                                    style={{ color: "red", fontSize: "1.5rem" }}
-                                ></i>
-                            </div>
                             <div className="card-content">
-                                <h3>Giám sát khí tượng thủy văn</h3>
+                                <h3>Truy vấn dữ liệu về xâm nhập mặn</h3>
                                 <p>
-                                    Theo dõi dữ liệu từ các trạm đo khí tượng trên địa bàn TP.HCM, phục vụ
-                                    phân tích tình hình thời tiết và thủy văn.
+                                    Trích xuất số liệu khí tượng, thủy văn, xâm nhập mặn theo điểm, đơn vị
+                                    hành chính; Tìm kiếm địa điểm theo từ khóa.
                                 </p>
                             </div>
                         </div>
 
-                        {/* 3. Trạm xâm nhập mặn */}
+                        {/* 3. Xem bản tin dự báo, cảnh báo xâm nhập mặn */}
                         <div className="overview-card">
-                            <div className="card-image">
-                                <i
-                                    className="fa-solid fa-droplet"
-                                    style={{ color: "#003366", fontSize: "1.5rem" }}
-                                ></i>
-                            </div>
                             <div className="card-content">
-                                <h3>Trạm xâm nhập mặn</h3>
+                                <h3>Xem bản tin dự báo, cảnh báo xâm nhập mặn</h3>
                                 <p>
-                                    Giám sát độ mặn tại các điểm quan trắc trọng yếu, phát hiện và cảnh báo
-                                    sớm tình trạng xâm nhập mặn.
+                                    Hiện trạng thủy văn, diễn biến thủy triều và xâm nhập mặn; Cảnh báo khu
+                                    vực xảy ra xâm nhập mặn, cấp độ rủi ro thiên tai; Dự báo độ mặn, phạm vi,
+                                    thời gian, khoảng cách chịu ảnh hưởng của xâm nhập mặn
                                 </p>
                             </div>
                         </div>
 
-                        {/* 4. Phân tích dữ liệu chuyên sâu */}
+                        {/* 4. Liên hệ hỗ trợ, góp ý */}
                         <div className="overview-card">
-                            <div className="card-image">
-                                <i
-                                    className="fa-solid fa-chart-column"
-                                    style={{ color: "purple", fontSize: "1.5rem" }}
-                                ></i>
-                            </div>
                             <div className="card-content">
-                                <h3>Phân tích dữ liệu chuyên sâu</h3>
+                                <h3>Liên hệ hỗ trợ, góp ý</h3>
                                 <p>
-                                    Cung cấp công cụ lọc dữ liệu, xuất biểu đồ, thống kê và báo cáo hỗ trợ ra
-                                    quyết định chính xác.
+                                    Kết nối với cán bộ kĩ thuật để nhận hỗ trợ; Đóng góp ý kiến xây dựng hệ
+                                    thống.
                                 </p>
                             </div>
                         </div>
 
-                        {/* 5. Tìm kiếm thông minh */}
+                        {/* 5. Quản trị tài khoản, dữ liệu */}
                         <div className="overview-card">
-                            <div className="card-image">
-                                <i
-                                    className="fa-solid fa-magnifying-glass-location"
-                                    style={{ color: "orange", fontSize: "1.5rem" }}
-                                ></i>
-                            </div>
                             <div className="card-content">
-                                <h3>Tìm kiếm thông minh</h3>
+                                <h3>Quản trị tài khoản, dữ liệu</h3>
                                 <p>
-                                    Tìm kiếm trạm quan trắc theo tên, vị trí hoặc địa giới hành chính kèm tính
-                                    năng tự động zoom tới vị trí.
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* 6. Thông tin nền */}
-                        <div className="overview-card">
-                            <div className="card-image">
-                                <i
-                                    className="fa-solid fa-layer-group"
-                                    style={{ color: "blue", fontSize: "1.5rem" }}
-                                ></i>
-                            </div>
-                            <div className="card-content">
-                                <h3>Thông tin nền</h3>
-                                <p>
-                                    Bao gồm ranh giới hành chính, sông ngòi, hệ thống giao thông và quy hoạch
-                                    sử dụng đất hỗ trợ phân tích không gian.
+                                    Quản lý thông tin, cấp quyền, phản hồi người dùng; Quản lý số liệu quan
+                                    trắc khí tượng, thủy văn, xâm nhập mặn, vận hành công trình thủy lợi.
                                 </p>
                             </div>
                         </div>
@@ -293,7 +206,6 @@ const Home = () => {
                         {userRoles.map((role, index) => (
                             <div key={index} className={`role-card ${role.color}`}>
                                 <div className="role-header">
-                                    <span className="role-icon">{role.icon}</span>
                                     <h3>{role.title}</h3>
                                 </div>
                                 <ul className="role-features">
@@ -304,10 +216,10 @@ const Home = () => {
                                         </li>
                                     ))}
                                 </ul>
-                                {index === 1 && (
+                                {index !== 0 && (
                                     <div className="role-cta">
-                                        <Link to="/dang-nhap" className="role-button">
-                                            Đăng nhập để trải nghiệm
+                                        <Link to={ROUTES.login} className="role-button">
+                                            Đăng nhập
                                         </Link>
                                     </div>
                                 )}
@@ -316,136 +228,6 @@ const Home = () => {
                     </div>
                 </div>
             </section>
-
-            {/* Feedback Section - Simplified and Clean */}
-            <section className="feedback-section">
-                <div className="container">
-                    <div className="section-header-home">
-                        <h2>Đánh giá hệ thống</h2>
-                    </div>
-
-                    {feedbackLoading ? (
-                        <div className="loading-state">
-                            <div className="spinner"></div>
-                            <p>Đang tải dữ liệu...</p>
-                        </div>
-                    ) : feedbackError ? (
-                        <div className="error-state">
-                            <i className="fa-solid fa-exclamation-triangle"></i>
-                            <p>Không thể tải dữ liệu đánh giá</p>
-                        </div>
-                    ) : (
-                        <div className="home-feedback-content">
-                            {/* Quick Stats */}
-                            <div className="quick-stats">
-                                <div className="stat-item">
-                                    <i className="fa-solid fa-comments"></i>
-                                    <div className="stat-info">
-                                        <span className="stat-number">{overview?.total || 0}</span>
-                                        <span className="stat-label">Phản hồi</span>
-                                    </div>
-                                </div>
-                                <div className="stat-item">
-                                    <i className="fa-solid fa-star"></i>
-                                    <div className="stat-info">
-                                        <span className="stat-number">
-                                            {overview?.averageRating?.toFixed(1) || "0.0"}
-                                        </span>
-                                        <span className="stat-label">Điểm TB</span>
-                                    </div>
-                                </div>
-                                <div className="stat-item">
-                                    <i className="fa-solid fa-thumbs-up"></i>
-                                    <div className="stat-info">
-                                        <span className="stat-number">
-                                            {overview?.satisfactionRate || 0}%
-                                        </span>
-                                        <span className="stat-label">Hài lòng</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Recent Feedback - Simple Cards */}
-                            <div className="recent-feedback-home">
-                                <h3>Phản hồi gần đây</h3>
-                                <div className="feedback-grid">
-                                    {getDisplayedFeedback() && getDisplayedFeedback().length > 0 ? (
-                                        getDisplayedFeedback().map((feedback, index) => (
-                                            <div key={index} className="feedback-card">
-                                                <div className="feedback-header">
-                                                    <div className="user-info">
-                                                        <div className="user-avatar">
-                                                            <i className="fa-solid fa-user"></i>
-                                                        </div>
-                                                        <div className="user-details">
-                                                            <span className="user-name">
-                                                                {feedback.user?.name || "Người dùng"}
-                                                            </span>
-                                                            <div className="rating">
-                                                                {Array.from({ length: 5 }, (_, i) => (
-                                                                    <i
-                                                                        key={i}
-                                                                        className={`fa-${i < feedback.rating ? "solid" : "regular"} fa-star`}
-                                                                    ></i>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <span className="feedback-date">
-                                                        {new Date(feedback.createdAt).toLocaleDateString(
-                                                            "vi-VN",
-                                                        )}
-                                                    </span>
-                                                </div>
-                                                <div className="feedback-content">
-                                                    <p>
-                                                        "{feedback.comment || "Đánh giá tích cực về hệ thống"}
-                                                        "
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="no-feedback">
-                                            <i className="fa-regular fa-comment"></i>
-                                            <p>Chưa có phản hồi nào</p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Load More / Show All Button */}
-                                {recentFeedback && recentFeedback.length > 3 && (
-                                    <div className="load-more-section">
-                                        <button
-                                            onClick={handleShowAll}
-                                            className="load-more-btn"
-                                            disabled={isLoadingMore}
-                                        >
-                                            {isLoadingMore ? (
-                                                <>
-                                                    <i className="fa-solid fa-spinner fa-spin"></i>
-                                                    Đang tải...
-                                                </>
-                                            ) : showAllFeedback ? (
-                                                <>
-                                                    <i className="fa-solid fa-chevron-up"></i>
-                                                    Thu gọn
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <i className="fa-solid fa-chevron-down"></i>
-                                                    Xem tất cả ({recentFeedback.length} phản hồi)
-                                                </>
-                                            )}
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </section>
-
             <Footer />
         </div>
     );

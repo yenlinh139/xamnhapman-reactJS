@@ -25,11 +25,11 @@ export const validateFormLogin = (params) => {
     const { email, password } = params;
 
     if (!validateEmpty(email)) {
-        throw new Error("Email là bắt buộc");
+        throw new Error("Vui lòng điền thông tin");
     }
 
     if (!validateEmpty(password)) {
-        throw new Error("Mật khẩu là bắt buộc");
+        throw new Error("Vui lòng điền thông tin");
     }
 };
 
@@ -41,7 +41,7 @@ export const validateFormSignUp = (params) => {
     }
 
     if (!validateEmpty(email)) {
-        throw new Error("Email là bắt buộc");
+        throw new Error("Vui lòng điền thông tin");
     }
 
     if (!validateEmail(email)) {
@@ -49,11 +49,11 @@ export const validateFormSignUp = (params) => {
     }
 
     if (!validateEmpty(password)) {
-        throw new Error("Mật khẩu là bắt buộc");
+        throw new Error("Vui lòng điền thông tin");
     }
 
     if (confirmPassword !== password) {
-        throw new Error("Xác nhận mật khẩu không khớp");
+        throw new Error("Mật khẩu xác nhận chưa trùng khớp với mật khẩu đã nhập");
     }
 };
 
