@@ -105,12 +105,25 @@ function SignUp({ onSwitchTab }) {
             );
             onSwitchTab?.(false);
         } catch (error) {
+            const backendCode = error?.response?.status || error?.response?.data?.code;
             const backendMessage = error?.response?.data?.message || "Đã xảy ra lỗi trong quá trình đăng ký.";
+
+            if (backendCode === 409) {
+                setErrors((prev) => ({
+                    ...prev,
+                    email: backendMessage,
+                    form: "",
+                }));
+                focusField(email);
+                return;
+            }
+
             setErrors((prev) => ({
                 ...prev,
                 form: backendMessage,
             }));
-            if (error?.response?.data?.message?.toLowerCase?.().includes("email")) {
+
+            if (String(backendMessage).toLowerCase().includes("email")) {
                 focusField(email);
             }
         }
@@ -197,7 +210,7 @@ function SignUp({ onSwitchTab }) {
                         Đăng nhập <i className="fas fa-arrow-right ms-1"></i>
                     </span>
                 </button>
-                <button type="button" className="register-text" onClick={() => navigate(ROUTES.map)}>
+                <button type="button" className="register-text" onClick={() => navigate(ROUTES.home)}>
                     Truy cập không cần tài khoản
                 </button>
             </form>

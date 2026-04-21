@@ -284,7 +284,7 @@ const rowsForLayer = (layerName, props) => {
                 { label: "Loại", value: formatValue(props.Loai) },
                 { label: "Công suất", value: formatNumericValue(props.CongSuat, 2) },
                 { label: "Mục tiêu nhiệm vụ", value: formatValue(props.MucTieuNhiemVu) },
-                { label: "Diện tích phục vụ", value: formatNumericValue(props.DienTichPhucVu_ha, 2, "ha") },
+                { label: "Diện tích phục vụ (ha)", value: formatNumericValue(props.DienTichPhucVu_ha, 2, "ha") },
                 { label: "Hệ thống công trình thủy lợi", value: formatValue(props.HeThongCongTrinhThuyLoi) },
                 { label: "Năm sử dụng", value: formatValue(props.NamSuDung) },
                 { label: "Đơn vị quản lý", value: formatValue(props.DonViQuanLy) },
@@ -331,7 +331,7 @@ export const createLayerPopupContent = (layerName, props) => {
         );
     }
 
-    if (layerName.startsWith("CTTL_")) {
+    if (layerName.startsWith("CTTL_") && rows.length > 3) {
         return createFourColumnTablePopup(title, rows);
     }
 

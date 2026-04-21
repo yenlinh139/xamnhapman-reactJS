@@ -33,7 +33,7 @@ export const layerStyles = {
                         </div>`,
     },
     hydrometStations: { type: "point", color: "#990000" },
-    hydrometRainStations: { type: "point", color: "#0d6efd" },
+    hydrometRainStations: { type: "point", color: "#000000" },
     hydrometMeteorologyStations: { type: "point", color: "#000000" },
     hydrometHydrologyStations: { type: "point", color: "#0d6efd" },
     DiaPhanHuyen: { type: "polygon", color: "#fff" },
@@ -146,16 +146,16 @@ export const layerStyles = {
     GiaoThong_line: { type: "line", color: "#C43C39" },
     GiaoThong_polygon: { type: "polygon", color: "#E5B636" },
     // Công trình thủy lợi - Hiện trạng 2023
-    CTTL_2023_Cong: { type: "point", color: "#2563eb" },
-    CTTL_2023_DeBao_BoBao: { type: "line", color: "#dc2626" },
-    CTTL_2023_KenhMuong: { type: "line", color: "#059669" },
-    CTTL_2023_TramBom: { type: "point", color: "#7c3aed" },
+    CTTL_2023_Cong: { type: "point", color: "#00ad25" },
+    CTTL_2023_DeBao_BoBao: { type: "line", color: "#900510" },
+    CTTL_2023_KenhMuong: { type: "line", color: "#056632" },
+    CTTL_2023_TramBom: { type: "point", color: "#8d2f3e" },
     HoChuaThuongLuu: { type: "point", color: "#0ea5e9" },
     // Công trình thủy lợi - Quy hoạch 2030
-    CTTL_2030_Vung_HeThong: { type: "line", color: "#0891b2" },
-    CTTL_2030_NongThonMoi: { type: "line", color: "#65a30d" },
-    CTTL_2030_NoiDong: { type: "line", color: "#ca8a04" },
-    CTTL_2030_VungThuyLoi: { type: "polygon", color: "#0369a1" },
+    CTTL_2030_Vung_HeThong: { type: "line", color: "#9716c9" },
+    CTTL_2030_NongThonMoi: { type: "line", color: "#01ff4d" },
+    CTTL_2030_NoiDong: { type: "line", color: "#fff74d" },
+    CTTL_2030_VungThuyLoi: { type: "polygon", color: "none" },
     iotStations: {
         type: "point",
         color: "#7c3aed",
@@ -250,10 +250,10 @@ export const createWMSLayer = () => {
 
 const createCompactRiskLegend = (layerDisplayName, symbolHTML = "") => {
     const riskItems = [
-        { color: "#28a745", shortLabel: "BT", title: "Bình thường (< 1‰)" },
-        { color: "#ffc107", shortLabel: "C1", title: "Rủi ro cấp 1" },
-        { color: "#fd7e14", shortLabel: "C2", title: "Rủi ro cấp 2" },
-        { color: "#dc3545", shortLabel: "C3", title: "Rủi ro cấp 3" },
+        { color: "#28a745", shortLabel: "Bình thường", title: "Bình thường (< 1‰)" },
+        { color: "#ffc107", shortLabel: "Rủi ro cấp 1", title: "Rủi ro cấp 1" },
+        { color: "#fd7e14", shortLabel: "Rủi ro cấp 2", title: "Rủi ro cấp 2" },
+        { color: "#dc3545", shortLabel: "Rủi ro cấp 3", title: "Rủi ro cấp 3" },
     ];
 
     return `
@@ -330,7 +330,7 @@ export const updateLegendVisibility = (overlayLayers) => {
             } else if (layerName === "hydrometStations") {
                 symbolHTML = `<span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:50%;margin-right:5px;border:1px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.25);"></span>`;
             } else if (layerName === "hydrometRainStations") {
-                symbolHTML = `<span style="display:inline-block;width:12px;height:12px;background:${color};border-radius:50%;margin-right:5px;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.25);"></span>`;
+                symbolHTML = `<span style="display:inline-block;width:12px;height:12px;background:${color};border-radius:50%;margin-right:5px;border:2px solid #b3d1ff;box-shadow:0 0 0 1px rgba(0,0,0,0.25);"></span>`;
             } else if (layerName === "hydrometMeteorologyStations") {
                 symbolHTML = `<span style="display:inline-block;width:14px;height:14px;background:${color};clip-path:polygon(50% 0%, 0% 100%, 100% 100%);margin-right:5px;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.25);"></span>`;
             } else if (layerName === "hydrometHydrologyStations") {
@@ -339,6 +339,10 @@ export const updateLegendVisibility = (overlayLayers) => {
                 symbolHTML = `<i class="fa-solid fa-tower-broadcast" style="color: ${color}; margin-right: 5px;"></i>`;
             } else if (layerName === "HoChuaThuongLuu") {
                 symbolHTML = `<i class="fa-solid fa-water" style="color: ${color}; margin-right: 5px;"></i>`;
+            } else if (layerName === "DiaPhanHuyen") {
+                symbolHTML = `<span style="display:inline-block;width:12px;height:12px;border:2px solid #333;margin-right:5px;"></span>`;
+            } else if (layerName === "CTTL_2030_VungThuyLoi") {
+                symbolHTML = `<span style="display:inline-block;width:12px;height:12px;border:1px solid #ababab;margin-right:5px;"></span>`;
             } else if (type === "point") {
                 symbolHTML = `<span style="display:inline-block;width:10px;height:10px;background:${color};border-radius:50%;margin-right:5px;"></span>`;
             } else if (type === "line") {

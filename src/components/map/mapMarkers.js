@@ -36,7 +36,7 @@ export const getSalinityIcon = (value = null, stationCode = null) => {
 };
 
 const HYDROMET_ICON_COLORS = {
-    rain: "#0d6efd",
+    rain: "#000000",
     meteorology: "#000000",
     hydrology: "#0d6efd",
     default: "#990000",
@@ -89,7 +89,7 @@ export const getHydrometIcon = (stationType = "") => {
                 height:14px;
                 border-radius:50%;
                 background:${iconColor};
-                border:2px solid #ffffff;
+                border:2px solid #b3d1ff;
                 box-shadow:0 0 0 1px rgba(0,0,0,0.25);
             "></span>
         `;

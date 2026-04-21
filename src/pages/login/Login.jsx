@@ -78,7 +78,18 @@ const Login = ({ onSwitchTab }) => {
                 ),
             );
         } catch (error) {
+            const statusCode = error?.response?.status;
             const backendMessage = error?.response?.data?.message || "Đăng nhập không thành công.";
+
+            // Handle 404 - Email not found
+            if (statusCode === 404) {
+                setErrors({
+                    email: "Email chưa được đăng kí",
+                });
+                focusField(email);
+                return;
+            }
+
             setErrors((prev) => ({
                 ...prev,
                 form: backendMessage,
@@ -151,7 +162,7 @@ const Login = ({ onSwitchTab }) => {
                         Đăng ký ngay <i className="fas fa-arrow-right ms-1"></i>
                     </span>
                 </button>
-                <button type="button" className="register-text" onClick={() => navigate(ROUTES.map)}>
+                <button type="button" className="register-text" onClick={() => navigate(ROUTES.home)}>
                     Truy cập không cần tài khoản
                 </button>
             </div>

@@ -100,6 +100,30 @@ const SEARCH_TYPE_META = {
         subtitle: "Địa giới hành chính - Huyện",
         titleResolver: (result) => result?.tenHuyen || result?.TenHuyen || result?.name,
     },
+    giao_thong_line: {
+        priority: 8,
+        icon: "fa-solid fa-road",
+        subtitle: "Giao thông - Đường bộ",
+        titleResolver: (result) => result?.TenDuong || result?.name,
+    },
+    giao_thong_polygon: {
+        priority: 9,
+        icon: "fa-solid fa-road",
+        subtitle: "Giao thông - Cầu, đường sắt",
+        titleResolver: (result) => result?.Ten || result?.name,
+    },
+    thuy_he_line: {
+        priority: 10,
+        icon: "fa-solid fa-water",
+        subtitle: "Thủy hệ - Đường sông",
+        titleResolver: (result) => result?.TenSong || result?.name,
+    },
+    thuy_he_polygon: {
+        priority: 11,
+        icon: "fa-solid fa-water",
+        subtitle: "Thủy hệ - Vùng nước",
+        titleResolver: (result) => result?.Ten || result?.name,
+    }
 };
 
 const normalizeSearchResult = (result = {}) => {
@@ -349,7 +373,7 @@ const Map = () => {
                                 <input
                                     type="text"
                                     className="search-input"
-                                    placeholder="Tìm kiếm địa điểm, trạm quan trắc..."
+                                    placeholder="Tìm kiếm địa điểm, trạm đo, công trình thủy lợi"
                                     value={searchText}
                                     onFocus={() => {
                                         if (searchText.trim()) {
@@ -390,7 +414,7 @@ const Map = () => {
                                         </div>
                                     ) : (
                                         <div className="search-dropdown-list">
-                                            {searchResults.slice(0, 10).map((result, index) => {
+                                            {searchResults.slice(0, 30).map((result, index) => {
                                                 const itemMeta = getSearchItemMeta(result);
                                                 const key =
                                                     result.KiHieu ||
@@ -431,6 +455,13 @@ const Map = () => {
                     {/* Right Section - Navigation */}
                     <div className="header-right">
                         <nav className="header-nav">
+                            <NavLink
+                                to={ROUTES.home}
+                                className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+                            >
+                                <span>Trang chủ</span>
+                            </NavLink>
+
                             <NavLink
                                 to={ROUTES.map}
                                 className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
@@ -491,7 +522,7 @@ const Map = () => {
                                                 className="dropdown-item"
                                                 onClick={handleOpenSettingModal}
                                             >
-                                                    <span>Cài đặt</span>
+                                                <span>Cài đặt</span>
                                             </button>
                                         </li>
                                         <li>
@@ -532,7 +563,7 @@ const Map = () => {
                 {/* Mobile Navigation */}
                 <div ref={mobileNavRef} className="collapse" id="mobileNav">
                     <div className="mobile-nav">
-                       <div className="mobile-links">
+                        <div className="mobile-links">
                             <NavLink to={ROUTES.home} className="mobile-link">
                                 <i className="fa-solid fa-house"></i>
                                 <span>Trang chủ</span>
@@ -636,7 +667,6 @@ const Map = () => {
                     />
                 </div>
             </div>
-
             <SettingUser isOpen={isSettingModalOpen} onClose={handleCloseSettingModal} />
         </div>
     );

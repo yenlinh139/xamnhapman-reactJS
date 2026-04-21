@@ -9,12 +9,12 @@ import logoSoTNMTTPHCM from "@assets/logo/SoTNMTTPHCM.png";
 
 function Footer() {
     const logos = [
-        { src: logoDaiKTTVNamBo, alt: "Sở Khoa học và Công nghệ TP. Hồ Chí Minh" },
+        { src: loggoSoKHCNTPHCM, alt: "Sở Khoa học và Công nghệ TP. Hồ Chí Minh" },
         { src: logoDHNongLamTPHCM, alt: "Trường Đại học Nông Lâm TP. Hồ Chí Minh" },
         { src: logoOpenGIS, alt: "OpenGIS Việt Nam" },
-        { src: loggoSoKHCNTPHCM, alt: "Sở Khoa học và Công nghệ TP. Hồ Chí Minh" },
-        { src: logoSoNTPTNTTPHM, alt: "Sở Nông nghiệp và Môi trường TP. Hồ Chí Minh" },
-        { src: logoSoTNMTTPHCM, alt: "Đài Khí tượng Thủy văn Khu vực Nam Bộ" },
+        { src: logoSoNTPTNTTPHM, alt: "Sở Nông nghiệp và Phát triển Nông thôn TP. Hồ Chí Minh" },
+        { src: logoSoTNMTTPHCM, alt: "Sở Tài nguyên và Môi trường TP. Hồ Chí Minh" },
+        { src: logoDaiKTTVNamBo, alt: "Đài Khí tượng Thủy văn Khu vực Nam Bộ" },
     ];
 
     return (
@@ -38,7 +38,7 @@ function Footer() {
                         </div>
 
                         <div className="footer-section footer-section--wide">
-                            <h4>CƠ QUAN CHỦ TRÌ</h4>
+                            <h4>CƠ QUAN THỰC HIỆN</h4>
                             <ul>
                                 <li>Trường Đại học Nông Lâm TP. Hồ Chí Minh</li>
                                 <li>OpenGIS Việt Nam</li>

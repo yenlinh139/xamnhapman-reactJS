@@ -28,8 +28,10 @@ export const signUp = (params) => {
                     payload: false,
                 });
             }
+
+            return resp;
         } catch (error) {
-            ToastCommon(TOAST.ERROR, error.response?.data?.message || error.message);
+            throw error;
         }
     };
 };
@@ -54,19 +56,7 @@ export const login = (params, onRequestNavigate) => {
                 onRequestNavigate();
             }
         } catch (error) {
-            // Kiểm tra nếu là lỗi xác thực email chưa
-            if (error?.response?.data?.message) {
-                if (error.response.data.message === "Please verify your email before logging in.") {
-                    ToastCommon(
-                        TOAST.ERROR,
-                        "Bạn chưa xác thực email. Vui lòng kiểm tra hộp thư của bạn để xác thực email.",
-                    );
-                } else {
-                    ToastCommon(TOAST.ERROR, error.response.data.message);
-                }
-            } else {
-                ToastCommon(TOAST.ERROR, error.message);
-            }
+            throw error;
         }
     };
 };
@@ -96,7 +86,7 @@ export const forgotPassword = (params) => {
                 "Liên kết đặt lại mật khẩu đã được gửi, vui lòng kiểm tra email của bạn.",
             );
         } catch (error) {
-            ToastCommon(TOAST.ERROR, error.response?.data?.message || error.message || "Không thể gửi email.");
+            throw error;
         }
     };
 };
