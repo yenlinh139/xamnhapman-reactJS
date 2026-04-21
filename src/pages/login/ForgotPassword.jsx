@@ -41,11 +41,30 @@ const ForgotPassword = () => {
 
         if (!validateForm()) return;
 
-        await dispatch(
-            forgotPassword({
-                email: String(email.current.value || "").trim(),
-            }),
-        );
+        try {
+            await dispatch(
+                forgotPassword({
+                    email: String(email.current.value || "").trim(),
+                }),
+            );
+        } catch (error) {
+            const statusCode = error?.response?.status;
+            const backendMessage = error?.response?.data?.message || "Không thể gửi email.";
+
+            // Handle 404 - Email not found
+            if (statusCode === 404) {
+                setErrors({
+                    email: "Email chưa được đăng kí",
+                });
+                focusField(email);
+                return;
+            }
+
+            setErrors({
+                email: backendMessage,
+            });
+            focusField(email);
+        }
     };
 
     return (

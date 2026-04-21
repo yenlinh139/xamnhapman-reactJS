@@ -286,6 +286,9 @@ export const createIoTPopup = (station) => {
     ).trim();
     const hasSerial = stationSerial !== "";
 
+    const mainMetricLabel = station?.display_metric_label || station?.metric_label || "Độ mặn hiện tại";
+    const mainMetricUnit = station?.display_metric_unit || station?.metric_unit || station?.latest_salt_unit || "‰";
+
     // Latest/previous hourly salinity values
     const latestSaltValue = getLatestIoTSaltValue(station);
     const previousSaltValueRaw =
@@ -321,12 +324,12 @@ export const createIoTPopup = (station) => {
     })();
 
     // Format values
-    const saltDisplay = hasSaltValue ? `${formatDecimalDisplay(latestSaltValue, 2)} ${saltUnit}` : "N/A";
+    const saltDisplay = hasSaltValue ? `${formatDecimalDisplay(latestSaltValue, 2)} ${mainMetricUnit}` : "N/A";
     const previousHourSaltDisplay = Number.isFinite(previousSaltValue)
-        ? `${formatDecimalDisplay(previousSaltValue, 2)} ${saltUnit}`
+        ? `${formatDecimalDisplay(previousSaltValue, 2)} ${mainMetricUnit}`
         : "--";
     const previousDaySaltDisplay = Number.isFinite(previousDayAvgSalt)
-        ? `${formatDecimalDisplay(previousDayAvgSalt, 2)} ${saltUnit}`
+        ? `${formatDecimalDisplay(previousDayAvgSalt, 2)} ${mainMetricUnit}`
         : "--";
 
     // Format latest hour end time
@@ -437,7 +440,7 @@ export const createIoTPopup = (station) => {
             
             <div class="popup-content">
                 <div class="popup-main-value">
-                    <span class="value-label">Độ mặn hiện tại</span>
+                    <span class="value-label">${mainMetricLabel}</span>
                     <span class="value-number" style="color: ${riskColor}">
                         ${saltDisplay}
                     </span>
@@ -470,8 +473,6 @@ export const createIoTPopup = (station) => {
                         : ""
                 }
 
-                ${renderIoTImageContainer(station)}
-                
                 <div class="popup-details">
                     <div class="detail-grid">
                         <div class="detail-item">
@@ -542,7 +543,7 @@ export const createIoTPopup = (station) => {
                             class="action-btn primary btn-view-data"
                             data-serial="${stationSerial}"
                             data-name="${stationName}"
-                            onclick="window.openIoTChartDetails && window.openIoTChartDetails(this.getAttribute('data-serial'))"
+                            onclick="(window.openSearchIoTChart && window.openSearchIoTChart(this.getAttribute('data-serial'))) || (window.openIoTChartDetails && window.openIoTChartDetails(this.getAttribute('data-serial')))"
                         >
                             Xem dữ liệu chi tiết
                         </button>

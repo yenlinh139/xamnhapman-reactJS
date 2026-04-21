@@ -5,6 +5,7 @@ import { convertDMSToDecimal, dmsToDecimal } from "@components/convertDMSToDecim
 import { mapLayers, irrigationLayers } from "@pages/map/dataLayers";
 import { createSalinityPopup } from "./map/SalinityMarkers";
 import { createHydrometPopup } from "./map/HydrometMarkers";
+import { createIoTPopup } from "./map/IoTMarkers";
 import { createLayerPopupContent } from "./map/wmsPopupTemplates";
 import IoTStationModal from "./IoTStationModal";
 import {
@@ -12,6 +13,7 @@ import {
     fetchIoTData,
     fetchSalinityData,
     fetchHydrometData,
+    normalizeIoTDataRows,
     formatIoTDataForDisplay,
 } from "./map/mapDataServices";
 
@@ -383,12 +385,14 @@ function LeftMenuMap({
             const payload = window.searchIoTPopupPayloads?.[serialNumber];
             if (!payload) {
                 console.warn("Không tìm thấy dữ liệu popup IoT cho serial:", serialNumber);
-                return;
+                return false;
             }
 
             if (typeof window.onOpenIoTChart === "function") {
                 window.onOpenIoTChart(payload);
             }
+
+            return true;
         };
 
         return () => {
@@ -464,14 +468,18 @@ function LeftMenuMap({
             loading = false,
             error = null,
             hasChart = false,
-            latestSaltValue = null,
-            latestSaltUnit = "‰",
+            metricLabel = "Giá trị hiện tại",
+            latestMetricValue = null,
+            latestMetricUnit = "",
             lastDataTime = null,
             totalRecords = 0,
         } = options;
 
-        const baseCode = String(result.StationCode || "").replace(/_IoT$/i, "");
-        const classification = getSingleStationClassification(latestSaltValue, baseCode);
+        const serialNumber = resolveIoTSearchResultSerial(result);
+        const stationCode = resolveIoTSearchResultCode(result);
+        const stationName = resolveIoTSearchResultName(result);
+        const baseCode = String(stationCode || serialNumber || "").replace(/_IoT$/i, "");
+        const classification = getSingleStationClassification(latestMetricValue, baseCode);
         const riskMap = {
             normal: { className: "status-normal", color: "#28a745" },
             warning: { className: "status-warning", color: "#ffc107" },
@@ -483,7 +491,7 @@ function LeftMenuMap({
 
         const actionHtml = hasChart
             ? `<div class="popup-actions">
-                    <button class="btn-view-data" onclick="window.openSearchIoTChart('${escapeJsString(result.SerialNumber)}')">
+                    <button class="btn-view-data" onclick="window.openSearchIoTChart('${escapeJsString(serialNumber)}')">
                         <i class="fa-solid fa-chart-line"></i>
                         Xem biểu đồ
                     </button>
@@ -496,27 +504,26 @@ function LeftMenuMap({
               ? `<div class="popup-error"><i class="fa-solid fa-circle-exclamation"></i><p>${escapeHtml(error)}</p></div>`
               : `
                     <div class="popup-main-value">
-                        <span class="value-label">Độ mặn hiện tại</span>
+                        <span class="value-label">${escapeHtml(metricLabel)}</span>
                         <span class="value-number" style="color: ${riskInfo.color}">
-                            ${latestSaltValue !== null && latestSaltValue !== undefined ? `${Number(latestSaltValue).toFixed(2)} ${escapeHtml(latestSaltUnit)}` : "--"}
+                            ${latestMetricValue !== null && latestMetricValue !== undefined ? `${Number(latestMetricValue).toFixed(2)} ${escapeHtml(latestMetricUnit)}` : "--"}
                         </span>
                         <span class="value-date">${escapeHtml(formatPopupDate(lastDataTime))}</span>
                     </div>
                     <div class="popup-details">
-                        <div class="detail-item"><div class="detail-content py-2"><strong class="detail-label">Mã serial: </strong><span class="detail-value">${escapeHtml(result.SerialNumber)}</span></div></div>
-                        <div class="detail-item"><div class="detail-content py-2"><strong class="detail-label">Mã trạm: </strong><span class="detail-value">${escapeHtml(result.StationCode)}</span></div></div>
+                        <div class="detail-item"><div class="detail-content py-2"><strong class="detail-label">Mã serial: </strong><span class="detail-value">${escapeHtml(serialNumber)}</span></div></div>
+                        <div class="detail-item"><div class="detail-content py-2"><strong class="detail-label">Mã trạm: </strong><span class="detail-value">${escapeHtml(stationCode)}</span></div></div>
                         <div class="detail-item"><div class="detail-content py-2"><strong class="detail-label">Cảnh báo: </strong><span class="detail-value" style="color: ${riskInfo.color}; font-weight: 600;">${escapeHtml(classification.shortText)}</span></div></div>
-                        <div class="detail-item"><div class="detail-content py-2"><strong class="detail-label">Tọa độ: </strong><span class="detail-value">${escapeHtml(result.ViDo)}, ${escapeHtml(result.KinhDo)}</span></div></div>
-                        <div class="detail-item"><div class="detail-content py-2"><strong class="detail-label">Tần suất: </strong><span class="detail-value">${escapeHtml(result.TanSuat)}</span></div></div>
+                        <div class="detail-item"><div class="detail-content py-2"><strong class="detail-label">Tọa độ: </strong><span class="detail-value">${escapeHtml(result?.ViDo || result?.lat)}, ${escapeHtml(result?.KinhDo || result?.lng)}</span></div></div>
+                        <div class="detail-item"><div class="detail-content py-2"><strong class="detail-label">Tần suất: </strong><span class="detail-value">${escapeHtml(result?.TanSuat || "")}</span></div></div>
                         <div class="detail-item"><div class="detail-content py-2"><strong class="detail-label">Tổng bản ghi: </strong><span class="detail-value">${Number(totalRecords || 0).toLocaleString()}</span></div></div>
                    </div>`;
 
         return `
             <div class="modern-popup iot-popup">
                 <div class="popup-header">
-                    <div class="popup-icon">📡</div>
                     <div class="popup-title">
-                        <h4 class="popup-name">${escapeHtml(result.StationName)}</h4>
+                        <h4 class="popup-name">${escapeHtml(stationName)}</h4>
                         <span class="popup-type">Trạm IoT</span>
                     </div>
                     <div class="popup-status ${riskInfo.className}">${escapeHtml(classification.shortText)}</div>
@@ -527,6 +534,158 @@ function LeftMenuMap({
                 </div>
             </div>
         `;
+    };
+
+    const resolveIoTSearchResultSerial = (result = {}) => {
+        return String(
+            result?.SerialNumber ||
+                result?.serial_number ||
+                result?.serialNumber ||
+                result?.serial ||
+                result?.StationCode ||
+                result?.station_code ||
+                result?.id ||
+                "",
+        ).trim();
+    };
+
+    const resolveIoTSearchResultCode = (result = {}) => {
+        return String(result?.StationCode || result?.station_code || result?.SerialNumber || result?.serial_number || "").trim();
+    };
+
+    const resolveIoTSearchResultName = (result = {}) => {
+        return String(result?.StationName || result?.station_name || result?.name || "Trạm IoT").trim();
+    };
+
+    const detectIoTMetricFromRows = (rows = []) => {
+        const normalizedRows = normalizeIoTDataRows(rows);
+        const latestRow = normalizedRows[normalizedRows.length - 1] || rows[rows.length - 1] || null;
+        const previousHourRow = normalizedRows[normalizedRows.length - 2] || null;
+        const previousDayRow = normalizedRows.find((row) => {
+            if (!latestRow?.Date || !row?.Date) return false;
+            const latestTime = new Date(latestRow.Date).getTime();
+            const rowTime = new Date(row.Date).getTime();
+            if (!Number.isFinite(latestTime) || !Number.isFinite(rowTime)) return false;
+            const diffHours = (latestTime - rowTime) / (1000 * 60 * 60);
+            return diffHours >= 20 && diffHours <= 28;
+        }) || null;
+
+        const extractNumericValue = (row, keys = []) => {
+            for (const key of keys) {
+                const rawValue = row?.[key];
+                if (rawValue === null || rawValue === undefined || rawValue === "" || rawValue === "NULL") {
+                    continue;
+                }
+
+                const numeric = Number.parseFloat(String(rawValue).replace(",", "."));
+                if (Number.isFinite(numeric)) {
+                    return numeric;
+                }
+            }
+            return null;
+        };
+
+        if (!latestRow) {
+            return {
+                rows: normalizedRows,
+                latestRow: null,
+                previousHourRow: null,
+                previousDayRow: null,
+                metricLabel: "Giá trị hiện tại",
+                latestMetricValue: null,
+                previousHourMetricValue: null,
+                previousDayMetricValue: null,
+                latestMetricUnit: "",
+            };
+        }
+
+        const candidates = [
+            {
+                keys: ["salt_value", "latest_hour_avg_salt", "salinity", "DoMan", "do_man", "GiaTri"],
+                label: "Độ mặn hiện tại",
+                unit: latestRow?.salt_unit || "‰",
+            },
+            {
+                keys: ["distance_value", "distance_value_avg"],
+                label: "Khoảng cách hiện tại",
+                unit: latestRow?.distance_unit || "m",
+            },
+            {
+                keys: ["daily_rainfall_value", "daily_rainfall_value_sum"],
+                label: "Lượng mưa hiện tại",
+                unit: latestRow?.daily_rainfall_unit || "mm",
+            },
+            {
+                keys: ["temp_value", "temp_value_avg"],
+                label: "Nhiệt độ hiện tại",
+                unit: latestRow?.temp_unit || "°C",
+            },
+        ];
+
+        for (const candidate of candidates) {
+            const latestMetricValue = extractNumericValue(latestRow, candidate.keys);
+            if (Number.isFinite(latestMetricValue)) {
+                return {
+                    rows: normalizedRows,
+                    latestRow,
+                    previousHourRow,
+                    previousDayRow,
+                    metricLabel: candidate.label,
+                    latestMetricValue,
+                    previousHourMetricValue: extractNumericValue(previousHourRow, candidate.keys),
+                    previousDayMetricValue: extractNumericValue(previousDayRow, candidate.keys),
+                    latestMetricUnit: candidate.unit || "",
+                };
+            }
+        }
+
+        return {
+            rows: normalizedRows,
+            latestRow,
+            previousHourRow,
+            previousDayRow,
+            metricLabel: "Giá trị hiện tại",
+            latestMetricValue: null,
+            previousHourMetricValue: null,
+            previousDayMetricValue: null,
+            latestMetricUnit: "",
+        };
+    };
+
+    const buildIoTSearchStationPayload = (result, metricInfo, formattedData) => {
+        const serialNumber = resolveIoTSearchResultSerial(result);
+        const stationCode = resolveIoTSearchResultCode(result);
+        const stationName = resolveIoTSearchResultName(result);
+
+        const latestTime = metricInfo.latestRow?.date_time || metricInfo.latestRow?.Date || metricInfo.latestRow?.sync_5m_end_time || null;
+        const previousHourTime = metricInfo.previousHourRow?.date_time || metricInfo.previousHourRow?.Date || metricInfo.previousHourRow?.sync_5m_end_time || null;
+        const previousDayTime = metricInfo.previousDayRow?.date_time || metricInfo.previousDayRow?.Date || metricInfo.previousDayRow?.sync_5m_end_time || null;
+
+        return {
+            ...result,
+            StationName: stationName,
+            station_name: stationName,
+            StationCode: stationCode,
+            station_code: stationCode,
+            SerialNumber: serialNumber,
+            serial_number: serialNumber,
+            latitude: result?.latitude || result?.ViDo || result?.lat,
+            longitude: result?.longitude || result?.KinhDo || result?.lng,
+            display_metric_label: metricInfo.metricLabel,
+            display_metric_value: metricInfo.latestMetricValue,
+            display_metric_unit: metricInfo.latestMetricUnit,
+            latest_hour_avg_salt: metricInfo.latestMetricValue,
+            latest_salt_unit: metricInfo.latestMetricUnit,
+            latest_hour_end_time: latestTime,
+            previous_hour_avg_salt: metricInfo.previousHourMetricValue,
+            previous_hour_end_time: previousHourTime,
+            previous_day_avg_salt: metricInfo.previousDayMetricValue,
+            previous_day: previousDayTime,
+            start_time: formattedData?.summary?.firstRecord || result?.start_time || null,
+            end_time: formattedData?.summary?.lastRecord || result?.end_time || null,
+            frequency: result?.TanSuat || result?.frequency || "",
+            total_records: formattedData?.summary?.totalRecords || formattedData?.summary?.totalRecordsInRange || 0,
+        };
     };
 
     const parseGeoJsonValue = (rawValue) => {
@@ -576,6 +735,10 @@ function LeftMenuMap({
         cttl_2030_vung_he_thong: "CTTL_2030_Vung_HeThong",
         xa: "DiaPhanXa",
         huyen: "DiaPhanHuyen",
+        giao_thong_line: "GiaoThong_line",
+        giao_thong_polygon: "GiaoThong_polygon",
+        thuy_he_line: "ThuyHe_line",
+        thuy_he_polygon: "ThuyHe_polygon",
     };
 
     const resolveSearchResultPoint = (result) => {
@@ -612,6 +775,8 @@ function LeftMenuMap({
             result?.TenDiem ||
             result?.TenTram ||
             result?.TenHo ||
+            result?.TenDuong ||
+            result?.TenSong ||
             result?.TenCongDap ||
             result?.TenTramBom ||
             result?.TenKenhMuong ||
@@ -662,78 +827,91 @@ function LeftMenuMap({
 
     const handleIoTSearchResultClick = async (result, lat, lng) => {
         try {
+            const serialNumber = resolveIoTSearchResultSerial(result);
+            const stationName = resolveIoTSearchResultName(result);
+            const stationCode = resolveIoTSearchResultCode(result);
+
             setHighlightedFeature({
-                id: result.SerialNumber,
+                id: serialNumber || result?.id,
                 geometry: {
                     type: "Point",
                     coordinates: [lng, lat],
                 },
                 icon: "tower-broadcast",
-                name: result.StationName,
+                name: stationName,
                 popupHtml: buildSearchPopupHtml(result, { loading: true }),
             });
 
             const endDate = new Date().toISOString().split("T")[0];
             const startDate = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
-            const dataResult = await fetchIoTData(result.SerialNumber, {
+            const dataResult = await fetchIoTData(serialNumber, {
                 startDate,
                 endDate,
                 limit: 1000,
             });
 
-            if (dataResult.success && dataResult.data && dataResult.data.length > 0) {
-                const formattedData = formatIoTDataForDisplay(dataResult, {
-                    serial_number: result.SerialNumber,
-                    station_name: result.StationName,
-                    station_code: result.StationCode,
-                });
-                const latestRow = dataResult.data[0] || null;
+            const rawRows = Array.isArray(dataResult?.data) ? dataResult.data : [];
+            const hasRows = rawRows.length > 0;
+            const metricInfo = detectIoTMetricFromRows(rawRows);
+            const formattedData = hasRows
+                ? formatIoTDataForDisplay(
+                      {
+                          success: true,
+                          data: metricInfo.rows,
+                          count: dataResult?.count || metricInfo.rows.length,
+                      },
+                      {
+                          serial_number: serialNumber,
+                          station_name: stationName,
+                          station_code: stationCode,
+                      },
+                  )
+                : null;
 
-                if (formattedData) {
-                    setIotData(formattedData);
-                    window.searchIoTPopupPayloads[result.SerialNumber] = formattedData;
-                    setHighlightedFeature({
-                        id: result.SerialNumber,
-                        geometry: {
-                            type: "Point",
-                            coordinates: [lng, lat],
-                        },
-                        icon: "tower-broadcast",
-                        name: result.StationName,
-                        popupHtml: buildSearchPopupHtml(result, {
-                            hasChart: true,
-                            latestSaltValue: latestRow?.salt_value ?? null,
-                            latestSaltUnit: latestRow?.salt_unit || "‰",
-                            lastDataTime: latestRow?.date_time || null,
-                            totalRecords: formattedData.summary.totalRecords || dataResult.data.length,
-                        }),
-                    });
+            const searchStationPayload = buildIoTSearchStationPayload(result, metricInfo, formattedData);
+
+            if (formattedData) {
+                setIotData(formattedData);
+                window.searchIoTPopupPayloads[serialNumber] = searchStationPayload;
+                if (stationCode) {
+                    window.searchIoTPopupPayloads[stationCode] = searchStationPayload;
                 }
-            } else {
+
                 setHighlightedFeature({
-                    id: result.SerialNumber,
+                    id: serialNumber || result?.id,
                     geometry: {
                         type: "Point",
                         coordinates: [lng, lat],
                     },
                     icon: "tower-broadcast",
-                    name: result.StationName,
+                    name: stationName,
+                    popupHtml: createIoTPopup(searchStationPayload),
+                });
+            } else {
+                setHighlightedFeature({
+                    id: serialNumber || result?.id,
+                    geometry: {
+                        type: "Point",
+                        coordinates: [lng, lat],
+                    },
+                    icon: "tower-broadcast",
+                    name: stationName,
                     popupHtml: buildSearchPopupHtml(result, {
-                        error: dataResult.message || "Không có dữ liệu trong 14 ngày gần nhất",
+                        error: dataResult?.message || "Không có dữ liệu trong 14 ngày gần nhất",
                     }),
                 });
             }
         } catch (error) {
             console.error("Error loading IoT search result data:", error);
             setHighlightedFeature({
-                id: result.SerialNumber,
+                id: resolveIoTSearchResultSerial(result) || result?.id,
                 geometry: {
                     type: "Point",
                     coordinates: [lng, lat],
                 },
                 icon: "tower-broadcast",
-                name: result.StationName,
+                name: resolveIoTSearchResultName(result),
                 popupHtml: buildSearchPopupHtml(result, { error: "Lỗi khi tải dữ liệu trạm IoT" }),
             });
         }
@@ -934,7 +1112,6 @@ function LeftMenuMap({
                                     onClick={toggleSalinityDropdown}
                                 >
                                     <div className="category-info">
-                                        <i className="fa-solid fa-droplet category-icon"></i>
                                         <span className="category-name">Xâm nhập mặn</span>
                                     </div>
                                     <i
@@ -1014,7 +1191,6 @@ function LeftMenuMap({
                                     onClick={toggleHydrometDropdown}
                                 >
                                     <div className="category-info">
-                                        <i className="fa-solid fa-cloud-rain category-icon"></i>
                                         <span className="category-name">Khí tượng thủy văn</span>
                                     </div>
                                     <i
@@ -1129,7 +1305,6 @@ function LeftMenuMap({
                                     onClick={toggleIrrigationDropdown}
                                 >
                                     <div className="category-info">
-                                        <i className="fa-solid fa-building category-icon"></i>
                                         <span className="category-name">Công trình thủy lợi</span>
                                     </div>
                                     <i
@@ -1285,7 +1460,6 @@ function LeftMenuMap({
                                                         className="layer-label"
                                                     >
                                                         <div className="layer-info">
-                                                            <i className={`${menu.icon} category-icon`}></i>
                                                             <span className="layer-name">{menu.name}</span>
                                                         </div>
                                                     </label>
@@ -1301,7 +1475,6 @@ function LeftMenuMap({
                                                     onClick={() => toggleDropdown(uniqueIndex)}
                                                 >
                                                     <div className="category-info">
-                                                        <i className={`${menu.icon} category-icon`}></i>
                                                         <span className="category-name">{menu.name}</span>
                                                     </div>
                                                     <i
@@ -1358,7 +1531,6 @@ function LeftMenuMap({
                                     onClick={toggleBaseMapDropdown}
                                 >
                                     <div className="category-info">
-                                        <i className="fa-solid fa-map category-icon"></i>
                                         <span className="category-name">Nền Google</span>
                                     </div>
                                     <i

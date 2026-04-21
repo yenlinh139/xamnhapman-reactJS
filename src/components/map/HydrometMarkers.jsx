@@ -268,8 +268,7 @@ const summarizeHydrometElement = (value) => {
         .map((item) => item.trim())
         .filter(Boolean);
 
-    if (parts.length <= 4) return parts.join(", ");
-    return `${parts.slice(0, 4).join(", ")}...`;
+    return parts.join(", ");
 };
 
 const FLOOD_ALERT_THRESHOLDS_M = {
@@ -798,7 +797,7 @@ const getPrimaryParameter = (
 
 // Color functions based on parameter values
 const getRainfallColor = (value) => {
-    if (value === 0) return "#6c757d"; // Gray for no rain
+    if (value < 0) return "#6c757d"; // Gray for no rain
     if (value < 10) return "#0ea5e9"; // Light blue
     if (value < 50) return "#0284c7"; // Medium blue
     if (value < 100) return "#0369a1"; // Deep blue
@@ -862,7 +861,7 @@ const getParameterDetails = (paramKey, value) => {
         label: paramKey,
         value: numValue,
         unit: "",
-        color: "#6c757d",
+        color: "#0065bc",
         icon: "📊",
         category: "unknown",
     };

@@ -307,8 +307,7 @@ function AreaInterestSelector({ setSelectedLocation, setHighlightedFeature }) {
                 onClick={toggleAreaInterest}
             >
                 <span className="area-interest-title">
-                    <i className="fa-solid fa-map-location-dot section-icon"></i>
-                    Chọn Vùng Quan tâm
+                    CHỌN VÙNG QUAN TÂM  
                 </span>
                 <i
                     className={`fa-solid fa-chevron-right area-interest-chevron ${isOpen ? "rotated" : ""}`}
@@ -352,10 +351,7 @@ function AreaInterestSelector({ setSelectedLocation, setHighlightedFeature }) {
                             disabled={!selectedDistrict || communeLoading}
                         >
                             <option value="">
-                                {communeLoading
-                                      ? "-- Đang tải xã --"
-                                      : "-- Chọn phường/ xã --"
-                                }
+                                {communeLoading ? "-- Đang tải xã --" : "-- Chọn phường/ xã --"}
                             </option>
                             {communeList.map((commune) => (
                                 <option key={commune.code} value={commune.code}>

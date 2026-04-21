@@ -2,31 +2,26 @@ export const mapLayers = {
     title: "DỮ LIỆU NỀN",
     items: [
         {
-            icon: "fa-solid fa-map",
             name: "Hành chính",
             layers: ["DiaPhanHuyen", "DiaPhanXa"],
             nameItem: ["Địa phận huyện", "Địa phận xã"],
         },
         {
-            icon: "fa-solid fa-mountain",
             name: "Địa hình",
             layers: ["DiemDoCao", "", "DEM"],
             nameItem: ["Điểm độ cao", "Mặt cắt địa hình", "Mô hình độ cao số"],
         },
         {
-            icon: "fa-solid fa-road",
             name: "Giao thông",
             layers: ["GiaoThong_line", "GiaoThong_polygon"],
             nameItem: ["Giao thông 1 nét", "Giao thông 2 nét"],
         },
         {
-            icon: "fa-solid fa-water",
             name: "Thủy hệ",
             layers: ["ThuyHe_line", "ThuyHe_polygon"],
             nameItem: ["Thủy hệ 1 nét", "Thủy hệ 2 nét"],
         },
         {
-            icon: "fa-solid fa-tree",
             name: "Sử dụng đất",
             layers: ["HienTrangSDD_2020", "QuyHoachSDD_2030"],
             nameItem: ["Hiện trạng sử dụng đất 2020", "Quy hoạch sử dụng đất 2030"],

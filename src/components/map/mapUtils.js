@@ -134,7 +134,37 @@ export const handleFeatureHighlight = (
             const bounds = geoJsonLayer.getBounds();
 
             if (bounds.isValid()) {
+                // Tạo marker tại center vùng để hiện popup
+                const centerLatLng = bounds.getCenter();
+                const centerMarker = L.marker(centerLatLng, {
+                    zIndexOffset: 999,
+                    icon: L.icon({
+                        iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='red' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='8'/%3E%3C/svg%3E",
+                        iconSize: [16, 16],
+                        iconAnchor: [8, 8],
+                        popupAnchor: [0, -10],
+                        className: "polygon-center-marker",
+                    }),
+                });
+
+                if (popupHtml) {
+                    centerMarker.bindPopup(popupHtml, {
+                        maxWidth: 360,
+                        className: "custom-popup search-highlight-popup",
+                    });
+                }
+
+                centerMarker.addTo(map);
+                highlightedMarkerRef.current = centerMarker;
+
                 map.fitBounds(bounds);
+
+                // Open popup sau khi animation xong
+                setTimeout(() => {
+                    if (centerMarker && popupHtml) {
+                        centerMarker.openPopup();
+                    }
+                }, 1000);
             } else {
                 console.warn("Bounds invalid, possibly because geometry is a Point.");
             }
