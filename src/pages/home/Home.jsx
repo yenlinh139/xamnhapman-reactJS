@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { useSelector, useDispatch } from "react-redux";
 import Header from "@pages/themes/headers/Header";
 import Footer from "@pages/themes/footer/Footer";
 import Banner from "@/pages/home/Banner";
-import { getAllFeedbackData, loadMoreFeedback, feedbackActions } from "@/stores/actions/feedbackActions";
 import { ROUTES } from "@/common/constants";
 
 const userRoles = [
@@ -44,69 +42,6 @@ const userRoles = [
 ];
 
 const Home = () => {
-    const dispatch = useDispatch();
-    const {
-        loading: feedbackLoading,
-        overview,
-        timeStats,
-        recentFeedback,
-        ratingStats,
-        showAllFeedback,
-        error: feedbackError,
-    } = useSelector((state) => state.feedback || {});
-
-    // State for feedback display
-    const [displayedFeedbackCount, setDisplayedFeedbackCount] = useState(3);
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
-
-    // Fetch feedback data on component mount
-    useEffect(() => {
-        dispatch(getAllFeedbackData());
-    }, [dispatch]);
-
-    // Handle load more feedback
-    const handleLoadMore = async () => {
-        setIsLoadingMore(true);
-        try {
-            // Load thêm 10 feedback nữa
-            await dispatch(loadMoreFeedback(recentFeedback.length, 10));
-            setDisplayedFeedbackCount((prev) => prev + 10);
-        } catch (error) {
-            console.error("Error loading more feedback:", error);
-        } finally {
-            setIsLoadingMore(false);
-        }
-    };
-
-    // Handle show all feedback
-    const handleShowAll = async () => {
-        if (!showAllFeedback) {
-            setIsLoadingMore(true);
-            try {
-                // Load all feedback (limit 50)
-                await dispatch(loadMoreFeedback(0, 50));
-                dispatch(feedbackActions.setShowAll(true));
-                setDisplayedFeedbackCount(50);
-            } catch (error) {
-                console.error("Error loading all feedback:", error);
-            } finally {
-                setIsLoadingMore(false);
-            }
-        } else {
-            // Reset về 3 feedback
-            dispatch(feedbackActions.setShowAll(false));
-            setDisplayedFeedbackCount(3);
-        }
-    };
-
-    // Get displayed feedback
-    const getDisplayedFeedback = () => {
-        if (!recentFeedback || recentFeedback.length === 0) {
-            return [];
-        }
-        return showAllFeedback ? recentFeedback : recentFeedback.slice(0, displayedFeedbackCount);
-    };
-
     return (
         <div className="home-container">
             <Helmet>

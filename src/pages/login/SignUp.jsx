@@ -1,10 +1,13 @@
 import { useRef, useState } from "react";
 import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { signUp } from "@stores/actions/authActions";
+import { ROUTES } from "@/common/constants";
 
 // eslint-disable-next-line react/prop-types
 function SignUp({ onSwitchTab }) {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const [errors, setErrors] = useState({});
     const email = useRef(null);
     const password = useRef(null);
@@ -136,6 +139,7 @@ function SignUp({ onSwitchTab }) {
                     type="text"
                     name="name"
                     placeholder="Họ và tên"
+                    autoComplete="name"
                     ref={name}
                     onChange={() =>
                         setErrors((prev) => ({
@@ -154,6 +158,7 @@ function SignUp({ onSwitchTab }) {
                     type="email"
                     name="email"
                     placeholder="Email"
+                    autoComplete="email"
                     ref={email}
                     onChange={() =>
                         setErrors((prev) => ({
@@ -169,8 +174,9 @@ function SignUp({ onSwitchTab }) {
                 <input
                     className={`inputLogin ${errors.password ? "inputLoginError" : ""}`}
                     type="password"
-                    name="pswd"
+                    name="password"
                     placeholder="Mật khẩu"
+                    autoComplete="new-password"
                     ref={password}
                     onChange={() =>
                         setErrors((prev) => ({
@@ -186,8 +192,9 @@ function SignUp({ onSwitchTab }) {
                 <input
                     className={`inputLogin ${errors.confirmPassword ? "inputLoginError" : ""}`}
                     type="password"
-                    name="pswd"
+                    name="confirmPassword"
                     placeholder="Xác nhận mật khẩu"
+                    autoComplete="new-password"
                     ref={confirmPassword}
                     onChange={() =>
                         setErrors((prev) => ({
