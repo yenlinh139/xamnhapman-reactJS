@@ -134,7 +134,7 @@ export const layerStyles = {
     DEM: {
         type: "raster",
         legend: `
-            <div style="margin: 8px 0 12px 20px;">
+            <div>
                 <img
                     src="${DEMLegendImage}"
                     alt="Chú thích DEM"
@@ -201,7 +201,7 @@ export const legendNames = {
     HienTrangSDD_2020: "Hiện trạng sử dụng đất 2020",
     QuyHoachSDD_2030: "Quy hoạch sử dụng đất 2030",
     DiemDoCao: "Điểm độ cao (m)",
-    DEM: "Mô hình độ cao số (DEM)",
+    DEM: "Mô hình độ cao số (m)",
     GiaoThong_line: "Giao thông 1 nét",
     GiaoThong_polygon: "Giao thông 2 nét",
     // Công trình thủy lợi - Hiện trạng 2023
@@ -373,7 +373,7 @@ export const updateLegendVisibility = (overlayLayers) => {
         } else if (layerName === "salinityPoints" || layerName === "iotStations") {
             return;
         } else if (layerName === "DEM") {
-            secondaryLegend.innerHTML += `<p class="m-0"><b>${layerDisplayName}</b></p>`;
+            secondaryLegend.innerHTML += `<p class="m-0 p-0"><b>${layerDisplayName}</b></p>`;
             if (layerInfo?.legend) {
                 secondaryLegend.innerHTML += `${layerInfo.legend}`;
             }
