@@ -14,9 +14,9 @@ function Header() {
     const isLoggedIn = Boolean(localStorage.getItem("access_token"));
     const parsedRole = Number(userInfo?.role);
     const roleId = Number.isFinite(parsedRole) ? parsedRole : 0;
-    const isGuest = roleId === 0;
-    const isTechnician = roleId === 2;
-    const isAdmin = roleId === 1;
+    const isAdmin = roleId === 0;
+    const isTechnician = roleId === 1;
+    const isGuest = roleId === 2;
     const canManageData = isTechnician || isAdmin;
     const canManageUsers = isAdmin;
 
@@ -77,28 +77,28 @@ function Header() {
                     <nav className="nav-menu">
                         <ul className="d-flex list-unstyled m-0">
                             <li className="text-center">
-                                <NavLink to={ROUTES.map}>BẢN ĐỒ</NavLink>
+                                <NavLink to={ROUTES.map}>Bản đồ</NavLink>
                             </li>
                             {!isLoggedIn ? (
                                 <li className="text-center">
-                                    <NavLink to={ROUTES.login}>ĐĂNG NHẬP</NavLink>
+                                    <NavLink to={ROUTES.login}>Đăng nhập</NavLink>
                                 </li>
                             ) : (
                                 <>
                                     <li className="text-center">
-                                        <NavLink to={ROUTES.salinityReport}>BẢN TIN XÂM NHẬP MẶN</NavLink>
+                                        <NavLink to={ROUTES.salinityReport}>Bản tin xâm nhập mặn</NavLink>
                                     </li>
                                     <li className="text-center">
-                                        <NavLink to={ROUTES.feedback}>LIÊN HỆ</NavLink>
+                                        <NavLink to={ROUTES.feedback}>Liên hệ</NavLink>
                                     </li>
                                     {canManageData && (
                                         <li className="text-center">
-                                            <NavLink to={ROUTES.salinity}>QUẢN TRỊ DỮ LIỆU</NavLink>
+                                            <NavLink to={ROUTES.salinity}>Quản trị dữ liệu</NavLink>
                                         </li>
                                     )}
                                     {canManageUsers && (
                                         <li className="text-center">
-                                            <NavLink to={ROUTES.users}>QUẢN TRỊ TÀI KHOẢN</NavLink>
+                                            <NavLink to={ROUTES.users}>Quản trị tài khoản</NavLink>
                                         </li>
                                     )}
                                     <li className="text-center user-dropdown">

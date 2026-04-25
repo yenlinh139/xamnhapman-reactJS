@@ -59,8 +59,9 @@ const ListUser = ({ setUserEdit }) => {
 
                 // Handle different data types
                 if (sortConfig.key === "role") {
-                    aValue = aValue === 1 ? "Người quản trị" : "Người dùng";
-                    bValue = bValue === 1 ? "Người quản trị" : "Người dùng";
+                    const roleLabel = (v) => v === 0 ? "Quản trị viên" : v === 1 ? "Kĩ thuật viên" : "Khách";
+                    aValue = roleLabel(aValue);
+                    bValue = roleLabel(bValue);
                 }
 
                 if (sortConfig.key === "email_verified") {
@@ -198,10 +199,10 @@ const ListUser = ({ setUserEdit }) => {
                         className="create-user-btn"
                         data-bs-toggle="modal"
                         data-bs-target="#modalCreateUser"
-                        title="Tạo người dùng"
+                        title="Tạo tài khoản"
                     >
                         <i className="fa-solid fa-plus"></i>
-                        <span>Tạo người dùng mới</span>
+                        <span>Tạo tài khoản</span>
                     </button>
 
                     <div className="search-filter-group">
@@ -212,8 +213,9 @@ const ListUser = ({ setUserEdit }) => {
                         <div className="role-filter">
                             <select className="form-select" onChange={handleFilterRole} value={role}>
                                 <option value="default">Tất cả vai trò</option>
-                                <option value="1">Người quản trị</option>
-                                <option value="0">Người dùng</option>
+                                <option value="0">Quản trị viên</option>
+                                <option value="1">Kĩ thuật viên</option>
+                                <option value="2">Khách</option>
                             </select>
                         </div>
                         <div className="email-verified-filter">
@@ -254,10 +256,6 @@ const ListUser = ({ setUserEdit }) => {
                                     <span>Phân quyền</span>
                                     {getSortIcon("role")}
                                 </th>
-                                <th onClick={() => handleSort("feedback_rating")} className="sortable-header">
-                                    <span>Đánh giá</span>
-                                    {getSortIcon("feedback_rating")}
-                                </th>
                                 <th>Hành động</th>
                             </tr>
                         </thead>
@@ -273,7 +271,7 @@ const ListUser = ({ setUserEdit }) => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="7" className="text-center">
+                                    <td colSpan="6" className="text-center">
                                         Không tìm thấy người dùng nào phù hợp với tiêu chí tìm kiếm
                                     </td>
                                 </tr>

@@ -1143,7 +1143,7 @@
                     font-size: 18px;
                     font-weight: 600;
                     color: var(--textColorDark);
-                    text-transform: uppercase;
+                    text-transform: none;
                     transition:
                         color 0.3s ease,
                         border-bottom 0.3s ease;
@@ -1178,7 +1178,7 @@
                     font-size: 18px;
                     font-weight: 600;
                     color: var(--textColorDark);
-                    text-transform: uppercase;
+                    text-transform: none;
                     transition:
                         color 0.3s ease,
                         border-bottom 0.3s ease;
@@ -1218,7 +1218,7 @@
                     font-size: 18px;
                     font-weight: 600;
                     color: var(--textColorDark);
-                    text-transform: uppercase;
+                    text-transform: none;
                     transition:
                         color 0.3s ease,
                         border-bottom 0.3s ease;
@@ -1262,11 +1262,13 @@
                     .user-info {
                         display: block;
                         text-align: left;
+                        text-transform: none;
 
                         .user-name {
                             font-size: inherit;
                             font-weight: inherit;
                             line-height: 1;
+                            text-transform: none;
                         }
                     }
 

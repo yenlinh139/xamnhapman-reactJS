@@ -198,6 +198,7 @@ const IoTManagementTab = ({ userInfo }) => {
     const [showDataModal, setShowDataModal] = useState(false);
     const [dataModalMode, setDataModalMode] = useState("create");
     const [dataForm, setDataForm] = useState(DEFAULT_IOT_DATA_FORM);
+    const [dataFormErrors, setDataFormErrors] = useState({});
 
     const [deleteConfig, setDeleteConfig] = useState({ type: null, target: null });
 
@@ -362,6 +363,7 @@ const IoTManagementTab = ({ userInfo }) => {
             ...DEFAULT_IOT_DATA_FORM,
             serial_number: filters.serialNumber || "",
         });
+        setDataFormErrors({});
         setShowDataModal(true);
     };
 
@@ -379,11 +381,27 @@ const IoTManagementTab = ({ userInfo }) => {
             ),
             temp_value: formatMetricInput(row.temp_value ?? row.temp_value_avg, 2),
         });
+        setDataFormErrors({});
         setShowDataModal(true);
     };
 
     const handleSaveData = async (event) => {
         event.preventDefault();
+
+        const nextErrors = {};
+        if (!dataForm.serial_number) {
+            nextErrors.serial_number = "Vui lòng chọn trạm IoT";
+        }
+        if (!dataForm.date_time) {
+            nextErrors.date_time = "Thời gian đo là bắt buộc";
+        } else if (!parseDisplayDateToIso(dataForm.date_time)) {
+            nextErrors.date_time = "Thời gian đo phải đúng định dạng dd/mm/yyyy";
+        }
+        if (Object.keys(nextErrors).length > 0) {
+            setDataFormErrors(nextErrors);
+            return;
+        }
+        setDataFormErrors({});
 
         try {
             const isoDate = parseDisplayDateToIso(dataForm.date_time);
@@ -397,7 +415,6 @@ const IoTManagementTab = ({ userInfo }) => {
             });
 
             if (!payload.serial_number || !payload.date_time) {
-                ToastCommon(TOAST.ERROR, "Vui lòng chọn trạm và nhập thời gian đo đúng định dạng dd/mm/yyyy");
                 return;
             }
 
@@ -702,19 +719,21 @@ const IoTManagementTab = ({ userInfo }) => {
                                 <div className="modal-body">
                                     <div className="row g-3">
                                         <div className="col-md-6">
-                                            <label className="form-label">
-                                                Tên trạm IoT <span className="text-danger">*</span>
+                                            <label className="form-label required">
+                                                Tên trạm IoT
                                             </label>
                                             <select
-                                                className="form-control"
+                                                className={`form-control ${dataFormErrors.serial_number ? "is-invalid" : ""}`}
                                                 value={dataForm.serial_number}
-                                                onChange={(e) =>
+                                                onChange={(e) => {
                                                     setDataForm((prev) => ({
                                                         ...prev,
                                                         serial_number: e.target.value,
-                                                    }))
-                                                }
-                                                required
+                                                    }));
+                                                    if (dataFormErrors.serial_number) {
+                                                        setDataFormErrors((prev) => ({ ...prev, serial_number: "" }));
+                                                    }
+                                                }}
                                             >
                                                 <option value="" disabled>
                                                     Chọn trạm IoT
@@ -725,24 +744,27 @@ const IoTManagementTab = ({ userInfo }) => {
                                                     </option>
                                                 ))}
                                             </select>
-                                            <small className="text-muted d-block mt-1">
-                                                Frontend tự map sang Serial Number khi lưu dữ liệu.
-                                            </small>
+                                            {dataFormErrors.serial_number && (
+                                                <div className="error-text">{dataFormErrors.serial_number}</div>
+                                            )}
                                         </div>
                                         <div className="col-md-6">
-                                            <label className="form-label">
-                                                Thời gian đo <span className="text-danger">*</span>
+                                            <label className="form-label required">
+                                                Thời gian đo
                                             </label>
                                             <input
                                                 type="text"
-                                                className="form-control"
+                                                className={`form-control ${dataFormErrors.date_time ? "is-invalid" : ""}`}
                                                 value={dataForm.date_time}
-                                                onChange={(e) =>
+                                                onChange={(e) => {
                                                     setDataForm((prev) => ({
                                                         ...prev,
                                                         date_time: normalizeDateInputText(e.target.value),
-                                                    }))
-                                                }
+                                                    }));
+                                                    if (dataFormErrors.date_time) {
+                                                        setDataFormErrors((prev) => ({ ...prev, date_time: "" }));
+                                                    }
+                                                }}
                                                 onBlur={() =>
                                                     setDataForm((prev) => ({
                                                         ...prev,
@@ -756,8 +778,10 @@ const IoTManagementTab = ({ userInfo }) => {
                                                 placeholder="dd/mm/yyyy"
                                                 inputMode="numeric"
                                                 maxLength={10}
-                                                required
                                             />
+                                            {dataFormErrors.date_time && (
+                                                <div className="error-text">{dataFormErrors.date_time}</div>
+                                            )}
                                         </div>
                                         <div className="col-md-6">
                                             <label className="form-label">Độ mặn (‰)</label>

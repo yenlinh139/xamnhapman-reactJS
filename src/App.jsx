@@ -31,7 +31,7 @@ const App = () => {
                     <Route path={ROUTES.salinityReport} element={<SalinityReport />} />
                     <Route element={<ProtectedRoute />}>
                         <Route path={ROUTES.feedback} element={<Feedback />} />
-                        <Route element={<RoleBasedRoute requiredRole={1} />}>
+                        <Route element={<RoleBasedRoute requiredRole={0} />}>
                             <Route path={ROUTES.users} element={<UserManagement />} />
                             <Route path={ROUTES.salinity} element={<SalinityManagement />} />
                         </Route>
