@@ -84,7 +84,7 @@ function EditUserModal({ userEdit }) {
                         <div className="modal-body">
                             <form>
                                 <div className="mb-3">
-                                    <label className="form-label">Email</label>
+                                    <label className="form-label required">Email</label>
                                     <input
                                         disabled
                                         type="text"
@@ -103,7 +103,7 @@ function EditUserModal({ userEdit }) {
                                     </div>
                                 </div>
                                 <div className="mb-3">
-                                    <label className="form-label">Họ và tên</label>
+                                    <label className="form-label required">Họ và tên</label>
                                     <input
                                         type="text"
                                         placeholder="Nhập họ và tên"
@@ -128,60 +128,6 @@ function EditUserModal({ userEdit }) {
                                     />
                                     <span className="invalid-feedback">{errorMessages.phone}</span>
                                 </div>
-                                <div className="mb-3">
-                                    <label className="form-label">Vai trò</label>
-                                    <select
-                                        className={`form-control ${
-                                            errorMessages.role?.length > 0 && "is-invalid"
-                                        }`}
-                                        value={userDetail.role || 0}
-                                        onChange={(e) => handleSetRole(e.target.value)}
-                                    >
-                                        <option value={0}>Người dùng</option>
-                                        <option value={1}>Quản trị viên</option>
-                                    </select>
-                                    <span className="invalid-feedback">{errorMessages.role}</span>
-                                </div>
-
-                                {/* Feedback Information Section */}
-                                {(userDetail.feedback_name ||
-                                    userDetail.feedback_message ||
-                                    userDetail.feedback_rating) && (
-                                    <div className="mb-3">
-                                        <label className="form-label">Thông tin phản hồi</label>
-                                        <div className="feedback-info-card p-3 border rounded bg-light">
-                                            {userDetail.feedback_name && (
-                                                <div className="mb-2">
-                                                    <strong>Tên phản hồi:</strong> {userDetail.feedback_name}
-                                                </div>
-                                            )}
-                                            {userDetail.feedback_rating && (
-                                                <div className="mb-2">
-                                                    <strong>Đánh giá:</strong>
-                                                    <span className="ms-2">
-                                                        {[...Array(5)].map((_, i) => (
-                                                            <i
-                                                                key={i}
-                                                                className={`fa-solid fa-star ${i < userDetail.feedback_rating ? "text-warning" : "text-muted"}`}
-                                                            />
-                                                        ))}
-                                                        <span className="ms-1">
-                                                            ({userDetail.feedback_rating}/5)
-                                                        </span>
-                                                    </span>
-                                                </div>
-                                            )}
-                                            {userDetail.feedback_message && (
-                                                <div className="mb-0">
-                                                    <strong>Nội dung phản hồi:</strong>
-                                                    <div className="mt-1 p-2 bg-white rounded border">
-                                                        <small>{userDetail.feedback_message}</small>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
                             </form>
                         </div>
 

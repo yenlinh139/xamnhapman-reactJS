@@ -41,35 +41,10 @@ function ElementUser({ user, handleEditUser, handleShowModal }) {
                         value={user.role}
                         onChange={(e) => handleChangeRole(user.email, e.target.value)}
                     >
-                        <option value={0}>Người dùng</option>
-                        <option value={1}>Người quản trị</option>
+                        <option value={0}>Quản trị viên</option>
+                        <option value={1}>Kĩ thuật viên</option>
+                        <option value={2}>Khách</option>
                     </select>
-                </td>
-                <td>
-                    {user.feedback_rating ? (
-                        <div className="feedback-rating">
-                            <span className="rating-stars">
-                                {[...Array(5)].map((_, i) => (
-                                    <i
-                                        key={i}
-                                        className={`fa-solid fa-star ${i < user.feedback_rating ? "text-warning" : "text-muted"}`}
-                                    />
-                                ))}
-                            </span>
-                            <small className="rating-number">({user.feedback_rating}/5)</small>
-                            {user.feedback_message && (
-                                <div className="feedback-message mt-1">
-                                    <small className="text-muted" title={user.feedback_message}>
-                                        {user.feedback_message.length > 30
-                                            ? `${user.feedback_message.substring(0, 30)}...`
-                                            : user.feedback_message}
-                                    </small>
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <span className="text-muted">--</span>
-                    )}
                 </td>
                 <td>
                     <button
@@ -83,7 +58,7 @@ function ElementUser({ user, handleEditUser, handleShowModal }) {
                     </button>
                     &nbsp;
                     <button
-                        disabled={user.role === 1}
+                        disabled={user.role === 0}
                         className="btn btn-danger btn-sm mt-1"
                         onClick={() => handleDeleteUser(user.id)}
                         title="Xóa người dùng này"

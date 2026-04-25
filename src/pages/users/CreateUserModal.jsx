@@ -87,20 +87,23 @@ function CreateUserModal() {
                     <div className="modal-body">
                         <form>
                             <div className="mb-3">
-                                <label className="form-label">Họ và tên</label>
+                                <label className="form-label required">Họ và tên</label>
                                 <input
                                     type="text"
                                     className={`form-control ${errorMessages.name?.length > 0 ? "is-invalid" : ""}`}
                                     ref={name}
+                                    placeholder="Nhập họ và tên"
+                                    autoComplete="name"
                                 />
-                                <div className="invalid-feedback">{errorMessages.name}</div>
+                                <span className="invalid-feedback">{errorMessages.name}</span>
                             </div>
                             <div className="mb-3">
-                                <label className="form-label">Email</label>
+                                <label className="form-label required">Email</label>
                                 <input
                                     type="text"
                                     className={`form-control ${errorMessages.email?.length > 0 ? "is-invalid" : ""}`}
                                     ref={email}
+                                    placeholder="Nhập email"
                                     autoComplete="email"
                                 />
                                 <span className="invalid-feedback">{errorMessages.email}</span>
@@ -117,29 +120,32 @@ function CreateUserModal() {
                                 <span className="invalid-feedback">{errorMessages.phone}</span>
                             </div>
                             <div className="mb-3">
-                                <label className="form-label">Vai trò</label>
-                                <select className="form-select" ref={role} defaultValue="0">
-                                    <option value="0">Người dùng</option>
-                                    <option value="1">Quản trị viên</option>
+                                <label className="form-label required">Vai trò</label>
+                                <select className="form-select" ref={role} defaultValue="2">
+                                    <option value="2">Khách</option>
+                                    <option value="1">Kĩ thuật viên</option>
+                                    <option value="0">Quản trị viên</option>
                                 </select>
                             </div>
                             <div className="mb-3">
-                                <label className="form-label">Mật khẩu</label>
+                                <label className="form-label required">Mật khẩu</label>
                                 <input
                                     type="password"
                                     className={`form-control ${errorMessages.password?.length > 0 ? "is-invalid" : ""}`}
                                     ref={password}
                                     autoComplete="new-password"
+                                    placeholder="Nhập mật khẩu"
                                 />
                                 <span className="invalid-feedback">{errorMessages.password}</span>
                             </div>
                             <div className="mb-3">
-                                <label className="form-label">Xác nhận mật khẩu</label>
+                                <label className="form-label required">Xác nhận mật khẩu</label>
                                 <input
                                     type="password"
                                     className={`form-control ${errorMessages.confirmPassword?.length > 0 ? "is-invalid" : ""}`}
                                     ref={confirmPassword}
                                     autoComplete="new-password"
+                                    placeholder="Nhập lại mật khẩu"
                                 />
                                 <span className="invalid-feedback">{errorMessages.confirmPassword}</span>
                             </div>

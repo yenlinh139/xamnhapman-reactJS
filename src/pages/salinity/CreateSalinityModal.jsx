@@ -373,10 +373,10 @@ const CreateSalinityModal = ({ onClose, onSuccess }) => {
                     <div className="salinity-measurements">
                         <h3>Giá trị độ mặn (‰)</h3>
                         <div className="table-responsive">
-                            <table className="table table-sm table-bordered align-middle">
+                            <table className="table table-sm ">
                                 <thead className="table-light">
                                     <tr>
-                                        <th>Ngày *</th>
+                                        <th className="required">Ngày</th>
                                         {Object.entries(stations).map(([key, name]) => (
                                             <th key={key} title={name}>
                                                 {key}
@@ -384,9 +384,9 @@ const CreateSalinityModal = ({ onClose, onSuccess }) => {
                                         ))}
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody style={{ border: "none" }}>
                                     <tr>
-                                        <td style={{ minWidth: 140 }}>
+                                        <td style={{ minWidth: 140, border: "none" }}>
                                             <input
                                                 type="text"
                                                 id="date"
@@ -400,9 +400,17 @@ const CreateSalinityModal = ({ onClose, onSuccess }) => {
                                                 maxLength={10}
                                                 required
                                             />
+                                            {errors.Ngày && (
+                                                <div
+                                                    className="error-text mt-1"
+                                                    style={{ fontSize: "0.78rem", whiteSpace: "nowrap" }}
+                                                >
+                                                    {errors.Ngày}
+                                                </div>
+                                            )}
                                         </td>
                                         {Object.entries(stations).map(([key, name]) => (
-                                            <td key={key} style={{ minWidth: 120 }}>
+                                            <td key={key} style={{ minWidth: 120, border: "none" }}>
                                                 <input
                                                     type="text"
                                                     id={key}
@@ -428,9 +436,9 @@ const CreateSalinityModal = ({ onClose, onSuccess }) => {
                                 </tbody>
                             </table>
                         </div>
-                        {(errors.Ngày || Object.keys(stations).some((key) => errors[key])) && (
+                        {Object.keys(stations).some((key) => errors[key]) && (
                             <div className="error-text mt-2">
-                                {errors.Ngày || "Có ô dữ liệu không hợp lệ, vui lòng kiểm tra lại."}
+                                Có ô dữ liệu không hợp lệ, vui lòng kiểm tra lại.
                             </div>
                         )}
                     </div>

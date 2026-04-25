@@ -190,9 +190,9 @@ const Map = () => {
     const isLoggedIn = Boolean(localStorage.getItem("access_token"));
     const parsedRole = Number(userInfo?.role);
     const roleId = Number.isFinite(parsedRole) ? parsedRole : 0;
-    const isGuest = roleId === 0;
-    const isTechnician = roleId === 2;
-    const isAdmin = roleId === 1;
+    const isAdmin = roleId === 0;
+    const isTechnician = roleId === 1;
+    const isGuest = roleId === 2;
     const canManageData = isTechnician || isAdmin;
     const canManageUsers = isAdmin;
 

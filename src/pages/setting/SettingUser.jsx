@@ -130,7 +130,7 @@ function SettingUser({ isOpen, onClose }) {
                         >
                             <div className="form-sections">
                                 <div className="inputGroup">
-                                    <label htmlFor="name">Họ và tên</label>
+                                    <label htmlFor="name" className="required">Họ và tên</label>
                                     <input
                                         type="text"
                                         id="name"
@@ -172,7 +172,7 @@ function SettingUser({ isOpen, onClose }) {
                             {toggleUpdatePassword && (
                                 <div className="form-sections">
                                     <div className="inputGroup">
-                                        <label htmlFor="password">Mật khẩu mới</label>
+                                        <label htmlFor="password" className="required">Mật khẩu mới</label>
                                         <input
                                             type="password"
                                             id="password"
@@ -189,7 +189,7 @@ function SettingUser({ isOpen, onClose }) {
                                     </div>
 
                                     <div className="inputGroup">
-                                        <label htmlFor="confirmPassword">Xác nhận mật khẩu</label>
+                                        <label htmlFor="confirmPassword" className="required">Xác nhận mật khẩu</label>
                                         <input
                                             type="password"
                                             id="confirmPassword"
