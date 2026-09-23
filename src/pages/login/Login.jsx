@@ -130,6 +130,7 @@ const Login = ({ onSwitchTab }) => {
                         name="pswd"
                         placeholder="Mật khẩu"
                         ref={password}
+                        autoComplete="current-password"
                         onChange={() =>
                             setErrors((prev) => ({
                                 ...prev,

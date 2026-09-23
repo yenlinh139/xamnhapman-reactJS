@@ -50,7 +50,8 @@ const CustomTooltip = ({ active, payload }) => {
                             : trend.direction === "decrease"
                               ? "Giảm"
                               : "Không đổi"}{" "}
-                        {formatNumberVi(Math.abs(trend.difference), 2)} ‰ ({formatNumberVi(trend.percentage, 2)}%)
+                        {formatNumberVi(Math.abs(trend.difference), 2)} ‰ (
+                        {formatNumberVi(trend.percentage, 2)}%)
                     </p>
                 )}
             </div>

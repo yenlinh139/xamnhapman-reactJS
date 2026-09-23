@@ -139,7 +139,8 @@ export const handleFeatureHighlight = (
                 const centerMarker = L.marker(centerLatLng, {
                     zIndexOffset: 999,
                     icon: L.icon({
-                        iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='red' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='8'/%3E%3C/svg%3E",
+                        iconUrl:
+                            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='red' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='8'/%3E%3C/svg%3E",
                         iconSize: [16, 16],
                         iconAnchor: [8, 8],
                         popupAnchor: [0, -10],

@@ -702,7 +702,14 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
             return;
         }
 
-        const headers = ["STT", "Thời gian", "Độ mặn (‰)", "Mực nước (cm)", "Lượng mưa (mm)", "Nhiệt độ (°C)"];
+        const headers = [
+            "STT",
+            "Thời gian",
+            "Độ mặn (‰)",
+            "Mực nước (cm)",
+            "Lượng mưa (mm)",
+            "Nhiệt độ (°C)",
+        ];
 
         const escapeCsv = (value) => {
             if (value === null || value === undefined) return "";
@@ -729,14 +736,7 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                     ? Number(row.temp_value).toFixed(2)
                     : "";
 
-            return [
-                index + 1,
-                timeValue,
-                salinityValue,
-                waterLevelValue,
-                rainfallValue,
-                temperatureValue,
-            ];
+            return [index + 1, timeValue, salinityValue, waterLevelValue, rainfallValue, temperatureValue];
         });
 
         const csvContent = [headers, ...rows].map((line) => line.map(escapeCsv).join(",")).join("\n");
@@ -950,7 +950,11 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                                                         className={`btn btn-sm ${isLoggedIn ? "btn-outline-success" : "btn-outline-secondary"}`}
                                                         onClick={downloadData}
                                                         disabled={!isLoggedIn}
-                                                        title={!isLoggedIn ? "Bạn cần đăng nhập để tải dữ liệu" : ""}
+                                                        title={
+                                                            !isLoggedIn
+                                                                ? "Bạn cần đăng nhập để tải dữ liệu"
+                                                                : ""
+                                                        }
                                                         style={{ fontSize: "12px", padding: "4px 10px" }}
                                                     >
                                                         Tải dữ liệu

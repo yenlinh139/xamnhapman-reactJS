@@ -550,7 +550,13 @@ function LeftMenuMap({
     };
 
     const resolveIoTSearchResultCode = (result = {}) => {
-        return String(result?.StationCode || result?.station_code || result?.SerialNumber || result?.serial_number || "").trim();
+        return String(
+            result?.StationCode ||
+                result?.station_code ||
+                result?.SerialNumber ||
+                result?.serial_number ||
+                "",
+        ).trim();
     };
 
     const resolveIoTSearchResultName = (result = {}) => {
@@ -561,14 +567,15 @@ function LeftMenuMap({
         const normalizedRows = normalizeIoTDataRows(rows);
         const latestRow = normalizedRows[normalizedRows.length - 1] || rows[rows.length - 1] || null;
         const previousHourRow = normalizedRows[normalizedRows.length - 2] || null;
-        const previousDayRow = normalizedRows.find((row) => {
-            if (!latestRow?.Date || !row?.Date) return false;
-            const latestTime = new Date(latestRow.Date).getTime();
-            const rowTime = new Date(row.Date).getTime();
-            if (!Number.isFinite(latestTime) || !Number.isFinite(rowTime)) return false;
-            const diffHours = (latestTime - rowTime) / (1000 * 60 * 60);
-            return diffHours >= 20 && diffHours <= 28;
-        }) || null;
+        const previousDayRow =
+            normalizedRows.find((row) => {
+                if (!latestRow?.Date || !row?.Date) return false;
+                const latestTime = new Date(latestRow.Date).getTime();
+                const rowTime = new Date(row.Date).getTime();
+                if (!Number.isFinite(latestTime) || !Number.isFinite(rowTime)) return false;
+                const diffHours = (latestTime - rowTime) / (1000 * 60 * 60);
+                return diffHours >= 20 && diffHours <= 28;
+            }) || null;
 
         const extractNumericValue = (row, keys = []) => {
             for (const key of keys) {
@@ -657,9 +664,21 @@ function LeftMenuMap({
         const stationCode = resolveIoTSearchResultCode(result);
         const stationName = resolveIoTSearchResultName(result);
 
-        const latestTime = metricInfo.latestRow?.date_time || metricInfo.latestRow?.Date || metricInfo.latestRow?.sync_5m_end_time || null;
-        const previousHourTime = metricInfo.previousHourRow?.date_time || metricInfo.previousHourRow?.Date || metricInfo.previousHourRow?.sync_5m_end_time || null;
-        const previousDayTime = metricInfo.previousDayRow?.date_time || metricInfo.previousDayRow?.Date || metricInfo.previousDayRow?.sync_5m_end_time || null;
+        const latestTime =
+            metricInfo.latestRow?.date_time ||
+            metricInfo.latestRow?.Date ||
+            metricInfo.latestRow?.sync_5m_end_time ||
+            null;
+        const previousHourTime =
+            metricInfo.previousHourRow?.date_time ||
+            metricInfo.previousHourRow?.Date ||
+            metricInfo.previousHourRow?.sync_5m_end_time ||
+            null;
+        const previousDayTime =
+            metricInfo.previousDayRow?.date_time ||
+            metricInfo.previousDayRow?.Date ||
+            metricInfo.previousDayRow?.sync_5m_end_time ||
+            null;
 
         return {
             ...result,
@@ -684,7 +703,8 @@ function LeftMenuMap({
             start_time: formattedData?.summary?.firstRecord || result?.start_time || null,
             end_time: formattedData?.summary?.lastRecord || result?.end_time || null,
             frequency: result?.TanSuat || result?.frequency || "",
-            total_records: formattedData?.summary?.totalRecords || formattedData?.summary?.totalRecordsInRange || 0,
+            total_records:
+                formattedData?.summary?.totalRecords || formattedData?.summary?.totalRecordsInRange || 0,
         };
     };
 

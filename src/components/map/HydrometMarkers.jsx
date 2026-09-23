@@ -525,7 +525,7 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
     const metricCardsHtml = isMeteorology ? `${primaryCard}${secondaryCards}` : secondaryCards;
     const metricGridClass = isMeteorology ? "meteorology-grid" : isHydrology ? "hydrology-grid" : "";
 
-        return `
+    return `
         <div class="modern-popup hydromet-popup enhanced">
             <div class="popup-header">
                 <div class="popup-title">
@@ -536,20 +536,20 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
 
             <div class="popup-content">
                 ${
-                        !isMeteorology
-                                ? `<div class="popup-main-value">
+                    !isMeteorology
+                        ? `<div class="popup-main-value">
                     <span class="value-label">${primaryLabel}</span>
                     <span class="value-number" style="color: ${statusColor}">
                         ${formatHydrometNumber(primaryValue, 2)} ${primaryUnit}
                     </span>
                 </div>`
-                                : ""
+                        : ""
                 }
 
                 ${
-                        metricCardsHtml
+                    metricCardsHtml
                         ? `<div class="multi-param-grid ${metricGridClass}">${metricCardsHtml}</div>`
-                                : ""
+                        : ""
                 }
 
                 <div class="popup-details mt-3">
@@ -576,14 +576,14 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
                         </div>
 
                         ${
-                                shouldShowElement
-                                        ? `<div class="detail-item">
+                            shouldShowElement
+                                ? `<div class="detail-item">
                             <div class="detail-content">
                                 <strong class="detail-label">Yếu tố:</strong>
                                 <span class="detail-value">${elementSummary}</span>
                             </div>
                         </div>`
-                                        : ""
+                                : ""
                         }
                     </div>
                 </div>

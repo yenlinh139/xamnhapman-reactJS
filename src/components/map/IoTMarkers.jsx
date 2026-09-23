@@ -159,7 +159,7 @@ const getIoTStationImages = (station = {}) => {
     const baseCode =
         normalizeStationCode(station?.station_code || station?.StationCode) ||
         inferStationCodeFromName(station?.station_name || station?.StationName);
-    
+
     return LOCAL_IOT_STATION_IMAGES[baseCode] || LOCAL_IOT_STATION_IMAGES.default;
 };
 
@@ -287,7 +287,8 @@ export const createIoTPopup = (station) => {
     const hasSerial = stationSerial !== "";
 
     const mainMetricLabel = station?.display_metric_label || station?.metric_label || "Độ mặn hiện tại";
-    const mainMetricUnit = station?.display_metric_unit || station?.metric_unit || station?.latest_salt_unit || "‰";
+    const mainMetricUnit =
+        station?.display_metric_unit || station?.metric_unit || station?.latest_salt_unit || "‰";
 
     // Latest/previous hourly salinity values
     const latestSaltValue = getLatestIoTSaltValue(station);
@@ -324,7 +325,9 @@ export const createIoTPopup = (station) => {
     })();
 
     // Format values
-    const saltDisplay = hasSaltValue ? `${formatDecimalDisplay(latestSaltValue, 2)} ${mainMetricUnit}` : "N/A";
+    const saltDisplay = hasSaltValue
+        ? `${formatDecimalDisplay(latestSaltValue, 2)} ${mainMetricUnit}`
+        : "N/A";
     const previousHourSaltDisplay = Number.isFinite(previousSaltValue)
         ? `${formatDecimalDisplay(previousSaltValue, 2)} ${mainMetricUnit}`
         : "--";

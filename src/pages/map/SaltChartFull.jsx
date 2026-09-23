@@ -408,7 +408,10 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                         </div>
 
                         <div className="tab-content" style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-                            <div className={`tab-pane fade ${activeTab === "chart" ? "show active" : ""} h-100`} id="chart">
+                            <div
+                                className={`tab-pane fade ${activeTab === "chart" ? "show active" : ""} h-100`}
+                                id="chart"
+                            >
                                 {filteredData.length > 0 ? (
                                     <div className="map-chart-pane h-100">
                                         <div id="salinity-chart" className="map-chart-box">
@@ -437,14 +440,14 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                 )}
                             </div>
 
-                            <div className={`tab-pane fade ${activeTab === "export" ? "show active" : ""} h-100`} id="export">
+                            <div
+                                className={`tab-pane fade ${activeTab === "export" ? "show active" : ""} h-100`}
+                                id="export"
+                            >
                                 {filteredData.length > 0 ? (
                                     <div className="h-100 d-flex flex-column" style={{ minHeight: 0 }}>
                                         <div className="map-data-scroll" style={{ flex: 1, minHeight: 0 }}>
-                                            <ExportPreviewTable
-                                                data={filteredData}
-                                                kiHieu={kiHieu}
-                                            />
+                                            <ExportPreviewTable data={filteredData} kiHieu={kiHieu} />
                                         </div>
 
                                         <div className="d-flex gap-2 justify-content-between align-items-center">

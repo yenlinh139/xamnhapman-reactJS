@@ -59,7 +59,8 @@ const ListUser = ({ setUserEdit }) => {
 
                 // Handle different data types
                 if (sortConfig.key === "role") {
-                    const roleLabel = (v) => v === 0 ? "Quản trị viên" : v === 1 ? "Kĩ thuật viên" : "Khách";
+                    const roleLabel = (v) =>
+                        v === 0 ? "Quản trị viên" : v === 1 ? "Kĩ thuật viên" : "Khách";
                     aValue = roleLabel(aValue);
                     bValue = roleLabel(bValue);
                 }

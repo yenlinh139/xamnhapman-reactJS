@@ -719,9 +719,7 @@ const IoTManagementTab = ({ userInfo }) => {
                                 <div className="modal-body">
                                     <div className="row g-3">
                                         <div className="col-md-6">
-                                            <label className="form-label required">
-                                                Tên trạm IoT
-                                            </label>
+                                            <label className="form-label required">Tên trạm IoT</label>
                                             <select
                                                 className={`form-control ${dataFormErrors.serial_number ? "is-invalid" : ""}`}
                                                 value={dataForm.serial_number}
@@ -731,7 +729,10 @@ const IoTManagementTab = ({ userInfo }) => {
                                                         serial_number: e.target.value,
                                                     }));
                                                     if (dataFormErrors.serial_number) {
-                                                        setDataFormErrors((prev) => ({ ...prev, serial_number: "" }));
+                                                        setDataFormErrors((prev) => ({
+                                                            ...prev,
+                                                            serial_number: "",
+                                                        }));
                                                     }
                                                 }}
                                             >
@@ -745,13 +746,13 @@ const IoTManagementTab = ({ userInfo }) => {
                                                 ))}
                                             </select>
                                             {dataFormErrors.serial_number && (
-                                                <div className="error-text">{dataFormErrors.serial_number}</div>
+                                                <div className="error-text">
+                                                    {dataFormErrors.serial_number}
+                                                </div>
                                             )}
                                         </div>
                                         <div className="col-md-6">
-                                            <label className="form-label required">
-                                                Thời gian đo
-                                            </label>
+                                            <label className="form-label required">Thời gian đo</label>
                                             <input
                                                 type="text"
                                                 className={`form-control ${dataFormErrors.date_time ? "is-invalid" : ""}`}
@@ -762,7 +763,10 @@ const IoTManagementTab = ({ userInfo }) => {
                                                         date_time: normalizeDateInputText(e.target.value),
                                                     }));
                                                     if (dataFormErrors.date_time) {
-                                                        setDataFormErrors((prev) => ({ ...prev, date_time: "" }));
+                                                        setDataFormErrors((prev) => ({
+                                                            ...prev,
+                                                            date_time: "",
+                                                        }));
                                                     }
                                                 }}
                                                 onBlur={() =>
@@ -813,13 +817,18 @@ const IoTManagementTab = ({ userInfo }) => {
                                                 onChange={(e) =>
                                                     setDataForm((prev) => ({
                                                         ...prev,
-                                                        distance_value: normalizeMetricInputText(e.target.value),
+                                                        distance_value: normalizeMetricInputText(
+                                                            e.target.value,
+                                                        ),
                                                     }))
                                                 }
                                                 onBlur={() =>
                                                     setDataForm((prev) => ({
                                                         ...prev,
-                                                        distance_value: formatMetricInput(prev.distance_value, 2),
+                                                        distance_value: formatMetricInput(
+                                                            prev.distance_value,
+                                                            2,
+                                                        ),
                                                     }))
                                                 }
                                                 inputMode="decimal"

@@ -123,7 +123,8 @@ const normalizeFeedbackItem = (item) => {
         feedbackTypeCode,
         feedbackTypeLabel: typeLabelByCode[feedbackTypeCode],
         content: item.content || item.detail || item.message || item.description || "",
-        imageUrl: item.imageUrl || item.image_url || item.image || item.attachment || item.attachmentUrl || "",
+        imageUrl:
+            item.imageUrl || item.image_url || item.image || item.attachment || item.attachmentUrl || "",
         createdAt: item.createdAt || item.created_at || item.timestamp || item.time || item.date || "",
         statusCode,
         statusLabel: statusLabelByCode[statusCode],
@@ -173,7 +174,13 @@ const AdminFeedbackTab = () => {
 
     const filteredItems = useMemo(() => {
         return feedbackItems.filter((item) => {
-            const searchKey = [item.userName, item.email, item.feedbackTypeLabel, item.content, item.statusLabel]
+            const searchKey = [
+                item.userName,
+                item.email,
+                item.feedbackTypeLabel,
+                item.content,
+                item.statusLabel,
+            ]
                 .join(" ")
                 .toLowerCase();
 
@@ -533,9 +540,7 @@ const AdminFeedbackTab = () => {
                                         }}
                                     >
                                         {editingItem.content || (
-                                            <em style={{ color: "#999"}}>
-                                                Không có nội dung
-                                            </em>
+                                            <em style={{ color: "#999" }}>Không có nội dung</em>
                                         )}
                                     </p>
                                 </div>

@@ -249,7 +249,9 @@ export const fetchReservoirOverview = async (code, options = {}) => {
         if (endDate) params.append("endDate", endDate);
 
         const query = params.toString();
-        const response = await axiosInstance.get(`/reservoir-overview/${encodeURIComponent(code)}${query ? `?${query}` : ""}`);
+        const response = await axiosInstance.get(
+            `/reservoir-overview/${encodeURIComponent(code)}${query ? `?${query}` : ""}`,
+        );
         return response.data;
     } catch (error) {
         console.error("Error fetching reservoir overview:", error);
@@ -651,61 +653,6 @@ export const fetchIoTData = async (serialNumber, options = {}) => {
     } catch (error) {
         console.error("Error fetching IoT data:", error);
         return { success: false, station: {}, data: [], pagination: {} };
-    }
-};
-
-// API lấy thống kê IoT
-export const fetchIoTStats = async () => {
-    try {
-        const response = await axiosInstance.get("/iot/stats");
-        return response.data;
-    } catch (error) {
-        console.error("Error fetching IoT stats:", error);
-        return { success: false, overall: {}, byStation: [], recentSync: [] };
-    }
-};
-
-// API trigger manual sync
-export const triggerManualSync = async (serialNumber, dateRange = {}) => {
-    try {
-        const response = await axiosInstance.post(`/iot/sync/${serialNumber}`, dateRange);
-        clearIoTStationsCache();
-        return response.data;
-    } catch (error) {
-        console.error("Error triggering manual sync:", error);
-        return { success: false, message: error.message };
-    }
-};
-
-// Sync all stations
-export const syncAllStations = async (dateRange = {}) => {
-    return await triggerManualSync("all", dateRange);
-};
-
-// API kiểm tra health
-export const checkIoTHealth = async () => {
-    try {
-        const response = await axiosInstance.get("/iot/health");
-        return response.data;
-    } catch (error) {
-        console.error("Error checking IoT health:", error);
-        return { success: false, status: "unhealthy" };
-    }
-};
-
-// API lấy sync logs
-export const fetchSyncLogs = async (options = {}) => {
-    try {
-        const params = new URLSearchParams();
-        Object.keys(options).forEach((key) => {
-            if (options[key]) params.append(key, options[key]);
-        });
-
-        const response = await axiosInstance.get(`/iot/sync/logs?${params.toString()}`);
-        return response.data;
-    } catch (error) {
-        console.error("Error fetching sync logs:", error);
-        return { success: false, data: [], pagination: {} };
     }
 };
 

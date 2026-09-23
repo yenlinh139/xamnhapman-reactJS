@@ -6,7 +6,6 @@ import loggoSoKHCNTPHCM from "@assets/logo/SoKHCNTPHCM.png";
 import logoSoNTPTNTTPHM from "@assets/logo/SoNTPTNTTPHM.png";
 import logoSoTNMTTPHCM from "@assets/logo/SoTNMTTPHCM.png";
 
-
 function Footer() {
     const logos = [
         { src: loggoSoKHCNTPHCM, alt: "Sở Khoa học và Công nghệ TP. Hồ Chí Minh" },

@@ -581,7 +581,9 @@
             font-size: 15px;
             font-weight: 500;
             line-height: 1.2;
-            transition: background-color 0.2s ease, color 0.2s ease;
+            transition:
+                background-color 0.2s ease,
+                color 0.2s ease;
             border: none;
             background: none;
             width: 100%;

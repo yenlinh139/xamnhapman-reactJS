@@ -68,8 +68,12 @@ const emptyFormData = {
     imageUrl: "",
 };
 
-const feedbackTypeLabelByCode = Object.fromEntries(FEEDBACK_TYPE_OPTIONS.map((item) => [item.code, item.label]));
-const feedbackTypeCodeByLabel = Object.fromEntries(FEEDBACK_TYPE_OPTIONS.map((item) => [item.label, item.code]));
+const feedbackTypeLabelByCode = Object.fromEntries(
+    FEEDBACK_TYPE_OPTIONS.map((item) => [item.code, item.label]),
+);
+const feedbackTypeCodeByLabel = Object.fromEntries(
+    FEEDBACK_TYPE_OPTIONS.map((item) => [item.label, item.code]),
+);
 const statusLabelByCode = Object.fromEntries(STATUS_OPTIONS.map((item) => [item.code, item.label]));
 const statusCodeByLabel = Object.fromEntries(STATUS_OPTIONS.map((item) => [item.label, item.code]));
 
@@ -99,7 +103,8 @@ const normalizeFeedbackTypeCode = (item) => {
         return rawCode;
     }
 
-    const rawText = item?.feedbackType || item?.feedback_type || item?.category || item?.type || item?.topic || "";
+    const rawText =
+        item?.feedbackType || item?.feedback_type || item?.category || item?.type || item?.topic || "";
     return feedbackTypeCodeByLabel[rawText] || 3;
 };
 
@@ -124,9 +129,14 @@ const normalizeFeedbackItem = (item) => {
         email: item.user?.email || item.email || item.userEmail || "",
         feedbackTypeCode: normalizeFeedbackTypeCode(item),
         feedbackTypeLabel:
-            item.feedbackType || item.feedback_type || item.category || item.type || feedbackTypeLabelByCode[normalizeFeedbackTypeCode(item)],
+            item.feedbackType ||
+            item.feedback_type ||
+            item.category ||
+            item.type ||
+            feedbackTypeLabelByCode[normalizeFeedbackTypeCode(item)],
         detail: item.content || item.detail || item.message || item.description || "",
-        attachmentUrl: item.imageUrl || item.image_url || item.image || item.attachment || item.attachmentUrl || "",
+        attachmentUrl:
+            item.imageUrl || item.image_url || item.image || item.attachment || item.attachmentUrl || "",
         attachmentName: item.attachmentName || item.fileName || item.imageName || "",
         statusCode: normalizeStatusCode(item),
         statusLabel: item.status || item.state || statusLabelByCode[normalizeStatusCode(item)],
@@ -231,7 +241,10 @@ const Feedback = () => {
 
             const ownedItems = currentEmail
                 ? normalizedItems.filter(
-                      (item) => String(item.email || "").trim().toLowerCase() === currentEmail,
+                      (item) =>
+                          String(item.email || "")
+                              .trim()
+                              .toLowerCase() === currentEmail,
                   )
                 : [];
 
@@ -511,7 +524,12 @@ const Feedback = () => {
     };
 
     const filteredItems = feedbackItems.filter((item) => {
-        const matchesSearch = [item.feedbackTypeLabel, item.detail, item.statusLabel, formatDateTime(item.createdAt)]
+        const matchesSearch = [
+            item.feedbackTypeLabel,
+            item.detail,
+            item.statusLabel,
+            formatDateTime(item.createdAt),
+        ]
             .join(" ")
             .toLowerCase()
             .includes(searchTerm.trim().toLowerCase());
@@ -723,7 +741,9 @@ const Feedback = () => {
                                             </div>
 
                                             <div className="input-wrapper">
-                                                <label htmlFor="detail" className="required">Nội dung chi tiết</label>
+                                                <label htmlFor="detail" className="required">
+                                                    Nội dung chi tiết
+                                                </label>
                                                 <textarea
                                                     id="detail"
                                                     name="detail"
@@ -803,12 +823,11 @@ const Feedback = () => {
 
                         {deleteTarget && (
                             <>
-                                <div
-                                    className="modal fade show d-block"
-                                    role="dialog"
-                                    aria-modal="true"
-                                >
-                                    <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: 400 }}>
+                                <div className="modal fade show d-block" role="dialog" aria-modal="true">
+                                    <div
+                                        className="modal-dialog modal-dialog-centered"
+                                        style={{ maxWidth: 400 }}
+                                    >
                                         <div className="modal-content">
                                             <div className="modal-header py-2 px-3">
                                                 <h5 className="modal-title">Xác nhận xóa</h5>

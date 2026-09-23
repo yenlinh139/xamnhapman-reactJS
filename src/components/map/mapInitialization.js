@@ -282,8 +282,8 @@ export const createLegendControl = () => {
               <span>Chọn ngày quan trắc</span>
             </div>
                         ${createDateInputComponentMarkup({
-                                displayId: "legend-date",
-                                nativeId: "legend-date-native",
+                            displayId: "legend-date",
+                            nativeId: "legend-date-native",
                         })}
           </div>
 
