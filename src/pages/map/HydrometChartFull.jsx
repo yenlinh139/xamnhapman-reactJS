@@ -705,7 +705,10 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                             </div>
                         </div>
 
-                        <div className="tab-content mt-1" style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+                        <div
+                            className="tab-content mt-1"
+                            style={{ flex: 1, minHeight: 0, overflow: "hidden" }}
+                        >
                             <div
                                 className={`tab-pane fade ${activeTab === "chart" ? "show active" : ""} h-100`}
                                 id="chart"

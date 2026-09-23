@@ -1,14 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
-import {
-    ResponsiveContainer,
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    Legend,
-} from "recharts";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import html2canvas from "html2canvas";
 import * as XLSX from "xlsx";
 import "@styles/components/_hydrometChart.scss";
@@ -18,7 +9,9 @@ const DEFAULT_START_DATE = "2025-01-01";
 const DEFAULT_END_DATE = "2025-12-31";
 
 const toNumber = (value) => {
-    const normalized = String(value ?? "").replace(",", ".").trim();
+    const normalized = String(value ?? "")
+        .replace(",", ".")
+        .trim();
     const numeric = Number.parseFloat(normalized);
     return Number.isFinite(numeric) ? numeric : null;
 };

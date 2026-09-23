@@ -130,7 +130,9 @@ function SettingUser({ isOpen, onClose }) {
                         >
                             <div className="form-sections">
                                 <div className="inputGroup">
-                                    <label htmlFor="name" className="required">Họ và tên</label>
+                                    <label htmlFor="name" className="required">
+                                        Họ và tên
+                                    </label>
                                     <input
                                         type="text"
                                         id="name"
@@ -141,7 +143,9 @@ function SettingUser({ isOpen, onClose }) {
                                         placeholder="Nhập họ và tên của bạn"
                                     />
                                     <FaUser className="input-icon" />
-                                    {errorMessages.name && <span className="error">{errorMessages.name}</span>}
+                                    {errorMessages.name && (
+                                        <span className="error">{errorMessages.name}</span>
+                                    )}
                                 </div>
 
                                 <div className="inputGroup">
@@ -172,7 +176,9 @@ function SettingUser({ isOpen, onClose }) {
                             {toggleUpdatePassword && (
                                 <div className="form-sections">
                                     <div className="inputGroup">
-                                        <label htmlFor="password" className="required">Mật khẩu mới</label>
+                                        <label htmlFor="password" className="required">
+                                            Mật khẩu mới
+                                        </label>
                                         <input
                                             type="password"
                                             id="password"
@@ -189,7 +195,9 @@ function SettingUser({ isOpen, onClose }) {
                                     </div>
 
                                     <div className="inputGroup">
-                                        <label htmlFor="confirmPassword" className="required">Xác nhận mật khẩu</label>
+                                        <label htmlFor="confirmPassword" className="required">
+                                            Xác nhận mật khẩu
+                                        </label>
                                         <input
                                             type="password"
                                             id="confirmPassword"
@@ -208,11 +216,7 @@ function SettingUser({ isOpen, onClose }) {
                             )}
 
                             <div className="form-actions">
-                                <button
-                                    type="button"
-                                    className="cancel-button"
-                                    onClick={handleClose}
-                                >
+                                <button type="button" className="cancel-button" onClick={handleClose}>
                                     <FaTimes />
                                     Hủy
                                 </button>

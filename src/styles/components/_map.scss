@@ -2551,7 +2551,12 @@ button:hover,
     border-radius: 9px;
     border: 2px solid #ffffff;
     background:
-        linear-gradient(180deg, rgba(191, 219, 254, 0.92) 0%, rgba(147, 197, 253, 0.92) 42%, rgba(30, 144, 255, 0.95) 100%),
+        linear-gradient(
+            180deg,
+            rgba(191, 219, 254, 0.92) 0%,
+            rgba(147, 197, 253, 0.92) 42%,
+            rgba(30, 144, 255, 0.95) 100%
+        ),
         linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
     box-shadow:
         0 6px 14px rgba(37, 99, 235, 0.38),
@@ -2896,7 +2901,10 @@ button:hover,
     border: none !important;
     background-color: rgba(255, 255, 255, 0.96);
     color: #0f172a;
-    transition: background-color 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;
+    transition:
+        background-color 0.22s ease,
+        color 0.22s ease,
+        box-shadow 0.22s ease;
 }
 
 /* Keep draw buttons close to Leaflet.Draw defaults so sprite icons don't get cropped. */
@@ -2907,7 +2915,10 @@ button:hover,
     border: none !important;
     background-color: rgba(255, 255, 255, 0.96);
     color: #0f172a;
-    transition: background-color 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;
+    transition:
+        background-color 0.22s ease,
+        color 0.22s ease,
+        box-shadow 0.22s ease;
     position: relative;
     background-image: none !important;
 }

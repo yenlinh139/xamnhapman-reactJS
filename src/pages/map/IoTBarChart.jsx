@@ -243,7 +243,10 @@ const IoTBarChart = ({ data, height = 300, isCompact = false, groupBy = "none", 
                                     const riskLabel = payload?.payload?.saltRiskLabel
                                         ? ` (${payload.payload.saltRiskLabel})`
                                         : "";
-                                    return [`${formatNumberVi(value, 2)} ‰${riskLabel}`, SENSOR_MAP.salt.name];
+                                    return [
+                                        `${formatNumberVi(value, 2)} ‰${riskLabel}`,
+                                        SENSOR_MAP.salt.name,
+                                    ];
                                 }
                                 if (name === SENSOR_MAP.temp.name)
                                     return [`${formatNumberVi(value, 2)} °C`, SENSOR_MAP.temp.name];

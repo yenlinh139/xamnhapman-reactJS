@@ -229,7 +229,10 @@ const rowsForLayer = (layerName, props) => {
                 { label: "Cao trình đỉnh cống (m)", value: formatNumericValue(props.CaoTrinhDinhCong, 2) },
                 { label: "Hình thức vận hành", value: formatValue(props.HinhThucVanHanh) },
                 { label: "Mục tiêu nhiệm vụ", value: formatValue(props.MucTieuNhiemVu) },
-                { label: "Diện tích phục vụ (ha)", value: formatNumericValue(props.DienTichPhucVu_ha, 2, "ha") },
+                {
+                    label: "Diện tích phục vụ (ha)",
+                    value: formatNumericValue(props.DienTichPhucVu_ha, 2, "ha"),
+                },
                 { label: "Năm sử dụng", value: formatValue(props.NamSuDung) },
                 { label: "Cấp công trình", value: formatValue(props.CapCongTrinh) },
                 { label: "Hệ thống công trình thủy lợi", value: formatValue(props.HeThongCongTrinhThuyLoi) },
@@ -284,7 +287,10 @@ const rowsForLayer = (layerName, props) => {
                 { label: "Loại", value: formatValue(props.Loai) },
                 { label: "Công suất", value: formatNumericValue(props.CongSuat, 2) },
                 { label: "Mục tiêu nhiệm vụ", value: formatValue(props.MucTieuNhiemVu) },
-                { label: "Diện tích phục vụ (ha)", value: formatNumericValue(props.DienTichPhucVu_ha, 2, "ha") },
+                {
+                    label: "Diện tích phục vụ (ha)",
+                    value: formatNumericValue(props.DienTichPhucVu_ha, 2, "ha"),
+                },
                 { label: "Hệ thống công trình thủy lợi", value: formatValue(props.HeThongCongTrinhThuyLoi) },
                 { label: "Năm sử dụng", value: formatValue(props.NamSuDung) },
                 { label: "Đơn vị quản lý", value: formatValue(props.DonViQuanLy) },

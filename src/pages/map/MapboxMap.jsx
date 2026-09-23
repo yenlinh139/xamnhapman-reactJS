@@ -80,7 +80,8 @@ const MapboxMap = forwardRef(
                 });
 
                 const overviewRows = Array.isArray(overview?.data) ? overview.data : [];
-                const effectiveRows = Array.isArray(tableRows) && tableRows.length > 0 ? tableRows : overviewRows;
+                const effectiveRows =
+                    Array.isArray(tableRows) && tableRows.length > 0 ? tableRows : overviewRows;
 
                 const latestRow = effectiveRows[effectiveRows.length - 1] || null;
                 const latestValue =
@@ -1182,7 +1183,12 @@ const MapboxMap = forwardRef(
                                     .join("");
 
                                 const parseNumeric = (value) => {
-                                    if (value === null || value === undefined || value === "" || value === "--") {
+                                    if (
+                                        value === null ||
+                                        value === undefined ||
+                                        value === "" ||
+                                        value === "--"
+                                    ) {
                                         return null;
                                     }
 
@@ -1242,7 +1248,11 @@ const MapboxMap = forwardRef(
                                         numericWater: parseNumeric(station.distance_value),
                                         numericRain: parseNumeric(station.daily_rainfall_value),
                                     }))
-                                    .sort((left, right) => (right.numericSalt ?? -Infinity) - (left.numericSalt ?? -Infinity));
+                                    .sort(
+                                        (left, right) =>
+                                            (right.numericSalt ?? -Infinity) -
+                                            (left.numericSalt ?? -Infinity),
+                                    );
 
                                 const kttvMetricItems = kttvStations.flatMap((station) =>
                                     (station.values || [])
@@ -1257,9 +1267,10 @@ const MapboxMap = forwardRef(
 
                                 const salinityTop = salinitySorted[0] || null;
                                 const iotTop = iotSorted[0] || null;
-                                const kttvTopMetric = [...kttvMetricItems].sort(
-                                    (left, right) => right.numericValue - left.numericValue,
-                                )[0] || null;
+                                const kttvTopMetric =
+                                    [...kttvMetricItems].sort(
+                                        (left, right) => right.numericValue - left.numericValue,
+                                    )[0] || null;
 
                                 const renderTile = (title, value, accent = false, note = "") => `
                                     <div class="group-stat-tile ${accent ? "is-alert" : ""}">
@@ -1283,17 +1294,31 @@ const MapboxMap = forwardRef(
                                         salinitySorted.map((item) => item.numericValue),
                                         2,
                                     );
-                                    const salinityHighRisk = salinitySorted.filter((item) => item.numericValue >= 4).length;
+                                    const salinityHighRisk = salinitySorted.filter(
+                                        (item) => item.numericValue >= 4,
+                                    ).length;
 
                                     sections.push(
                                         renderGroupCard(
                                             `ĐIỂM ĐO MẶN (${stationsInfo.salinityData.length})`,
                                             [
-                                                renderTile("Độ mặn TB", `${salinityAvg} ‰`, false, "giá trị trung bình"),
-                                                renderTile("Điểm >= 4‰", String(salinityHighRisk), salinityHighRisk > 0, "điểm cần chú ý"),
+                                                renderTile(
+                                                    "Độ mặn TB",
+                                                    `${salinityAvg} ‰`,
+                                                    false,
+                                                    "giá trị trung bình",
+                                                ),
+                                                renderTile(
+                                                    "Điểm >= 4‰",
+                                                    String(salinityHighRisk),
+                                                    salinityHighRisk > 0,
+                                                    "điểm cần chú ý",
+                                                ),
                                                 renderTile(
                                                     "Cao nhất",
-                                                    salinityTop ? `${formatDecimalDisplay(salinityTop.numericValue, 2)} ‰` : "--",
+                                                    salinityTop
+                                                        ? `${formatDecimalDisplay(salinityTop.numericValue, 2)} ‰`
+                                                        : "--",
                                                     salinityTop && salinityTop.numericValue > 4,
                                                     salinityTop?.name || "không có dữ liệu",
                                                 ),
@@ -1318,17 +1343,38 @@ const MapboxMap = forwardRef(
                                     const iotRainValues = iotSorted
                                         .map((station) => station.numericRain)
                                         .filter((value) => value !== null);
-                                    const iotHighSaltCount = iotSorted.filter((station) => (station.numericSalt || 0) >= 4)
-                                        .length;
+                                    const iotHighSaltCount = iotSorted.filter(
+                                        (station) => (station.numericSalt || 0) >= 4,
+                                    ).length;
 
                                     sections.push(
                                         renderGroupCard(
                                             `TRẠM IOT (${stationsInfo.iotData.length})`,
                                             [
-                                                renderTile("Độ mặn TB", `${formatAvg(iotSaltValues, 2)} ‰`, false, "toàn nhóm"),
-                                                renderTile("Mặn cao", String(iotHighSaltCount), iotHighSaltCount > 0, ">= 4‰"),
-                                                renderTile("Nhiệt độ TB", `${formatAvg(iotTempValues, 1)} °C`, false, "trung bình"),
-                                                renderTile("Mưa TB", `${formatAvg(iotRainValues, 1)} mm`, false, "trung bình"),
+                                                renderTile(
+                                                    "Độ mặn TB",
+                                                    `${formatAvg(iotSaltValues, 2)} ‰`,
+                                                    false,
+                                                    "toàn nhóm",
+                                                ),
+                                                renderTile(
+                                                    "Mặn cao",
+                                                    String(iotHighSaltCount),
+                                                    iotHighSaltCount > 0,
+                                                    ">= 4‰",
+                                                ),
+                                                renderTile(
+                                                    "Nhiệt độ TB",
+                                                    `${formatAvg(iotTempValues, 1)} °C`,
+                                                    false,
+                                                    "trung bình",
+                                                ),
+                                                renderTile(
+                                                    "Mưa TB",
+                                                    `${formatAvg(iotRainValues, 1)} mm`,
+                                                    false,
+                                                    "trung bình",
+                                                ),
                                             ].join(""),
                                         ),
                                     );
@@ -1336,7 +1382,9 @@ const MapboxMap = forwardRef(
 
                                 if (kttvStations.length > 0) {
                                     const stationNameCount = new Set(
-                                        kttvStations.map((station) => station.name).filter((name) => Boolean(name)),
+                                        kttvStations
+                                            .map((station) => station.name)
+                                            .filter((name) => Boolean(name)),
                                     ).size;
                                     const meteoStationCount = (stationsInfo.meteorologyData || []).length;
                                     const hydroStationCount = (stationsInfo.hydrologyData || []).length;
@@ -1348,10 +1396,30 @@ const MapboxMap = forwardRef(
                                         renderGroupCard(
                                             `KTTV (${kttvStations.length})`,
                                             [
-                                                renderTile("Tổng trạm", String(stationNameCount || kttvStations.length), false, "đang có số liệu"),
-                                                renderTile("Khí tượng", String(meteoStationCount), false, "nhóm con"),
-                                                renderTile("Thủy văn", String(hydroStationCount), false, "nhóm con"),
-                                                renderTile("Nổi bật", topKttvLabel, false, "chỉ tiêu lớn nhất"),
+                                                renderTile(
+                                                    "Tổng trạm",
+                                                    String(stationNameCount || kttvStations.length),
+                                                    false,
+                                                    "đang có số liệu",
+                                                ),
+                                                renderTile(
+                                                    "Khí tượng",
+                                                    String(meteoStationCount),
+                                                    false,
+                                                    "nhóm con",
+                                                ),
+                                                renderTile(
+                                                    "Thủy văn",
+                                                    String(hydroStationCount),
+                                                    false,
+                                                    "nhóm con",
+                                                ),
+                                                renderTile(
+                                                    "Nổi bật",
+                                                    topKttvLabel,
+                                                    false,
+                                                    "chỉ tiêu lớn nhất",
+                                                ),
                                             ].join(""),
                                         ),
                                     );

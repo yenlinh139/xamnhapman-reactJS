@@ -104,7 +104,10 @@ export const resetPassword = (params) => {
                 params.onSuccess();
             }
         } catch (error) {
-            ToastCommon(TOAST.ERROR, error.response?.data?.message || error.message || "Không thể đặt lại mật khẩu.");
+            ToastCommon(
+                TOAST.ERROR,
+                error.response?.data?.message || error.message || "Không thể đặt lại mật khẩu.",
+            );
         }
     };
 };

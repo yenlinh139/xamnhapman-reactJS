@@ -49,12 +49,12 @@ const formatPopupDateValue = (value, fallback = "Chưa có dữ liệu") => {
 };
 
 const formatDecimalDisplay = (value, digits = 2) => {
-  const numeric = Number.parseFloat(value);
-  if (!Number.isFinite(numeric)) return "--";
-  return numeric.toLocaleString("vi-VN", {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  });
+    const numeric = Number.parseFloat(value);
+    if (!Number.isFinite(numeric)) return "--";
+    return numeric.toLocaleString("vi-VN", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+    });
 };
 
 export const createSalinityPopup = (point, latestSalinity, latestDate, trend, previousDate) => {
@@ -83,8 +83,12 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
 
     const latDecimal = convertDMSToDecimal(point?.ViDo);
     const lngDecimal = convertDMSToDecimal(point?.KinhDo);
-    const latDisplay = Number.isFinite(latDecimal) ? formatDecimalDisplay(latDecimal, 6) : point.ViDo || "Không xác định";
-    const lngDisplay = Number.isFinite(lngDecimal) ? formatDecimalDisplay(lngDecimal, 6) : point.KinhDo || "Không xác định";
+    const latDisplay = Number.isFinite(latDecimal)
+        ? formatDecimalDisplay(latDecimal, 6)
+        : point.ViDo || "Không xác định";
+    const lngDisplay = Number.isFinite(lngDecimal)
+        ? formatDecimalDisplay(lngDecimal, 6)
+        : point.KinhDo || "Không xác định";
     const stationCodeForClick = String(point.KiHieu || "").replace(/'/g, "\\'");
     const stationNameForClick = String(point.TenDiem || "").replace(/'/g, "\\'");
 
@@ -251,9 +255,9 @@ export const renderSalinityPoints = async (mapInstance, setSalinityData, setSele
                 if (Math.abs(diff) > 0.01) {
                     trend = {
                         text:
-                        diff > 0
-                          ? `Tăng ${formatDecimalDisplay(diff, 2)} ‰ so với `
-                          : `Giảm ${formatDecimalDisplay(Math.abs(diff), 2)} ‰ so với`,
+                            diff > 0
+                                ? `Tăng ${formatDecimalDisplay(diff, 2)} ‰ so với `
+                                : `Giảm ${formatDecimalDisplay(Math.abs(diff), 2)} ‰ so với`,
                         color: diff > 0 ? "#dc3545" : "#198754",
                         icon: diff > 0 ? "▲" : "▼",
                     };

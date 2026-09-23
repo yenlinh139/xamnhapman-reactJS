@@ -123,7 +123,7 @@ const SEARCH_TYPE_META = {
         icon: "fa-solid fa-water",
         subtitle: "Thủy hệ - Vùng nước",
         titleResolver: (result) => result?.Ten || result?.name,
-    }
+    },
 };
 
 const normalizeSearchResult = (result = {}) => {
@@ -469,72 +469,83 @@ const Map = () => {
                                 <span>Bản đồ</span>
                             </NavLink>
 
-                            <NavLink
-                                to={ROUTES.salinityReport}
-                                className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
-                            >
-                                <span>Bản tin xâm nhập mặn</span>
-                            </NavLink>
-
-                            <NavLink
-                                to={ROUTES.feedback}
-                                className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
-                            >
-                                <span>Liên hệ</span>
-                            </NavLink>
-
-                            {canManageData && (
-                                <NavLink
-                                    to={ROUTES.salinity}
-                                    className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
-                                >
-                                    <span>Quản trị dữ liệu</span>
-                                </NavLink>
-                            )}
-
-                            {canManageUsers && (
-                                <NavLink
-                                    to={ROUTES.users}
-                                    className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
-                                >
-                                    <span>Quản trị tài khoản</span>
-                                </NavLink>
-                            )}
-
                             {/* User Dropdown */}
                             {isLoggedIn ? (
-                                <div className="user-dropdown">
-                                    <button
-                                        className="user-button"
-                                        data-bs-toggle="dropdown"
-                                        aria-expanded="false"
+                                <>
+                                    <NavLink
+                                        to={ROUTES.salinityReport}
+                                        className={({ isActive }) =>
+                                            isActive ? "nav-link active" : "nav-link"
+                                        }
                                     >
-                                        <div className="user-info">
-                                            <span className="user-name">{userInfo?.name || "Tài khoản"}</span>
-                                        </div>
-                                        <i className="fa-solid fa-chevron-down dropdown-arrow"></i>
-                                    </button>
+                                        <span>Bản tin xâm nhập mặn</span>
+                                    </NavLink>
 
-                                    <ul className="dropdown-menu">
-                                        <li>
-                                            <button
-                                                type="button"
-                                                className="dropdown-item"
-                                                onClick={handleOpenSettingModal}
-                                            >
-                                                <span>Cài đặt</span>
-                                            </button>
-                                        </li>
-                                        <li>
-                                            <hr className="dropdown-divider" />
-                                        </li>
-                                        <li>
-                                            <button className="dropdown-item" onClick={handleLogout}>
-                                                <span>Đăng xuất</span>
-                                            </button>
-                                        </li>
-                                    </ul>
-                                </div>
+                                    <NavLink
+                                        to={ROUTES.feedback}
+                                        className={({ isActive }) =>
+                                            isActive ? "nav-link active" : "nav-link"
+                                        }
+                                    >
+                                        <span>Liên hệ</span>
+                                    </NavLink>
+
+                                    {canManageData && (
+                                        <NavLink
+                                            to={ROUTES.salinity}
+                                            className={({ isActive }) =>
+                                                isActive ? "nav-link active" : "nav-link"
+                                            }
+                                        >
+                                            <span>Quản trị dữ liệu</span>
+                                        </NavLink>
+                                    )}
+
+                                    {canManageUsers && (
+                                        <NavLink
+                                            to={ROUTES.users}
+                                            className={({ isActive }) =>
+                                                isActive ? "nav-link active" : "nav-link"
+                                            }
+                                        >
+                                            <span>Quản trị tài khoản</span>
+                                        </NavLink>
+                                    )}
+                                    <div className="user-dropdown">
+                                        <button
+                                            className="user-button"
+                                            data-bs-toggle="dropdown"
+                                            aria-expanded="false"
+                                        >
+                                            <div className="user-info">
+                                                <span className="user-name">
+                                                    {userInfo?.name || "Tài khoản"}
+                                                </span>
+                                            </div>
+                                            <i className="fa-solid fa-chevron-down dropdown-arrow"></i>
+                                        </button>
+
+                                        <ul className="dropdown-menu">
+                                            <li>
+                                                <button
+                                                    type="button"
+                                                    className="dropdown-item"
+                                                    onClick={handleOpenSettingModal}
+                                                >
+                                                    <span>Cài đặt</span>
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <hr className="dropdown-divider" />
+                                            </li>
+                                            <li>
+                                                <button className="dropdown-item" onClick={handleLogout}>
+                                                    <span>Đăng xuất</span>
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </>
                             ) : (
                                 <NavLink
                                     to={ROUTES.login}

@@ -127,7 +127,8 @@ const createReservoirPopup = ({ station, latestRecord, overview, dataCount }) =>
         overview?.data?.[0]?.date ??
         null;
 
-    const source = latestRecord?.latest_source || overview?.latest_source || overview?.data?.[0]?.NguonDuLieu || "--";
+    const source =
+        latestRecord?.latest_source || overview?.latest_source || overview?.data?.[0]?.NguonDuLieu || "--";
     const sourceUrl = normalizeUrl(source);
     const sourceText = toShortSourceText(source);
     const totalRecords = Number(overview?.total_records ?? dataCount ?? 0);

@@ -75,10 +75,22 @@ const EditSalinityModal = ({ record, onClose, onSuccess }) => {
         if (record) {
             const data = {
                 Ngày: record.Ngày || "",
-                CRT: record.CRT !== null && record.CRT !== "NULL" ? formatLocalizedInputValue(record.CRT, 2) : "",
-                CTT: record.CTT !== null && record.CTT !== "NULL" ? formatLocalizedInputValue(record.CTT, 2) : "",
-                COT: record.COT !== null && record.COT !== "NULL" ? formatLocalizedInputValue(record.COT, 2) : "",
-                CKC: record.CKC !== null && record.CKC !== "NULL" ? formatLocalizedInputValue(record.CKC, 2) : "",
+                CRT:
+                    record.CRT !== null && record.CRT !== "NULL"
+                        ? formatLocalizedInputValue(record.CRT, 2)
+                        : "",
+                CTT:
+                    record.CTT !== null && record.CTT !== "NULL"
+                        ? formatLocalizedInputValue(record.CTT, 2)
+                        : "",
+                COT:
+                    record.COT !== null && record.COT !== "NULL"
+                        ? formatLocalizedInputValue(record.COT, 2)
+                        : "",
+                CKC:
+                    record.CKC !== null && record.CKC !== "NULL"
+                        ? formatLocalizedInputValue(record.CKC, 2)
+                        : "",
                 KXAH:
                     record.KXAH !== null && record.KXAH !== "NULL"
                         ? formatLocalizedInputValue(record.KXAH, 2)
@@ -87,8 +99,14 @@ const EditSalinityModal = ({ record, onClose, onSuccess }) => {
                     record.KXD2 !== null && record.KXD2 !== "NULL"
                         ? formatLocalizedInputValue(record.KXD2, 2)
                         : "",
-                MNB: record.MNB !== null && record.MNB !== "NULL" ? formatLocalizedInputValue(record.MNB, 2) : "",
-                PCL: record.PCL !== null && record.PCL !== "NULL" ? formatLocalizedInputValue(record.PCL, 2) : "",
+                MNB:
+                    record.MNB !== null && record.MNB !== "NULL"
+                        ? formatLocalizedInputValue(record.MNB, 2)
+                        : "",
+                PCL:
+                    record.PCL !== null && record.PCL !== "NULL"
+                        ? formatLocalizedInputValue(record.PCL, 2)
+                        : "",
             };
             setFormData(data);
             setOriginalData(data);
@@ -153,7 +171,8 @@ const EditSalinityModal = ({ record, onClose, onSuccess }) => {
                 if (formData[station] !== originalData[station]) {
                     const value = formData[station];
                     const numericValue = parseLocalizedNumber(value);
-                    submitData[station] = value !== "" && numericValue !== null ? Number(numericValue.toFixed(2)) : "NULL";
+                    submitData[station] =
+                        value !== "" && numericValue !== null ? Number(numericValue.toFixed(2)) : "NULL";
                 }
             });
 

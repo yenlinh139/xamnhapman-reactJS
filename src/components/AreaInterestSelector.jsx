@@ -306,9 +306,7 @@ function AreaInterestSelector({ setSelectedLocation, setHighlightedFeature }) {
                 className={`area-interest-toggle ${isOpen ? "open" : ""}`}
                 onClick={toggleAreaInterest}
             >
-                <span className="area-interest-title">
-                    CHỌN VÙNG QUAN TÂM  
-                </span>
+                <span className="area-interest-title">CHỌN VÙNG QUAN TÂM</span>
                 <i
                     className={`fa-solid fa-chevron-right area-interest-chevron ${isOpen ? "rotated" : ""}`}
                 ></i>
