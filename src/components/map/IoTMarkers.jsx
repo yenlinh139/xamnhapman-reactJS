@@ -509,7 +509,6 @@ export const createIoTPopup = (station) => {
                         <div class="detail-item">
                             <div class="detail-content py-1">
                                 <strong class="detail-label">Thời gian: </strong>
-                                </br>
                                 <span class="detail-value">${startTime} - ${endTime}</span>
                             </div>
                         </div>
@@ -693,7 +692,7 @@ export const renderIoTStations = async (mapInstance, setIotData) => {
 
             const popupHTML = createIoTPopup(station);
             marker.bindPopup(popupHTML, {
-                maxWidth: 350,
+                maxWidth: 380,
                 className: "custom-popup iot-custom-popup",
                 autoClose: true,
                 closeOnClick: false,

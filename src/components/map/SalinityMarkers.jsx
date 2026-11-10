@@ -1,7 +1,7 @@
 import React from "react";
 import L from "leaflet";
 import { convertDMSToDecimal } from "@components/convertDMSToDecimal";
-import { fetchSalinityPoints } from "@components/map/mapDataServices";
+import { fetchSalinityPoints, fetchForecastLatest } from "@components/map/mapDataServices";
 import { getSalinityIcon } from "@components/map/mapMarkers";
 import { getSingleStationClassification } from "../../common/salinityClassification";
 
@@ -57,7 +57,62 @@ const formatDecimalDisplay = (value, digits = 2) => {
     });
 };
 
-export const createSalinityPopup = (point, latestSalinity, latestDate, trend, previousDate) => {
+const formatForecastTime = (isoString) => {
+    const date = new Date(isoString);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+};
+
+// Từ Forecast Result (/forecast-latest) build map manualCode -> { time, salinity } của mốc dự báo
+// "hiện tại". Mốc "hiện tại" do backend quyết định (currentIndex, tôn trọng biến
+// FORECAST_NOW_OVERRIDE dùng cho test) - FE chỉ dùng lại, không tự tính Date.now() nữa để
+// tránh lệch với giá trị hiển thị ở các màn khác (vd admin "Quản trị dữ liệu").
+export const buildForecastLookup = (forecastPayload) => {
+    const lookup = {};
+    if (!forecastPayload?.timeGrid?.length || !forecastPayload?.stations?.length) {
+        return lookup;
+    }
+
+    let index = forecastPayload.currentIndex;
+    if (!Number.isInteger(index) || index < 0 || index >= forecastPayload.timeGrid.length) {
+        // Fallback cho payload cũ chưa có currentIndex (tuong thich nguoc)
+        const now = Date.now();
+        index = forecastPayload.timeGrid.findIndex((t) => new Date(t).getTime() >= now);
+        if (index === -1) index = 0;
+    }
+
+    const lastTime = forecastPayload.timeGrid[forecastPayload.timeGrid.length - 1];
+
+    forecastPayload.stations.forEach((station) => {
+        const salinity = station.values?.[index];
+        if (salinity !== null && salinity !== undefined) {
+            lookup[station.manualCode] = {
+                time: forecastPayload.timeGrid[index],
+                lastTime,
+                intervalHours: forecastPayload.intervalHours,
+                salinity,
+                isSynthetic: forecastPayload.isSynthetic,
+            };
+        }
+    });
+
+    return lookup;
+};
+
+export const createSalinityPopup = (
+    point,
+    latestSalinity,
+    latestDate,
+    trend,
+    previousDate,
+    forecastInfo = null,
+) => {
     const pointLatestValue = Number(point?.latest_value);
     const fallbackLatestValue = Number(latestSalinity);
     const salinityValue = Number.isFinite(pointLatestValue)
@@ -93,6 +148,8 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
     const stationNameForClick = String(point.TenDiem || "").replace(/'/g, "\\'");
 
     const stationCode = point.KiHieu;
+    // Nhãn trạng thái ở header + màu icon/tooltip trên bản đồ đều theo giá trị quan trắc
+    // (độ mặn thực đo), không theo dự báo - khung "Dự báo" trong popup có cấp rủi ro riêng.
     const classification = getSingleStationClassification(salinityValue, stationCode);
     let statusClass = `status-${classification.level}`;
     let statusText = classification.shortText;
@@ -112,6 +169,67 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
             statusColor = "#198754";
     }
 
+    // Khung dự báo bên trái khung "Quan trắc" - chỉ hiện với trạm có dữ liệu dự báo (không có ở KXD2)
+    let forecastBoxHtml = "";
+    let forecastMetaHtml = "";
+    const forecastSalinity = Number(forecastInfo?.salinity);
+    if (forecastInfo && Number.isFinite(forecastSalinity)) {
+        const forecastClassification = getSingleStationClassification(forecastSalinity, stationCode);
+        let forecastColor = "#198754";
+        switch (forecastClassification.level) {
+            case "critical":
+                forecastColor = "#ff6b6b";
+                break;
+            case "high-warning":
+                forecastColor = "#ffb454";
+                break;
+            case "warning":
+                forecastColor = "#ffe066";
+                break;
+            default:
+                forecastColor = "#7bdc9e";
+        }
+
+        forecastBoxHtml = `
+          <div class="popup-forecast-value">
+            <span class="value-label">Dự báo</span>
+            <span class="value-number" style="color: ${forecastColor}">
+              ${formatDecimalDisplay(forecastSalinity, 2)} ‰
+            </span>
+            <span class="value-sub" style="color: ${forecastColor}">${forecastClassification.shortText}</span>
+            <span class="value-date">${formatForecastTime(forecastInfo.time)}</span>
+          </div>
+        `;
+
+        // Điểm dự báo hiện đang hiển thị chỉ là mốc gần nhất; chuỗi dự báo thật ra kéo dài
+        // tới mốc mới nhất (forecastInfo.lastTime), với tần suất interval_hours giữa 2 mốc.
+        forecastMetaHtml = `
+            <div class="detail-item">
+              <div class="detail-content py-2">
+                <strong class="detail-label">Chuỗi dự báo: </strong>
+                <span class="detail-value">${formatForecastTime(forecastInfo.time)} - ${formatForecastTime(forecastInfo.lastTime)}</span>
+              </div>
+            </div>
+
+            <div class="detail-item">
+              <div class="detail-content py-2">
+                <strong class="detail-label">Tần suất dự báo: </strong>
+                <span class="detail-value">Mỗi ${forecastInfo.intervalHours || "--"} giờ</span>
+              </div>
+            </div>
+        `;
+    }
+
+    const actualValueBoxHtml = `
+        <div class="popup-main-value">
+          <span class="value-label">Độ mặn</span>
+          <span class="value-number" style="color: ${statusColor}">
+            ${formattedSalinity} ‰
+          </span>
+          <span class="value-date">${latestDateText}</span>
+        </div>
+    `;
+
     return `
     <div class="modern-popup salinity-popup">
       <div class="popup-header">
@@ -123,16 +241,14 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
           ${statusText}
         </div>
       </div>
-      
+
       <div class="popup-content">
-        <div class="popup-main-value">
-          <span class="value-label">Độ mặn</span>
-          <span class="value-number" style="color: ${statusColor}">
-            ${formattedSalinity} ‰
-          </span>
-          <span class="value-date">${latestDateText}</span>
-        </div>
-        
+        ${
+            forecastBoxHtml
+                ? `<div class="popup-value-row">${forecastBoxHtml}${actualValueBoxHtml}</div>`
+                : actualValueBoxHtml
+        }
+
         ${
             trend
                 ? `
@@ -202,8 +318,7 @@ export const createSalinityPopup = (point, latestSalinity, latestDate, trend, pr
               </div>
             </div>
 
-            
-            
+            ${forecastMetaHtml}
           </div>
         </div>
 
@@ -221,7 +336,8 @@ export const renderSalinityPoints = async (mapInstance, setSalinityData, setSele
     try {
         ensureStationPanes(mapInstance);
 
-        const points = await fetchSalinityPoints();
+        const [points, forecastPayload] = await Promise.all([fetchSalinityPoints(), fetchForecastLatest()]);
+        const forecastLookup = buildForecastLookup(forecastPayload);
         const latLngs = [];
 
         for (const point of points) {
@@ -264,6 +380,8 @@ export const renderSalinityPoints = async (mapInstance, setSalinityData, setSele
                 }
             }
 
+            // Màu điểm/tooltip luôn theo giá trị quan trắc (độ mặn thực đo), không theo dự báo
+            const forecastInfo = forecastLookup[point.KiHieu] || null;
             const icon = getSalinityIcon(latestSalinity, point.KiHieu);
             const tooltipClass = getSalinityTooltipClass(latestSalinity, point.KiHieu);
 
@@ -284,10 +402,17 @@ export const renderSalinityPoints = async (mapInstance, setSalinityData, setSele
                 pane: "salinityTooltipPane",
             });
 
-            const popupHTML = createSalinityPopup(point, latestSalinity, latestDate, trend, previousDate);
+            const popupHTML = createSalinityPopup(
+                point,
+                latestSalinity,
+                latestDate,
+                trend,
+                previousDate,
+                forecastInfo,
+            );
 
             marker.bindPopup(popupHTML, {
-                maxWidth: 300,
+                maxWidth: forecastInfo ? 420 : 300,
                 className: "custom-popup",
                 autoClose: true,
                 closeOnClick: true,

@@ -1,14 +1,16 @@
 import React, { useState } from "react";
 import { InfoCircle, X } from "react-bootstrap-icons";
 import SalinityBarChart from "@pages/map/SalinityBarChart";
+import SalinityRiskLegend from "@pages/map/SalinityRiskLegend";
 import HydrometBarChart from "@pages/map/HydrometBarChart";
 
 import IoTBarChart from "@pages/map/IoTBarChart";
 
-const SaltMiniChart = ({ salinityData }) => {
+const SaltMiniChart = ({ salinityData, kiHieu }) => {
     return (
         <div className="chart-wrapper rounded shadow-sm border p-2 bg-light" style={{ transition: "0.2s" }}>
-            <SalinityBarChart data={salinityData} height={200} />
+            <SalinityRiskLegend kiHieu={kiHieu} />
+            <SalinityBarChart data={salinityData} height={200} kiHieu={kiHieu} />
         </div>
     );
 };
@@ -96,7 +98,7 @@ const MapDetails = ({
                     </div>
 
                     <div onClick={onOpenFullChart} style={{ cursor: "pointer" }} className="hover-shadow">
-                        <SaltMiniChart salinityData={salinityData} />
+                        <SaltMiniChart salinityData={salinityData} kiHieu={displayPoint.kiHieu} />
                         <p className="text-center mt-2 text-primary small">
                             Click để xem chi tiết (cần đăng nhập để xuất dữ liệu)
                         </p>

@@ -1,6 +1,7 @@
 import React from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { getSingleStationClassification } from "../../common/salinityClassification";
+import { RISK_COLOR_MAP } from "@pages/map/SalinityRiskLegend";
 
 const formatNumberVi = (value, fractionDigits = 2) => {
     const parsed = Number(value);
@@ -60,7 +61,7 @@ const CustomTooltip = ({ active, payload }) => {
     return null;
 };
 
-const SalinityBarChart = ({ data, height }) => {
+const SalinityBarChart = ({ data, height, kiHieu }) => {
     // Ensure salinity values are numbers and calculate trends
     const formattedData = data.map((item, index) => {
         const salinity = Number(item.salinity);
@@ -81,13 +82,6 @@ const SalinityBarChart = ({ data, height }) => {
     const ticksByYear = uniqueYears.map(
         (year) => formattedData.find((d) => new Date(d.date).getFullYear() === year)?.date,
     );
-
-    const legendItems = [
-        { color: "#28a745", label: "Bình thường", title: "Độ mặn < 1‰" },
-        { color: "#ffc107", label: "Cấp 1", title: "Nhà Bè 1–4‰" },
-        { color: "#fd7e14", label: "Cấp 2", title: "Nhà Bè > 4‰, trạm khác 1–4‰" },
-        { color: "#dc3545", label: "Cấp 3", title: "Độ mặn > 4‰" },
-    ];
 
     return (
         <>
@@ -121,26 +115,9 @@ const SalinityBarChart = ({ data, height }) => {
                         <Tooltip content={<CustomTooltip />} />
                         <Bar dataKey="salinity" barSize={10}>
                             {formattedData.map((entry, index) => {
-                                // Get color based on new classification system
-                                const classification = getSingleStationClassification(entry.salinity);
-                                let fillColor = "#6c757d"; // Default gray for no data
-
-                                switch (classification.level) {
-                                    case "normal":
-                                        fillColor = "#28a745"; // Green - Bình thường
-                                        break;
-                                    case "warning":
-                                        fillColor = "#ffc107"; // Yellow - Rủi ro cấp 1
-                                        break;
-                                    case "high-warning":
-                                        fillColor = "#fd7e14"; // Orange - Rủi ro cấp 2
-                                        break;
-                                    case "critical":
-                                        fillColor = "#dc3545"; // Red - Rủi ro cấp 3
-                                        break;
-                                    default:
-                                        fillColor = "#6c757d"; // Gray - Khuyết số liệu
-                                }
+                                // Get color based on new classification system (Nhà Bè có ngưỡng khác các trạm còn lại)
+                                const classification = getSingleStationClassification(entry.salinity, kiHieu);
+                                const fillColor = RISK_COLOR_MAP[classification.class] || "#6c757d";
 
                                 return <Cell key={`cell-${index}`} fill={fillColor} />;
                             })}
@@ -148,27 +125,6 @@ const SalinityBarChart = ({ data, height }) => {
                     </BarChart>
                 </ResponsiveContainer>
             )}
-            <div className="d-flex flex-wrap justify-content-center gap-2 mt-3 small">
-                {legendItems.map((item) => (
-                    <div
-                        key={item.label}
-                        className="d-inline-flex align-items-center gap-2 px-2 py-1 rounded-pill border bg-white shadow-sm"
-                        title={item.title}
-                        style={{ lineHeight: 1.2 }}
-                    >
-                        <span
-                            style={{
-                                width: 10,
-                                height: 10,
-                                backgroundColor: item.color,
-                                borderRadius: 2,
-                                display: "inline-block",
-                            }}
-                        ></span>
-                        <span>{item.label}</span>
-                    </div>
-                ))}
-            </div>
         </>
     );
 };
