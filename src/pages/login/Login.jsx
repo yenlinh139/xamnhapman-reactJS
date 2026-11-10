@@ -97,7 +97,10 @@ const Login = ({ onSwitchTab }) => {
 
             if (backendMessage.toLowerCase().includes("email")) {
                 focusField(email);
-            } else if (backendMessage.toLowerCase().includes("mật khẩu") || backendMessage.toLowerCase().includes("password")) {
+            } else if (
+                backendMessage.toLowerCase().includes("mật khẩu") ||
+                backendMessage.toLowerCase().includes("password")
+            ) {
                 focusField(password);
             }
         }
@@ -151,10 +154,7 @@ const Login = ({ onSwitchTab }) => {
                         className="register-text mt-3"
                         onClick={() => navigate(ROUTES.forgotPassword)}
                     >
-                        Quên mật khẩu?{" "}
-                        <span>
-                            Đặt lại mật khẩu
-                        </span>
+                        Quên mật khẩu? <span>Đặt lại mật khẩu</span>
                     </button>
                 </form>
                 <button type="button" className="register-text" onClick={() => onSwitchTab?.(true)}>

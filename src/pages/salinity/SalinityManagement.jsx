@@ -10,6 +10,7 @@ import EditSalinityModal from "./EditSalinityModal";
 import PaginationSalinity from "./PaginationSalinity";
 import SalinityTable from "./SalinityTable";
 import IoTManagementTab from "./IoTManagementTab";
+import ForecastManagementTab from "./ForecastManagementTab";
 import axiosInstance from "@config/axios-config";
 import {
     fetchSalinityData,
@@ -381,6 +382,15 @@ const SalinityManagement = () => {
                                 Trạm IoT
                             </button>
                         </li>
+                        <li className="nav-item" role="presentation">
+                            <button
+                                className={`nav-link ${activeTab === "forecast" ? "active" : ""}`}
+                                type="button"
+                                onClick={() => setActiveTab("forecast")}
+                            >
+                                Dự báo
+                            </button>
+                        </li>
                     </ul>
 
                     {activeTab === "salinity" && (
@@ -520,6 +530,7 @@ const SalinityManagement = () => {
                     )}
 
                     {activeTab === "iot" && <IoTManagementTab userInfo={userInfo} />}
+                    {activeTab === "forecast" && <ForecastManagementTab userInfo={userInfo} />}
                 </div>
 
                 {/* Modals */}

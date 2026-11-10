@@ -1516,6 +1516,20 @@ button:hover,
     .popup-content {
         padding: 20px;
 
+        .popup-value-row {
+            display: flex;
+            align-items: stretch;
+            gap: 8px;
+            margin-bottom: 8px;
+
+            .popup-main-value,
+            .popup-forecast-value {
+                flex: 1 1 0;
+                margin-bottom: 0;
+                min-width: 0;
+            }
+        }
+
         .popup-main-value {
             text-align: center;
             padding: 16px;
@@ -1538,6 +1552,48 @@ button:hover,
                 font-size: 20px;
                 font-weight: 700;
                 line-height: 1;
+            }
+
+            .value-date {
+                display: block;
+                font-size: 11px;
+                color: var(--textColorLight);
+                margin-top: 4px;
+                font-style: italic;
+            }
+        }
+
+        // Khung "Dự báo" bên trái khung "Quan trắc" - cùng cấu trúc value-label/value-number/value-date
+        // nhưng nền tối để phân biệt trực quan với dữ liệu quan trắc (nền sáng)
+        .popup-forecast-value {
+            text-align: center;
+            padding: 16px;
+            background: linear-gradient(135deg, #f8f9fa, #ffffff);
+            border-radius: 12px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(77, 136, 255, 0.1);
+
+            .value-label {
+                display: block;
+                font-size: 12px;
+                color: var(--textColorLight);
+                margin-bottom: 4px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                font-weight: 500;
+            }
+
+            .value-number {
+                font-size: 20px;
+                font-weight: 700;
+                line-height: 1;
+            }
+
+            .value-sub {
+                display: block;
+                font-size: 11px;
+                font-weight: 600;
+                margin-top: 2px;
             }
 
             .value-date {
@@ -1659,21 +1715,33 @@ button:hover,
     .popup-content {
         padding: 8px 10px;
 
-        .popup-main-value {
-            padding: 8px;
+        .popup-value-row {
+            gap: 5px;
+            margin-bottom: 5px;
+
+            .popup-main-value,
+            .popup-forecast-value {
+                margin-bottom: 0;
+            }
+        }
+
+        .popup-main-value,
+        .popup-forecast-value {
+            padding: 8px 4px;
             margin-bottom: 5px;
 
             .value-label {
-                font-size: 10px;
+                font-size: 9px;
                 margin-bottom: 3px;
+                white-space: nowrap;
             }
 
             .value-number {
-                font-size: 17px;
+                font-size: 15px;
             }
 
             .value-date {
-                font-size: 10px;
+                font-size: 9px;
                 margin-top: 3px;
             }
         }
@@ -1735,6 +1803,33 @@ button:hover,
                 border-radius: 8px;
                 font-size: 12px;
             }
+        }
+    }
+}
+
+/* Popup rộng hơn khi có khung "Dự báo" cạnh khung "Quan trắc" - đủ chỗ cho 2 cột */
+.modern-popup.salinity-popup:has(.popup-forecast-value) {
+    min-width: 320px;
+    max-width: 400px;
+
+    .popup-value-row {
+        .value-label {
+            font-size: 10px;
+        }
+
+        .value-number {
+            font-size: 17px;
+        }
+
+        .value-sub {
+            display: block;
+            font-size: 10px;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        .value-date {
+            font-size: 10px;
         }
     }
 }
@@ -1863,6 +1958,16 @@ button:hover,
         .iot-trend-list {
             grid-template-columns: 1fr;
         }
+    }
+}
+
+/* Popup IoT rộng hơn salinity-popup mặc định - tránh xuống dòng ở dòng "Thời gian: start - end" */
+.modern-popup.iot-popup {
+    min-width: 300px;
+    max-width: 380px;
+
+    .detail-value {
+        white-space: nowrap;
     }
 }
 

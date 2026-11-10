@@ -117,6 +117,16 @@ export const fetchSalinityPoints = async () => {
     }
 };
 
+export const fetchForecastLatest = async () => {
+    try {
+        const response = await axiosInstance.get("/forecast-latest");
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching forecast latest:", error);
+        return null;
+    }
+};
+
 export const fetchSalinityData = async (kiHieu) => {
     try {
         const response = await axiosInstance.get(`/salinity-data/${kiHieu}`);
