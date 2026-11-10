@@ -174,29 +174,12 @@ export const createSalinityPopup = (
     let forecastMetaHtml = "";
     const forecastSalinity = Number(forecastInfo?.salinity);
     if (forecastInfo && Number.isFinite(forecastSalinity)) {
-        const forecastClassification = getSingleStationClassification(forecastSalinity, stationCode);
-        let forecastColor = "#198754";
-        switch (forecastClassification.level) {
-            case "critical":
-                forecastColor = "#ff6b6b";
-                break;
-            case "high-warning":
-                forecastColor = "#ffb454";
-                break;
-            case "warning":
-                forecastColor = "#ffe066";
-                break;
-            default:
-                forecastColor = "#7bdc9e";
-        }
-
         forecastBoxHtml = `
           <div class="popup-forecast-value">
             <span class="value-label">Dự báo</span>
-            <span class="value-number" style="color: ${forecastColor}">
+            <span class="value-number" style="color: ${statusColor}">
               ${formatDecimalDisplay(forecastSalinity, 2)} ‰
             </span>
-            <span class="value-sub" style="color: ${forecastColor}">${forecastClassification.shortText}</span>
             <span class="value-date">${formatForecastTime(forecastInfo.time)}</span>
           </div>
         `;
