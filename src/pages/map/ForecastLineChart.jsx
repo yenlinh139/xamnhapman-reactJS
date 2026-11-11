@@ -43,7 +43,7 @@ const CustomTooltip = ({ active, payload, kiHieu }) => {
                 <p className="mb-1">Thời điểm: {formatAxisTick(point.time)}</p>
                 <p className="mb-1">Độ mặn dự báo (2h): {formatNumberVi(point.salinity, 2)} ‰</p>
                 {point.dailySalinity != null && (
-                    <p className="mb-1 text-muted">
+                    <p className="mb-1" style={{ color: "#8e44ad" }}>
                         Dự báo theo ngày: {formatNumberVi(point.dailySalinity, 2)} ‰
                     </p>
                 )}
@@ -63,10 +63,14 @@ const buildRiskDotRenderer = (kiHieu) => (props) => {
     return <circle key={payload.time} cx={cx} cy={cy} r={3} fill={color} stroke="#fff" strokeWidth={1} />;
 };
 
-// data: [{ time: "2024-08-01T02:00:00+07:00", salinity: 1.5 }, ...]
+// data: [{ time: "2024-08-01T02:00:00+07:00", salinity: 1.5, dailySalinity: 1.2 }, ...]
 // kiHieu: mã trạm - dùng để phân cấp rủi ro đúng ngưỡng theo từng trạm (vd MNB khác các trạm còn lại)
-const ForecastLineChart = ({ data, kiHieu, height = "100%" }) => {
-    const maxSalinity = Math.max(RISK_THRESHOLD_HIGH, ...data.map((p) => Number(p.salinity) || 0));
+// showBiHourly/showDaily: bật/tắt hiển thị từng đường để dễ so sánh biến thiên theo 2h và theo ngày
+const ForecastLineChart = ({ data, kiHieu, height = "100%", showBiHourly = true, showDaily = true }) => {
+    const maxSalinity = Math.max(
+        RISK_THRESHOLD_HIGH,
+        ...data.map((p) => Math.max(Number(p.salinity) || 0, Number(p.dailySalinity) || 0)),
+    );
     const chartTop = maxSalinity + 1;
 
     // Màu 3 vùng rủi ro tính theo đúng ngưỡng phân loại của trạm hiện tại
@@ -110,26 +114,32 @@ const ForecastLineChart = ({ data, kiHieu, height = "100%" }) => {
                     label={{ value: `${RISK_THRESHOLD_HIGH}‰`, position: "right", fontSize: 10 }}
                 />
 
-                <Line
-                    type="monotone"
-                    dataKey="dailySalinity"
-                    name="Dự báo theo ngày"
-                    stroke="#6c757d"
-                    strokeWidth={1.5}
-                    strokeDasharray="6 4"
-                    dot={false}
-                    activeDot={false}
-                    connectNulls
-                />
-                <Line
-                    type="monotone"
-                    dataKey="salinity"
-                    name="Dự báo theo 2h"
-                    stroke="#0d6efd"
-                    strokeWidth={2}
-                    dot={buildRiskDotRenderer(kiHieu)}
-                    activeDot={{ r: 5 }}
-                />
+                {showDaily && (
+                    <Line
+                        type="stepAfter"
+                        dataKey="dailySalinity"
+                        name="Dự báo theo ngày"
+                        stroke="#8e44ad"
+                        strokeWidth={2}
+                        strokeDasharray="6 4"
+                        dot={false}
+                        activeDot={{ r: 4 }}
+                        connectNulls
+                        isAnimationActive={false}
+                    />
+                )}
+                {showBiHourly && (
+                    <Line
+                        type="monotone"
+                        dataKey="salinity"
+                        name="Dự báo theo 2h"
+                        stroke="#0d6efd"
+                        strokeWidth={2}
+                        dot={buildRiskDotRenderer(kiHieu)}
+                        activeDot={{ r: 5 }}
+                        isAnimationActive={false}
+                    />
+                )}
             </LineChart>
         </ResponsiveContainer>
     );

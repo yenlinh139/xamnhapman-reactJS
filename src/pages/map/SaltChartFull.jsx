@@ -149,7 +149,8 @@ const ForecastDataTable = ({ points, kiHieu }) => {
                     <tr>
                         <th style={{ width: "60px" }}>#</th>
                         <th>Thời điểm</th>
-                        <th>Độ mặn dự báo (‰)</th>
+                        <th>Theo 2h - do_man (‰)</th>
+                        <th>Theo ngày - DailyForecast (‰)</th>
                         <th>Cấp độ</th>
                     </tr>
                 </thead>
@@ -170,6 +171,9 @@ const ForecastDataTable = ({ points, kiHieu }) => {
                                     }}
                                 >
                                     {formatNumberVi(item.salinity, 2)}
+                                </td>
+                                <td className="text-end text-muted">
+                                    {formatNumberVi(item.dailySalinity, 2)}
                                 </td>
                                 <td>{riskClassification.shortText}</td>
                             </tr>
@@ -221,6 +225,17 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
     });
 
     const hasForecast = forecastStations.find((s) => s.manualCode === kiHieu)?.hasForecast || false;
+
+    // Bật/tắt từng đường trên biểu đồ dự báo để dễ so sánh biến thiên theo 2h và theo ngày
+    const [lineVisibility, setLineVisibility] = useState({ biHourly: true, daily: true });
+    const toggleLine = (key) => {
+        setLineVisibility((prev) => {
+            const next = { ...prev, [key]: !prev[key] };
+            // Không cho tắt cả 2 đường cùng lúc (biểu đồ sẽ trống)
+            if (!next.biHourly && !next.daily) return prev;
+            return next;
+        });
+    };
 
     useEffect(() => {
         if (show && salinityData) {
@@ -402,13 +417,14 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
             const formatted = points.map((item, index) => ({
                 STT: index + 1,
                 "Thời điểm": new Date(item.time).toLocaleString("vi-VN"),
-                "Độ mặn dự báo (‰)": parseNumber(item.salinity),
+                "Theo 2h - do_man (‰)": parseNumber(item.salinity),
+                "Theo ngày - DailyForecast (‰)": parseNumber(item.dailySalinity),
                 "Cấp độ": getSingleStationClassification(item.salinity, kiHieu).shortText,
                 "Điểm đo": displayStationName || kiHieu || "",
             }));
 
             const worksheet = XLSX.utils.json_to_sheet(formatted);
-            worksheet["!cols"] = [{ wch: 5 }, { wch: 20 }, { wch: 18 }, { wch: 25 }, { wch: 20 }];
+            worksheet["!cols"] = [{ wch: 5 }, { wch: 20 }, { wch: 18 }, { wch: 22 }, { wch: 25 }, { wch: 20 }];
 
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Dữ liệu dự báo");
@@ -660,8 +676,20 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                             {subTab === "chart" ? (
                                                 <div className="map-chart-pane h-100">
                                                     <SalinityRiskLegend kiHieu={kiHieu} />
-                                                    <div className="d-flex gap-3 small mb-1">
-                                                        <span>
+                                                    <div className="d-flex gap-3 small mb-1 forecast-line-toggle">
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-sm p-0 border-0 bg-transparent d-inline-flex align-items-center"
+                                                            style={{
+                                                                opacity: lineVisibility.biHourly ? 1 : 0.4,
+                                                            }}
+                                                            onClick={() => toggleLine("biHourly")}
+                                                            title={
+                                                                lineVisibility.biHourly
+                                                                    ? "Bấm để ẩn đường theo 2h"
+                                                                    : "Bấm để hiện đường theo 2h"
+                                                            }
+                                                        >
                                                             <span
                                                                 style={{
                                                                     display: "inline-block",
@@ -672,20 +700,32 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                                                 }}
                                                             ></span>
                                                             Dự báo theo 2h (do_man)
-                                                        </span>
-                                                        <span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-sm p-0 border-0 bg-transparent d-inline-flex align-items-center"
+                                                            style={{
+                                                                opacity: lineVisibility.daily ? 1 : 0.4,
+                                                            }}
+                                                            onClick={() => toggleLine("daily")}
+                                                            title={
+                                                                lineVisibility.daily
+                                                                    ? "Bấm để ẩn đường theo ngày"
+                                                                    : "Bấm để hiện đường theo ngày"
+                                                            }
+                                                        >
                                                             <span
                                                                 style={{
                                                                     display: "inline-block",
                                                                     width: 14,
                                                                     height: 2,
                                                                     background:
-                                                                        "repeating-linear-gradient(90deg,#6c757d 0 4px,transparent 4px 7px)",
+                                                                        "repeating-linear-gradient(90deg,#8e44ad 0 4px,transparent 4px 7px)",
                                                                     marginRight: 4,
                                                                 }}
                                                             ></span>
                                                             Dự báo theo ngày (DailyForecast)
-                                                        </span>
+                                                        </button>
                                                     </div>
                                                     <div
                                                         id="forecast-salinity-chart"
@@ -695,6 +735,8 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                                             data={forecastState.points}
                                                             kiHieu={kiHieu}
                                                             height="100%"
+                                                            showBiHourly={lineVisibility.biHourly}
+                                                            showDaily={lineVisibility.daily}
                                                         />
                                                     </div>
                                                     <div className="map-chart-footer mt-1 d-flex justify-content-between align-items-center">
