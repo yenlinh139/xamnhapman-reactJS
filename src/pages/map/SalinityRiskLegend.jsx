@@ -25,7 +25,9 @@ const SalinityRiskLegend = ({ kiHieu, className = "" }) => {
     ];
 
     return (
-        <div className={`d-flex flex-wrap gap-3 small mb-2 ${className}`}>
+        <div
+            className={`d-flex flex-wrap justify-content-center align-items-center gap-3 small mb-2 w-100 ${className}`}
+        >
             {items.map((item) => (
                 <span key={item.class} className="d-inline-flex align-items-center gap-1">
                     <span

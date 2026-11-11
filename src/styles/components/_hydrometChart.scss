@@ -163,19 +163,19 @@
         flex-shrink: 0;
     }
 
-    // Tất cả control trên 1 hàng ngang: tab Dự báo/Quan trắc, tab Biểu đồ/Dữ liệu, Tần suất, Giai đoạn
+    // Toolbar: điều hướng bên trái - bộ lọc bên phải
     .chartfull-controls-row {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
-        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: 0.85rem;
+        width: 100%;
+        flex-wrap: nowrap;
 
-        // "Biểu đồ / Dữ liệu" là lựa chọn CÁCH HIỂN THỊ (con) của dữ liệu đang chọn ở hàng
-        // Dự báo/Quan trắc (cha) - cố tình thiết kế khác hẳn nav-tabs ở trên (dạng segmented
-        // control màu xám, không phải pill xanh) để người dùng phân biệt được đây là 2 cấp điều
-        // khiển khác nhau, không phải 2 nhóm tab ngang hàng.
+        // Biểu đồ / Dữ liệu
         .nav-pills {
             display: flex;
+            align-items: center;
             gap: 2px;
             background: #eef1f5;
             border-radius: 8px;
@@ -207,11 +207,22 @@
         }
     }
 
+    // Nhóm bộ lọc: tự động đẩy sang phải
     .chartfull-topbar-controls {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        justify-content: flex-end;
+        gap: 0.65rem;
         flex-wrap: nowrap;
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+
+    // Căn chỉnh chiều cao các input
+    .chartfull-topbar-controls .form-control,
+    .chartfull-topbar-controls .form-select {
+        height: 36px;
+        min-height: 36px;
     }
 }
 

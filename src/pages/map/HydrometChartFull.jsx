@@ -195,11 +195,7 @@ const ExportPreviewTable = ({ data }) => {
                     {sortedData.map((item, idx) => (
                         <tr key={idx}>
                             <td>{idx + 1}</td>
-                            <td>
-                                {item.date || item.Ngày
-                                    ? formatDateDMY(item.date || item.Ngày)
-                                    : "-"}
-</td>
+                            <td>{item.date || item.Ngày ? formatDateDMY(item.date || item.Ngày) : "-"}</td>
                             {columns.map((col) => (
                                 <td key={col} className="text-end">
                                     {item[col] !== null && item[col] !== undefined && item[col] !== ""
@@ -602,7 +598,9 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
 
     const dataMinISO = data.length > 0 ? normalizeToIso(data[0].date || data[0].Ngày) : undefined;
     const dataMaxISO =
-        data.length > 0 ? normalizeToIso(data[data.length - 1].date || data[data.length - 1].Ngày) : undefined;
+        data.length > 0
+            ? normalizeToIso(data[data.length - 1].date || data[data.length - 1].Ngày)
+            : undefined;
 
     // Helper function to format date for display
     const formatDateForDisplay = (dateValue) => {
@@ -766,10 +764,11 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
 
                                         <div className="d-flex justify-content-between align-items-center">
                                             <div className="text-muted small">
-                                                Hiển thị {" "}
+                                                Hiển thị{" "}
                                                 <strong>
                                                     {(filteredData.length > 0 ? filteredData : data).length}
-                                                </strong> bản ghi 
+                                                </strong>{" "}
+                                                bản ghi
                                             </div>
                                             <button
                                                 className={`btn btn-sm ${isLoggedIn ? "btn-outline-success" : "btn-outline-secondary"}`}

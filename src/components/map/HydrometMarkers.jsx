@@ -556,18 +556,14 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
         const hydroKeys = Object.keys(humidityParams);
 
         const averageKey = hydroKeys.find(
-            (key) =>
-                /^htb/i.test(key) &&
-                Number.isFinite(Number.parseFloat(humidityParams[key]))
+            (key) => /^htb/i.test(key) && Number.isFinite(Number.parseFloat(humidityParams[key])),
         );
 
         if (averageKey) {
             const unitMap = prefixUnitMap();
             const unit = unitMap[resolveHydrologyType(averageKey)]?.donvi || "cm";
 
-            levelBadgeHtml = createLevelBadge(
-                getWaterLevelAlertMeta(humidityParams[averageKey], unit)
-            );
+            levelBadgeHtml = createLevelBadge(getWaterLevelAlertMeta(humidityParams[averageKey], unit));
         }
     } else {
         const rainKey = Object.keys(rainfallParams).find((key) =>

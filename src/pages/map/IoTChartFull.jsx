@@ -141,37 +141,13 @@ const getIoTSalinityRiskMeta = (value, stationCode = "") => {
 const IoTQueryControls = ({ queryOptions, onChange, minDate, maxDate, compact = false }) => {
     return (
         <div
-            className={`d-flex flex-wrap align-items-end gap-2 ${compact ? "mb-0" : "mb-2"}`}
+            className={`d-flex flex-wrap align-items-center gap-2 ${compact ? "mb-0" : "mb-2"}`}
             style={{ flexShrink: 0, rowGap: 6 }}
         >
-            <div>
-                {!compact && <label className="form-label fw-semibold small mb-1">Từ ngày</label>}
-                <LocalizedDateInput
-                    className="form-control form-control-sm"
-                    name="startDate"
-                    value={queryOptions.startDate}
-                    onChange={onChange}
-                    min={minDate || undefined}
-                    max={maxDate || undefined}
-                    style={{ minWidth: 148 }}
-                />
-            </div>
+            {/* Tần số - đưa lên trước */}
+            <div className="d-flex align-items-center gap-2">
+                <label className="form-label fw-semibold small mb-0 text-nowrap">Tần số:</label>
 
-            <div>
-                {!compact && <label className="form-label fw-semibold small mb-1">Đến ngày</label>}
-                <LocalizedDateInput
-                    className="form-control form-control-sm"
-                    name="endDate"
-                    value={queryOptions.endDate}
-                    onChange={onChange}
-                    min={queryOptions.startDate || minDate || undefined}
-                    max={maxDate || undefined}
-                    style={{ minWidth: 148 }}
-                />
-            </div>
-
-            <div>
-                {!compact && <label className="form-label fw-semibold small mb-1">Tần suất</label>}
                 <select
                     className="form-select form-select-sm"
                     name="groupBy"
@@ -183,6 +159,33 @@ const IoTQueryControls = ({ queryOptions, onChange, minDate, maxDate, compact = 
                     <option value="date">Ngày</option>
                     <option value="hour">Giờ</option>
                 </select>
+            </div>
+
+            {/* Giai đoạn */}
+            <div className="d-flex align-items-center gap-2">
+                <label className="form-label fw-semibold small mb-0 text-nowrap">Giai đoạn:</label>
+
+                <LocalizedDateInput
+                    className="form-control form-control-sm"
+                    name="startDate"
+                    value={queryOptions.startDate}
+                    onChange={onChange}
+                    min={minDate || undefined}
+                    max={maxDate || undefined}
+                    style={{ minWidth: 148 }}
+                />
+
+                <span className="text-muted">-</span>
+
+                <LocalizedDateInput
+                    className="form-control form-control-sm"
+                    name="endDate"
+                    value={queryOptions.endDate}
+                    onChange={onChange}
+                    min={queryOptions.startDate || minDate || undefined}
+                    max={maxDate || undefined}
+                    style={{ minWidth: 148 }}
+                />
             </div>
         </div>
     );
@@ -1071,7 +1074,6 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
 
                                 {mainTab === "actual" && (
                                     <div className="chartfull-topbar-controls ms-auto">
-                                        <span className="small text-muted fw-semibold">Giai đoạn:</span>
                                         <IoTQueryControls
                                             queryOptions={queryOptions}
                                             onChange={handleQueryOptionChange}
