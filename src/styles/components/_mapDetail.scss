@@ -13,12 +13,6 @@
     border-left: 1px solid #e2e8f0;
 }
 
-.d-flex {
-    display: flex;
-    justify-content: space-between;
-    align-items: stretch;
-}
-
 #salinity-date-selector {
     margin-top: 1rem;
     padding: 1rem;
@@ -31,6 +25,12 @@
 
     &:hover {
         box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+    }
+
+    .d-flex {
+        display: flex;
+        justify-content: space-between;
+        align-items: stretch;
     }
 
     label {
