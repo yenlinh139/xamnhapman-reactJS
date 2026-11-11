@@ -1554,6 +1554,13 @@ button:hover,
                 line-height: 1;
             }
 
+            .value-sub {
+                display: block;
+                font-size: 11px;
+                font-weight: 600;
+                margin-top: 2px;
+            }
+
             .value-date {
                 display: block;
                 font-size: 11px;
@@ -1830,6 +1837,66 @@ button:hover,
 
         .value-date {
             font-size: 10px;
+        }
+    }
+}
+
+/* Popup 3 khung giá trị, bố cục lưới 2 cột: hàng 1 = Dự báo (2h) + Dự báo (ngày) cạnh nhau,
+   hàng 2 = Quan trắc trải rộng cả 2 cột bên dưới */
+.modern-popup.salinity-popup:has(.popup-value-row.double) {
+    min-width: 360px;
+    max-width: 440px;
+
+    .popup-value-row.double {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        align-items: stretch;
+
+        .popup-forecast-value {
+            grid-column: span 1;
+        }
+
+        .popup-main-value {
+            grid-column: 1 / -1;
+        }
+
+        .value-label {
+            font-size: 10px;
+            white-space: nowrap;
+        }
+
+        .value-number {
+            font-size: 17px;
+        }
+
+        .value-sub {
+            display: block;
+            font-size: 10px;
+            font-weight: 600;
+            margin-top: 2px;
+            line-height: 1.2;
+        }
+
+        .value-date {
+            font-size: 10px;
+            line-height: 1.3;
+        }
+    }
+}
+
+@media (max-width: 480px) {
+    .modern-popup.salinity-popup:has(.popup-value-row.double) {
+        min-width: 280px;
+        max-width: 320px;
+
+        .popup-value-row.double {
+            grid-template-columns: 1fr;
+
+            .popup-forecast-value,
+            .popup-main-value {
+                grid-column: 1 / -1;
+            }
         }
     }
 }

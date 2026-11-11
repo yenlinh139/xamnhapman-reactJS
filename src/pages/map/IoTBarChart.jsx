@@ -27,13 +27,6 @@ const SALINITY_RISK_COLORS = {
     "no-data": "#6c757d",
 };
 
-const RISK_LEGEND_ITEMS = [
-    { color: "#28a745", label: "Bình thường" },
-    { color: "#ffc107", label: "Cấp 1" },
-    { color: "#fd7e14", label: "Cấp 2" },
-    { color: "#dc3545", label: "Cấp 3" },
-];
-
 const toNumberOrNull = (value) => {
     if (value === null || value === undefined || value === "" || value === "NULL") {
         return null;
@@ -340,30 +333,6 @@ const IoTBarChart = ({ data, height = 300, isCompact = false, groupBy = "none", 
                         </button>
                     );
                 })}
-            </div>
-
-            <div
-                className="d-flex flex-wrap justify-content-center gap-2 mt-2 small"
-                style={{ flexShrink: 0 }}
-            >
-                {RISK_LEGEND_ITEMS.map((item) => (
-                    <div
-                        key={item.label}
-                        className="d-inline-flex align-items-center gap-2 px-2 py-1 rounded-pill border bg-white shadow-sm"
-                        style={{ lineHeight: 1.2 }}
-                    >
-                        <span
-                            style={{
-                                width: 10,
-                                height: 10,
-                                backgroundColor: item.color,
-                                borderRadius: 2,
-                                display: "inline-block",
-                            }}
-                        ></span>
-                        <span>{item.label}</span>
-                    </div>
-                ))}
             </div>
         </div>
     );

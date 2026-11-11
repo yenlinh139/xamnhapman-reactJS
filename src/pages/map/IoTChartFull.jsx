@@ -1,8 +1,18 @@
 import React, { useEffect, useMemo, useState } from "react";
-import html2canvas from "html2canvas";
+import { downloadChartImage } from "@common/downloadChartImage";
+import * as XLSX from "xlsx";
 import IoTBarChart from "./IoTBarChart";
-import { fetchIoTData, fetchIoTStations, normalizeIoTDataRows } from "@components/map/mapDataServices";
-import { getSingleStationClassification } from "@common/salinityClassification";
+import ForecastBarChart from "./ForecastBarChart";
+import ForecastDataTable from "./ForecastDataTable";
+import SalinityRiskLegend from "./SalinityRiskLegend";
+import {
+    fetchIoTData,
+    fetchIoTStations,
+    normalizeIoTDataRows,
+    fetchForecastLatest,
+} from "@components/map/mapDataServices";
+import { getRiskBadgeMeta, getSingleStationClassification } from "@common/salinityClassification";
+import { IOT_STATION_FORECAST_MAP } from "@components/map/IoTMarkers";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
 import "@styles/components/_hydrometChart.scss";
 
@@ -38,16 +48,6 @@ const formatNumberVi = (value, fractionDigits = 2) => {
 };
 
 const getIoTRowTime = (row) => row?.Date || row?.date_time || null;
-
-const formatDateLabel = (rawValue) => {
-    if (!rawValue) return "-";
-    const parsed = new Date(rawValue);
-    if (Number.isNaN(parsed.getTime())) {
-        return String(rawValue);
-    }
-
-    return parsed.toLocaleDateString("vi-VN");
-};
 
 const toInputDateValue = (rawValue) => {
     if (!rawValue) return "";
@@ -129,45 +129,13 @@ const getTodayIso = () => {
     return `${year}-${month}-${day}`;
 };
 
-const SALINITY_RISK_META = {
-    normal: {
-        label: "bình thường",
-        textColor: "#198754",
-        backgroundColor: "rgba(25, 135, 84, 0.12)",
-    },
-    warning: {
-        label: "rủi ro cấp 1",
-        textColor: "#b58105",
-        backgroundColor: "rgba(255, 193, 7, 0.18)",
-    },
-    "high-warning": {
-        label: "rủi ro cấp 2",
-        textColor: "#c75b12",
-        backgroundColor: "rgba(253, 126, 20, 0.16)",
-    },
-    critical: {
-        label: "rủi ro cấp 3",
-        textColor: "#dc3545",
-        backgroundColor: "rgba(220, 53, 69, 0.14)",
-    },
-    "no-data": {
-        label: "--",
-        textColor: "#6c757d",
-        backgroundColor: "rgba(108, 117, 125, 0.12)",
-    },
-};
-
+// IoT stationCode có hậu tố "_IoT" (vd "CKC_IoT") - cần bỏ đi để khớp đúng ngưỡng phân cấp rủi ro
+// theo mã trạm độ mặn gốc (vd ngưỡng riêng của MNB) trong getRiskBadgeMeta/getSingleStationClassification.
 const getIoTSalinityRiskMeta = (value, stationCode = "") => {
     const baseCode = String(stationCode || "")
         .replace(/_IoT$/i, "")
         .replace(/_iot$/i, "");
-    const classification = getSingleStationClassification(value, baseCode);
-    const riskMeta = SALINITY_RISK_META[classification.class] || SALINITY_RISK_META["no-data"];
-
-    return {
-        ...riskMeta,
-        description: classification.shortText || classification.description || "Khuyết số liệu",
-    };
+    return getRiskBadgeMeta(value, baseCode);
 };
 
 const IoTQueryControls = ({ queryOptions, onChange, minDate, maxDate, compact = false }) => {
@@ -401,7 +369,7 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
     const [queryOptions, setQueryOptions] = useState({
         startDate: "",
         endDate: "",
-        groupBy: "none",
+        groupBy: "hour",
     });
     const [displayData, setDisplayData] = useState([]);
     const [isLoadingData, setIsLoadingData] = useState(false);
@@ -410,9 +378,24 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
     const [hasUserAdjustedQuery, setHasUserAdjustedQuery] = useState(false);
     const [stationStartDateFromApi, setStationStartDateFromApi] = useState("");
 
+    // "Dự báo" (giống điểm đo mặn) / "Quan trắc" (chính là nội dung IoT hiện có)
+    const [mainTab, setMainTab] = useState("forecast");
+    const [forecastState, setForecastState] = useState({
+        loading: false,
+        error: null,
+        loaded: false,
+        points: [],
+        issuedAt: null,
+        isSynthetic: false,
+    });
+    const [forecastRange, setForecastRange] = useState({ startDate: "", endDate: "" });
+    const [forecastFrequency, setForecastFrequency] = useState("2gio");
+
     const stationName = iotData?.stationName || iotData?.stationInfo?.station_name || "Trạm IoT";
     const serialNumber = iotData?.serialNumber || iotData?.stationInfo?.serial_number || "N/A";
     const stationCode = iotData?.stationCode || iotData?.stationInfo?.station_code || "";
+    const forecastManualCode = IOT_STATION_FORECAST_MAP[stationCode];
+    const hasForecast = Boolean(forecastManualCode);
 
     const stationStartDate = useMemo(() => {
         const rawStart =
@@ -432,6 +415,139 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
         const rawDataPoints = iotData?.dataPoints?.length ? iotData.dataPoints : iotData?.data;
         return normalizeIoTDataRows(Array.isArray(rawDataPoints) ? rawDataPoints : EMPTY_DATA);
     }, [iotData?.dataPoints, iotData?.data]);
+
+    // Reset khi mở modal lại / đổi trạm - tránh lẫn dữ liệu dự báo của trạm trước
+    useEffect(() => {
+        if (show) {
+            setMainTab(hasForecast ? "forecast" : "actual");
+            setActiveTab("chart");
+            setForecastState({
+                loading: false,
+                error: null,
+                loaded: false,
+                points: [],
+                issuedAt: null,
+                isSynthetic: false,
+            });
+            setForecastRange({ startDate: "", endDate: "" });
+            setForecastFrequency("2gio");
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [show, serialNumber]);
+
+    // Chỉ fetch dữ liệu dự báo khi tab "Dự báo" đang mở và trạm có mã tương ứng (dùng chung API
+    // dự báo của điểm đo mặn - xem IOT_STATION_FORECAST_MAP)
+    useEffect(() => {
+        if (
+            !show ||
+            mainTab !== "forecast" ||
+            !hasForecast ||
+            forecastState.loaded ||
+            forecastState.loading
+        ) {
+            return;
+        }
+
+        setForecastState((prev) => ({ ...prev, loading: true, error: null }));
+
+        fetchForecastLatest()
+            .then((res) => {
+                if (!res) throw new Error("no data");
+                const { timeGrid, stations, issuedAt, isSynthetic, intervalHours, horizonDays } = res;
+                const station = stations.find((s) => s.manualCode === forecastManualCode);
+                const points = timeGrid.map((time, index) => ({
+                    time,
+                    salinity: station ? station.values[index] : null,
+                    dailySalinity: station ? station.dailyValues?.[index] : null,
+                }));
+
+                setForecastState({
+                    loading: false,
+                    error: null,
+                    loaded: true,
+                    points,
+                    issuedAt,
+                    isSynthetic,
+                    intervalHours,
+                    horizonDays,
+                });
+            })
+            .catch((error) => {
+                console.error("❌ Lấy dữ liệu dự báo IoT lỗi:", error);
+                setForecastState((prev) => ({
+                    ...prev,
+                    loading: false,
+                    error: "Không thể tải dữ liệu dự báo",
+                    loaded: true,
+                }));
+            });
+    }, [show, mainTab, hasForecast, forecastManualCode, forecastState.loaded, forecastState.loading]);
+
+    // Mặc định Giai đoạn dự báo = toàn bộ chuỗi vừa tải về
+    useEffect(() => {
+        if (forecastState.points.length > 0) {
+            setForecastRange({
+                startDate: String(forecastState.points[0].time).slice(0, 10),
+                endDate: String(forecastState.points[forecastState.points.length - 1].time).slice(0, 10),
+            });
+        }
+    }, [forecastState.points]);
+
+    const forecastBounds = useMemo(() => {
+        if (!forecastState.points || forecastState.points.length === 0) {
+            return { min: undefined, max: undefined };
+        }
+        return {
+            min: String(forecastState.points[0].time).slice(0, 10),
+            max: String(forecastState.points[forecastState.points.length - 1].time).slice(0, 10),
+        };
+    }, [forecastState.points]);
+
+    const handleForecastRangeChange = (e) => {
+        const { name, value } = e.target;
+        setForecastRange((prev) => ({ ...prev, [name]: value }));
+    };
+
+    // So sánh bằng chuỗi "YYYY-MM-DD" (timeGrid dự báo luôn có offset +07:00 tường minh nên an
+    // toàn khi so sánh trực tiếp bằng chuỗi, không cần dựng Date - xem SaltChartFull.jsx)
+    const filteredForecastPoints = useMemo(() => {
+        if (!forecastRange.startDate || !forecastRange.endDate) return forecastState.points;
+        return forecastState.points.filter((p) => {
+            const dayKey = String(p.time).slice(0, 10);
+            return dayKey >= forecastRange.startDate && dayKey <= forecastRange.endDate;
+        });
+    }, [forecastState.points, forecastRange]);
+
+    const dailyAggregatedPoints = useMemo(() => {
+        const seenDays = new Set();
+        const result = [];
+        for (const p of filteredForecastPoints) {
+            const dayKey = String(p.time).slice(0, 10);
+            if (seenDays.has(dayKey)) continue;
+            seenDays.add(dayKey);
+            if (p.dailySalinity === null || p.dailySalinity === undefined) continue;
+            result.push({ x: dayKey, salinity: Number(p.dailySalinity) });
+        }
+        return result;
+    }, [filteredForecastPoints]);
+
+    const biHourlyBarPoints = useMemo(() => {
+        return filteredForecastPoints
+            .filter((p) => Number.isFinite(Number(p.salinity)))
+            .map((p) => ({ x: p.time, salinity: Number(p.salinity) }));
+    }, [filteredForecastPoints]);
+
+    const forecastDisplayCount =
+        forecastFrequency === "ngay" ? dailyAggregatedPoints.length : biHourlyBarPoints.length;
+
+    const forecastStartDateLabel =
+        forecastState.points.length > 0
+            ? new Date(forecastState.points[0].time).toLocaleDateString("vi-VN")
+            : null;
+    const forecastEndDateLabel =
+        forecastState.points.length > 0
+            ? new Date(forecastState.points[forecastState.points.length - 1].time).toLocaleDateString("vi-VN")
+            : null;
 
     useEffect(() => {
         if (!show || !serialNumber || serialNumber === "N/A") {
@@ -484,9 +600,12 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
     const dateBounds = useMemo(() => {
         const dataRange = getRangeFromRows(dataPoints);
         const effectiveStartDate = stationStartDateFromApi || stationStartDate || dataRange.startDate;
+        // Khống chế theo đúng ngày của chuỗi số liệu của trạm (payload ban đầu lấy 14 ngày gần
+        // nhất tính từ mốc dữ liệu mới nhất - xem getRecent14DaysRange trong IoTMarkers.jsx) thay
+        // vì luôn lấy "hôm nay", vì trạm có thể đã ngừng gửi dữ liệu trước đó.
         return {
             startDate: effectiveStartDate,
-            endDate: getTodayIso(),
+            endDate: dataRange.endDate || getTodayIso(),
         };
     }, [dataPoints, stationStartDate, stationStartDateFromApi]);
 
@@ -529,7 +648,7 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
         setQueryOptions((prev) => ({
             startDate: clampedStartDate,
             endDate: clampedEndDate,
-            groupBy: prev.groupBy || "none",
+            groupBy: prev.groupBy || "hour",
         }));
     }, [show, dataPoints, dateBounds.startDate, dateBounds.endDate]);
 
@@ -639,52 +758,15 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
         }
 
         try {
-            const chartContainer = document.createElement("div");
-            chartContainer.style.backgroundColor = "white";
-            chartContainer.style.padding = "20px";
-            chartContainer.style.width = "800px";
-            chartContainer.style.margin = "0 auto";
-
-            // Tạo tiêu đề
-            const titleDiv = document.createElement("div");
-            titleDiv.style.width = "100%";
-            titleDiv.style.textAlign = "center";
-            titleDiv.style.marginBottom = "20px";
-            titleDiv.innerHTML = `
-                <h5 style="font-weight: bold; margin-bottom: 8px; font-size: 18px;">
-                    📡 Dữ liệu IoT - ${iotData?.stationName}
-                </h5>
-                <div style="color: #6c757d; font-size: 14px">
-                    📅 Từ <strong>${queryOptions.startDate}</strong> đến <strong>${queryOptions.endDate}</strong>
-                </div>
-            `;
-            chartContainer.appendChild(titleDiv);
-
-            // Sao chép phần biểu đồ
-            const chartElement = document.getElementById("iot-chart");
-            if (!chartElement) {
-                alert("Không thể tìm thấy biểu đồ để tải xuống");
-                return;
-            }
-            const chartClone = chartElement.cloneNode(true);
-            chartContainer.appendChild(chartClone);
-
-            document.body.appendChild(chartContainer);
-
-            const canvas = await html2canvas(chartContainer, {
-                backgroundColor: "#ffffff",
-                scale: 2,
+            await downloadChartImage({
+                title: `Dữ liệu IoT - ${stationName}`,
+                subtitleHtml:
+                    startDate && endDate
+                        ? `Quan trắc từ <strong>${startDate}</strong> đến <strong>${endDate}</strong>`
+                        : "",
+                chartElementId: "iot-chart",
+                filename: `bieu_do_iot_${serialNumber}_${new Date().getTime()}.png`,
             });
-
-            document.body.removeChild(chartContainer);
-
-            const url = canvas.toDataURL("image/png");
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = `bieu_do_iot_${iotData?.serialNumber}_${new Date().getTime()}.png`;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
         } catch (error) {
             console.error("❌ Tải ảnh biểu đồ lỗi:", error);
             alert("Không thể tải ảnh biểu đồ.");
@@ -747,12 +829,123 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
         link.click();
     };
 
+    // T\u1EA3i \u1EA3nh bi\u1EC3u \u0111\u1ED3 d\u1EF1 b\u00E1o (gi\u1ED1ng downloadChart \u1EDF tr\u00EAn nh\u01B0ng ch\u1EE5p #iot-forecast-chart +
+    // kho\u1EA3ng th\u1EDDi gian d\u1EF1 b\u00E1o, kh\u00F4ng ph\u1EA3i kho\u1EA3ng Giai \u0111o\u1EA1n quan tr\u1EAFc)
+    const downloadForecastChart = async () => {
+        if (!isLoggedIn) {
+            alert(
+                "B\u1EA1n c\u1EA7n \u0111\u0103ng nh\u1EADp \u0111\u1EC3 t\u1EA3i xu\u1ED1ng bi\u1EC3u \u0111\u1ED3",
+            );
+            return;
+        }
+
+        try {
+            await downloadChartImage({
+                title: `D\u1EF1 b\u00E1o \u0111\u1ED9 m\u1EB7n IoT - ${stationName}`,
+                subtitleHtml:
+                    forecastStartDateLabel && forecastEndDateLabel
+                        ? `D\u1EF1 b\u00E1o t\u1EEB <strong>${forecastStartDateLabel}</strong> \u0111\u1EBFn <strong>${forecastEndDateLabel}</strong>`
+                        : "",
+                chartElementId: "iot-forecast-chart",
+                filename: `bieu_do_du_bao_iot_${serialNumber}_${new Date().getTime()}.png`,
+            });
+        } catch (error) {
+            console.error(
+                "\u274C T\u1EA3i \u1EA3nh bi\u1EC3u \u0111\u1ED3 d\u1EF1 b\u00E1o l\u1ED7i:",
+                error,
+            );
+            alert("Kh\u00F4ng th\u1EC3 t\u1EA3i \u1EA3nh bi\u1EC3u \u0111\u1ED3.");
+        }
+    };
+
+    // Xu\u1EA5t Excel d\u1EEF li\u1EC7u d\u1EF1 b\u00E1o c\u1EE7a tr\u1EA1m IoT (c\u00F9ng c\u1EA5u tr\u00FAc v\u1EDBi file d\u1EF1 b\u00E1o \u0111i\u1EC3m \u0111o m\u1EB7n)
+    const downloadForecastData = () => {
+        if (!isLoggedIn) {
+            alert(
+                "B\u1EA1n c\u1EA7n \u0111\u0103ng nh\u1EADp \u0111\u1EC3 xu\u1EA5t d\u1EEF li\u1EC7u Excel",
+            );
+            return;
+        }
+
+        const points = filteredForecastPoints.filter((p) => parseNumber(p.salinity) !== null);
+        if (points.length === 0) {
+            alert("Kh\u00F4ng c\u00F3 d\u1EEF li\u1EC7u d\u1EF1 b\u00E1o \u0111\u1EC3 xu\u1EA5t");
+            return;
+        }
+
+        try {
+            const formatted = points.map((item, index) => ({
+                STT: index + 1,
+                "Th\u1EDDi \u0111i\u1EC3m": new Date(item.time).toLocaleString("vi-VN"),
+                "Theo 2h - do_man (\u2030)": parseNumber(item.salinity),
+                "Theo ng\u00E0y - DailyForecast (\u2030)": parseNumber(item.dailySalinity),
+                "C\u1EA5p \u0111\u1ED9": getSingleStationClassification(item.salinity, forecastManualCode)
+                    .shortText,
+                "Tr\u1EA1m IoT": stationName || serialNumber || "",
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(formatted);
+            worksheet["!cols"] = [
+                { wch: 5 },
+                { wch: 20 },
+                { wch: 18 },
+                { wch: 22 },
+                { wch: 25 },
+                { wch: 20 },
+            ];
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "D\u1EEF li\u1EC7u d\u1EF1 b\u00E1o");
+
+            const metaData = [
+                ["Th\u00F4ng tin xu\u1EA5t d\u1EEF li\u1EC7u d\u1EF1 b\u00E1o"],
+                ["Tr\u1EA1m IoT:", stationName],
+                ["M\u00E3 tr\u1EA1m:", stationCode],
+                [
+                    "Ph\u00E1t h\u00E0nh l\u00FAc:",
+                    forecastState.issuedAt ? new Date(forecastState.issuedAt).toLocaleString("vi-VN") : "-",
+                ],
+                ["T\u1EEB th\u1EDDi \u0111i\u1EC3m:", new Date(points[0].time).toLocaleString("vi-VN")],
+                [
+                    "\u0110\u1EBFn th\u1EDDi \u0111i\u1EC3m:",
+                    new Date(points[points.length - 1].time).toLocaleString("vi-VN"),
+                ],
+                [
+                    "B\u01B0\u1EDBc th\u1EDDi gian:",
+                    forecastState.intervalHours ? `${forecastState.intervalHours} gi\u1EDD` : "-",
+                ],
+                [
+                    "T\u1EA7m d\u1EF1 b\u00E1o:",
+                    forecastState.horizonDays ? `${forecastState.horizonDays} ng\u00E0y` : "-",
+                ],
+                [
+                    "D\u1EEF li\u1EC7u gi\u1EA3 l\u1EADp:",
+                    forecastState.isSynthetic ? "C\u00F3" : "Kh\u00F4ng",
+                ],
+                ["T\u1ED5ng s\u1ED1 b\u1EA3n ghi:", formatted.length],
+                ["Th\u1EDDi gian xu\u1EA5t:", new Date().toLocaleString("vi-VN")],
+            ];
+            const metaWorksheet = XLSX.utils.aoa_to_sheet(metaData);
+            metaWorksheet["!cols"] = [{ wch: 20 }, { wch: 30 }];
+            XLSX.utils.book_append_sheet(workbook, metaWorksheet, "Th\u00F4ng tin");
+
+            const toFileDate = (time) => String(time).slice(0, 10);
+            const fileName = `du_bao_do_man_iot_${serialNumber}_${toFileDate(points[0].time)}_${toFileDate(points[points.length - 1].time)}.xlsx`;
+            XLSX.writeFile(workbook, fileName, { bookType: "xlsx" });
+        } catch (error) {
+            console.error("\u274C Xu\u1EA5t Excel d\u1EF1 b\u00E1o l\u1ED7i:", error);
+            alert("Kh\u00F4ng th\u1EC3 xu\u1EA5t d\u1EEF li\u1EC7u d\u1EF1 b\u00E1o.");
+        }
+    };
+
     if (!show) return null;
 
     const data = displayData;
 
-    const startDate = data?.length > 0 ? formatDateLabel(getIoTRowTime(data[0])) : null;
-    const endDate = data?.length > 0 ? formatDateLabel(getIoTRowTime(data[data.length - 1])) : null;
+    // Quan trắc IoT là dữ liệu theo giờ/phút nên hiển thị cả giờ:phút, không chỉ ngày (khác với
+    // quan trắc độ mặn thủ công vốn chỉ có 1 mẫu/ngày).
+    const startDate = data?.length > 0 ? toDisplayDateTime(getIoTRowTime(data[0]), "none") : null;
+    const endDate = data?.length > 0 ? toDisplayDateTime(getIoTRowTime(data[data.length - 1]), "none") : null;
 
     return (
         <div
@@ -788,6 +981,21 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                     <div className="modal-header border-0 pb-1 pt-2">
                         <div className="w-100 text-center">
                             <h5 className="modal-title mb-1 fw-bold">Dữ liệu IoT - {stationName}</h5>
+                            {mainTab === "forecast"
+                                ? forecastStartDateLabel &&
+                                  forecastEndDateLabel && (
+                                      <div className="text-muted small">
+                                          Dự báo từ <strong>{forecastStartDateLabel}</strong> đến{" "}
+                                          <strong>{forecastEndDateLabel}</strong>
+                                      </div>
+                                  )
+                                : startDate &&
+                                  endDate && (
+                                      <div className="text-muted small">
+                                          Quan trắc từ <strong>{startDate}</strong> đến{" "}
+                                          <strong>{endDate}</strong>
+                                      </div>
+                                  )}
                         </div>
                         <button
                             type="button"
@@ -808,169 +1016,346 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                         }}
                     >
                         <div className="chartfull-topbar mb-2">
-                            <ul className="nav nav-tabs mb-0" role="tablist" style={{ flexShrink: 0 }}>
-                                <li className="nav-item">
-                                    <button
-                                        className={`nav-link ${activeTab === "chart" ? "active" : ""}`}
-                                        type="button"
-                                        onClick={() => setActiveTab("chart")}
+                            <div className="chartfull-controls-row">
+                                {hasForecast && (
+                                    <ul
+                                        className="nav nav-tabs mb-0"
+                                        role="tablist"
+                                        style={{ flexShrink: 0 }}
                                     >
-                                        Biểu đồ
-                                    </button>
-                                </li>
-                                <li className="nav-item">
-                                    <button
-                                        className={`nav-link ${activeTab === "data" ? "active" : ""}`}
-                                        type="button"
-                                        onClick={() => setActiveTab("data")}
-                                    >
-                                        Dữ liệu
-                                    </button>
-                                </li>
-                            </ul>
+                                        <li className="nav-item">
+                                            <button
+                                                className={`nav-link ${mainTab === "forecast" ? "active" : ""}`}
+                                                type="button"
+                                                onClick={() => setMainTab("forecast")}
+                                            >
+                                                Dự báo
+                                            </button>
+                                        </li>
+                                        <li className="nav-item">
+                                            <button
+                                                className={`nav-link ${mainTab === "actual" ? "active" : ""}`}
+                                                type="button"
+                                                onClick={() => setMainTab("actual")}
+                                            >
+                                                Quan trắc
+                                            </button>
+                                        </li>
+                                    </ul>
+                                )}
 
-                            <div className="chartfull-topbar-controls">
-                                <span className="small text-muted fw-semibold">Giai đoạn:</span>
-                                <IoTQueryControls
-                                    queryOptions={queryOptions}
-                                    onChange={handleQueryOptionChange}
-                                    minDate={dateBounds.startDate}
-                                    maxDate={dateBounds.endDate}
-                                    compact
-                                />
+                                <ul
+                                    className="nav nav-pills nav-sm mb-0"
+                                    role="tablist"
+                                    style={{ flexShrink: 0 }}
+                                >
+                                    <li className="nav-item">
+                                        <button
+                                            className={`nav-link ${activeTab === "chart" ? "active" : ""}`}
+                                            type="button"
+                                            onClick={() => setActiveTab("chart")}
+                                        >
+                                            Biểu đồ
+                                        </button>
+                                    </li>
+                                    <li className="nav-item">
+                                        <button
+                                            className={`nav-link ${activeTab === "data" ? "active" : ""}`}
+                                            type="button"
+                                            onClick={() => setActiveTab("data")}
+                                        >
+                                            Dữ liệu
+                                        </button>
+                                    </li>
+                                </ul>
+
+                                {mainTab === "actual" && (
+                                    <div className="chartfull-topbar-controls ms-auto">
+                                        <span className="small text-muted fw-semibold">Giai đoạn:</span>
+                                        <IoTQueryControls
+                                            queryOptions={queryOptions}
+                                            onChange={handleQueryOptionChange}
+                                            minDate={dateBounds.startDate}
+                                            maxDate={dateBounds.endDate}
+                                            compact
+                                        />
+                                    </div>
+                                )}
+
+                                {mainTab === "forecast" && (
+                                    <div className="chartfull-topbar-controls ms-auto">
+                                        {activeTab === "chart" && (
+                                            <>
+                                                <span className="small text-muted fw-semibold">
+                                                    Tần suất:
+                                                </span>
+                                                <select
+                                                    className="form-select form-select-sm"
+                                                    style={{ width: 100, minWidth: 100 }}
+                                                    value={forecastFrequency}
+                                                    onChange={(e) => setForecastFrequency(e.target.value)}
+                                                >
+                                                    <option value="2gio">2 giờ</option>
+                                                    <option value="ngay">Ngày</option>
+                                                </select>
+                                            </>
+                                        )}
+                                        <span className="small text-muted fw-semibold">Giai đoạn:</span>
+                                        <LocalizedDateInput
+                                            className="form-control form-control-sm"
+                                            name="startDate"
+                                            value={forecastRange.startDate}
+                                            onChange={handleForecastRangeChange}
+                                            min={forecastBounds.min}
+                                            max={forecastBounds.max}
+                                            style={{ width: 145, minWidth: 145 }}
+                                        />
+                                        <span className="small text-muted">-</span>
+                                        <LocalizedDateInput
+                                            className="form-control form-control-sm"
+                                            name="endDate"
+                                            value={forecastRange.endDate}
+                                            onChange={handleForecastRangeChange}
+                                            min={forecastBounds.min}
+                                            max={forecastBounds.max}
+                                            style={{ width: 145, minWidth: 145 }}
+                                        />
+                                    </div>
+                                )}
                             </div>
+
+                            <SalinityRiskLegend
+                                kiHieu={forecastManualCode}
+                                className="risk-legend-row flex-nowrap justify-content-center mt-2 mb-0"
+                            />
                         </div>
 
                         <div className="tab-content" style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-                            <div
-                                className={`tab-pane fade ${activeTab === "chart" ? "show active" : ""} h-100`}
-                                id="iot-chart-content"
-                                style={{ overflow: "hidden" }}
-                            >
-                                <div className="h-100 d-flex flex-column" style={{ minHeight: 0 }}>
-                                    {isLoadingData ? (
-                                        <div className="flex-grow-1 d-flex align-items-center justify-content-center text-muted">
-                                            Đang tải dữ liệu IoT...
-                                        </div>
-                                    ) : data.length > 0 ? (
-                                        <div className="map-chart-pane flex-grow-1">
-                                            <div
-                                                id="iot-chart"
-                                                className="chart-container map-chart-box iot-chart-box"
-                                                style={{ paddingTop: 0, flex: 1, minHeight: 300 }}
-                                            >
-                                                <IoTBarChart
-                                                    data={data}
-                                                    height="100%"
-                                                    groupBy={queryOptions.groupBy}
-                                                    stationCode={stationCode}
-                                                />
-                                            </div>
-                                            <div
-                                                className="map-chart-footer d-flex justify-content-between align-items-center"
-                                                style={{
-                                                    flexShrink: 0,
-                                                    padding: "8px 0",
-                                                    borderTop: "1px solid #e9ecef",
-                                                }}
-                                            >
-                                                <div className="text-muted" style={{ fontSize: "12px" }}>
-                                                    Thời gian: <strong>{startDate || "-"}</strong> đến{" "}
-                                                    <strong>{endDate || "-"}</strong>
-                                                </div>
-                                                <div className="d-flex align-items-center gap-2">
-                                                    <div className="text-muted" style={{ fontSize: "12px" }}>
-                                                        Hiển thị: <strong>{data.length}</strong> điểm dữ liệu
-                                                    </div>
-                                                    <button
-                                                        className={`btn btn-sm ${isLoggedIn ? "btn-outline-primary" : "btn-outline-secondary"}`}
-                                                        onClick={downloadChart}
-                                                        disabled={!isLoggedIn}
-                                                        title={
-                                                            !isLoggedIn
-                                                                ? "Bạn cần đăng nhập để tải xuống biểu đồ"
-                                                                : ""
-                                                        }
-                                                        style={{ fontSize: "12px", padding: "4px 10px" }}
-                                                    >
-                                                        Tải biểu đồ
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="flex-grow-1 d-flex align-items-center justify-content-center">
-                                            <p className="text-muted mb-0">
-                                                {loadError ||
-                                                    (iotData
-                                                        ? "Không có dữ liệu hợp lệ."
-                                                        : "Đang tải dữ liệu IoT...")}
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div
-                                className={`tab-pane fade ${activeTab === "data" ? "show active" : ""} h-100`}
-                                id="iot-export-content"
-                                style={{ overflow: "hidden" }}
-                            >
-                                <div className="h-100 d-flex flex-column" style={{ minHeight: 0 }}>
-                                    {data.length > 0 ? (
+                            {mainTab === "forecast" && hasForecast && (
+                                <div className="h-100">
+                                    {forecastState.loading ? (
+                                        <p className="text-muted">Đang tải dữ liệu dự báo...</p>
+                                    ) : forecastState.error ? (
+                                        <p className="text-muted">{forecastState.error}</p>
+                                    ) : forecastState.points.length > 0 ? (
                                         <>
-                                            <div
-                                                style={{
-                                                    flex: 1,
-                                                    minHeight: 0,
-                                                    overflow: "auto",
-                                                    paddingRight: 4,
-                                                }}
-                                            >
-                                                <IoTExportPreviewTable
-                                                    data={data}
-                                                    groupBy={queryOptions.groupBy}
-                                                    stationCode={stationCode}
-                                                />
-                                            </div>
-
-                                            <div
-                                                className="d-flex gap-2 justify-content-between align-items-center pt-2"
-                                                style={{ flexShrink: 0 }}
-                                            >
-                                                <div className="text-muted small">
-                                                    Thời gian: <strong>{startDate || "-"}</strong> đến{" "}
-                                                    <strong>{endDate || "-"}</strong>
-                                                </div>
-                                                <div className="d-flex align-items-center gap-2">
-                                                    <div className="text-muted small">
-                                                        Hiển thị {data.length} bản ghi
+                                            {activeTab === "chart" ? (
+                                                <div className="map-chart-pane h-100">
+                                                    <div id="iot-forecast-chart" className="map-chart-box">
+                                                        <ForecastBarChart
+                                                            data={
+                                                                forecastFrequency === "ngay"
+                                                                    ? dailyAggregatedPoints
+                                                                    : biHourlyBarPoints
+                                                            }
+                                                            kiHieu={forecastManualCode}
+                                                            height="100%"
+                                                            mode={
+                                                                forecastFrequency === "ngay"
+                                                                    ? "date"
+                                                                    : "datetime"
+                                                            }
+                                                        />
                                                     </div>
-                                                    <button
-                                                        className={`btn btn-sm ${isLoggedIn ? "btn-outline-success" : "btn-outline-secondary"}`}
-                                                        onClick={downloadData}
-                                                        disabled={!isLoggedIn}
-                                                        title={
-                                                            !isLoggedIn
-                                                                ? "Bạn cần đăng nhập để tải dữ liệu"
-                                                                : ""
-                                                        }
-                                                        style={{ fontSize: "12px", padding: "4px 10px" }}
-                                                    >
-                                                        Tải dữ liệu
-                                                    </button>
+                                                    <div className="map-chart-footer mt-1 d-flex justify-content-between align-items-center">
+                                                        <div className="text-muted small">
+                                                            Hiển thị: <strong>{forecastDisplayCount}</strong>{" "}
+                                                            bản ghi. Phát hành lúc:{" "}
+                                                            {forecastState.issuedAt
+                                                                ? new Date(
+                                                                      forecastState.issuedAt,
+                                                                  ).toLocaleString("vi-VN")
+                                                                : "-"}
+                                                        </div>
+                                                        <button
+                                                            className={`btn btn-sm ${isLoggedIn ? "btn-outline-primary" : "btn-outline-secondary"}`}
+                                                            onClick={downloadForecastChart}
+                                                            disabled={!isLoggedIn}
+                                                            title={
+                                                                !isLoggedIn
+                                                                    ? "Bạn cần đăng nhập để tải xuống biểu đồ"
+                                                                    : ""
+                                                            }
+                                                        >
+                                                            Tải biểu đồ
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            ) : (
+                                                <div
+                                                    className="h-100 d-flex flex-column"
+                                                    style={{ minHeight: 0 }}
+                                                >
+                                                    <div
+                                                        className="map-data-scroll"
+                                                        style={{ flex: 1, minHeight: 0, overflow: "auto" }}
+                                                    >
+                                                        <ForecastDataTable
+                                                            points={filteredForecastPoints}
+                                                            kiHieu={forecastManualCode}
+                                                        />
+                                                    </div>
+                                                    <div className="d-flex gap-2 justify-content-between align-items-center">
+                                                        <div className="text-muted small">
+                                                            Hiển thị {filteredForecastPoints.length} bản ghi
+                                                        </div>
+                                                        <button
+                                                            className={`btn btn-sm ${isLoggedIn ? "btn-outline-success" : "btn-outline-secondary"}`}
+                                                            onClick={downloadForecastData}
+                                                            disabled={!isLoggedIn}
+                                                            title={
+                                                                !isLoggedIn
+                                                                    ? "Bạn cần đăng nhập để xuất dữ liệu Excel"
+                                                                    : ""
+                                                            }
+                                                        >
+                                                            Tải dữ liệu
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </>
                                     ) : (
-                                        <div className="flex-grow-1 d-flex align-items-center justify-content-center">
-                                            <p className="text-muted mb-0">
-                                                {loadError || "Không có dữ liệu để hiển thị."}
-                                            </p>
-                                        </div>
+                                        <p className="text-muted">Chưa có dữ liệu dự báo.</p>
                                     )}
                                 </div>
-                            </div>
+                            )}
+
+                            {mainTab === "actual" && (
+                                <>
+                                    <div
+                                        className={`tab-pane fade ${activeTab === "chart" ? "show active" : ""} h-100`}
+                                        id="iot-chart-content"
+                                        style={{ overflow: "hidden" }}
+                                    >
+                                        <div className="h-100 d-flex flex-column" style={{ minHeight: 0 }}>
+                                            {isLoadingData ? (
+                                                <div className="flex-grow-1 d-flex align-items-center justify-content-center text-muted">
+                                                    Đang tải dữ liệu IoT...
+                                                </div>
+                                            ) : data.length > 0 ? (
+                                                <div className="map-chart-pane flex-grow-1">
+                                                    <div
+                                                        id="iot-chart"
+                                                        className="chart-container map-chart-box iot-chart-box"
+                                                        style={{ paddingTop: 0, flex: 1, minHeight: 300 }}
+                                                    >
+                                                        <IoTBarChart
+                                                            data={data}
+                                                            height="100%"
+                                                            groupBy={queryOptions.groupBy}
+                                                            stationCode={stationCode}
+                                                        />
+                                                    </div>
+                                                    <div
+                                                        className="map-chart-footer d-flex justify-content-between align-items-center"
+                                                        style={{
+                                                            flexShrink: 0,
+                                                            padding: "8px 0",
+                                                            borderTop: "1px solid #e9ecef",
+                                                        }}
+                                                    >
+                                                        <div
+                                                            className="text-muted"
+                                                            style={{ fontSize: "12px" }}
+                                                        >
+                                                            Hiển thị: <strong>{data.length}</strong> điểm dữ
+                                                            liệu
+                                                        </div>
+                                                        <div className="d-flex align-items-center gap-2">
+                                                            <button
+                                                                className={`btn btn-sm ${isLoggedIn ? "btn-outline-primary" : "btn-outline-secondary"}`}
+                                                                onClick={downloadChart}
+                                                                disabled={!isLoggedIn}
+                                                                title={
+                                                                    !isLoggedIn
+                                                                        ? "Bạn cần đăng nhập để tải xuống biểu đồ"
+                                                                        : ""
+                                                                }
+                                                                style={{
+                                                                    fontSize: "12px",
+                                                                    padding: "4px 10px",
+                                                                }}
+                                                            >
+                                                                Tải biểu đồ
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex-grow-1 d-flex align-items-center justify-content-center">
+                                                    <p className="text-muted mb-0">
+                                                        {loadError ||
+                                                            (iotData
+                                                                ? "Không có dữ liệu hợp lệ."
+                                                                : "Đang tải dữ liệu IoT...")}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        className={`tab-pane fade ${activeTab === "data" ? "show active" : ""} h-100`}
+                                        id="iot-export-content"
+                                        style={{ overflow: "hidden" }}
+                                    >
+                                        <div className="h-100 d-flex flex-column" style={{ minHeight: 0 }}>
+                                            {data.length > 0 ? (
+                                                <>
+                                                    <div
+                                                        style={{
+                                                            flex: 1,
+                                                            minHeight: 0,
+                                                            overflow: "auto",
+                                                            paddingRight: 4,
+                                                        }}
+                                                    >
+                                                        <IoTExportPreviewTable
+                                                            data={data}
+                                                            groupBy={queryOptions.groupBy}
+                                                            stationCode={stationCode}
+                                                        />
+                                                    </div>
+
+                                                    <div
+                                                        className="d-flex gap-2 justify-content-between align-items-center pt-2"
+                                                        style={{ flexShrink: 0 }}
+                                                    >
+                                                        <div className="text-muted small">
+                                                            Hiển thị {data.length} bản ghi
+                                                        </div>
+                                                        <div className="d-flex align-items-center gap-2">
+                                                            <button
+                                                                className={`btn btn-sm ${isLoggedIn ? "btn-outline-success" : "btn-outline-secondary"}`}
+                                                                onClick={downloadData}
+                                                                disabled={!isLoggedIn}
+                                                                title={
+                                                                    !isLoggedIn
+                                                                        ? "Bạn cần đăng nhập để tải dữ liệu"
+                                                                        : ""
+                                                                }
+                                                                style={{
+                                                                    fontSize: "12px",
+                                                                    padding: "4px 10px",
+                                                                }}
+                                                            >
+                                                                Tải dữ liệu
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="flex-grow-1 d-flex align-items-center justify-content-center">
+                                                    <p className="text-muted mb-0">
+                                                        {loadError || "Không có dữ liệu để hiển thị."}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

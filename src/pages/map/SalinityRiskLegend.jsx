@@ -17,7 +17,7 @@ export const RISK_THRESHOLD_HIGH = 4; // ‰
 // - xem common/salinityClassification.js): tính bằng cách lấy phân loại tại 1 giá trị đại diện cho
 // mỗi vùng (0.5‰, 2‰, >4‰) nên luôn khớp với logic tô màu ở cả biểu đồ dự báo lẫn quan trắc, không
 // cần khai báo lại thủ công.
-const SalinityRiskLegend = ({ kiHieu }) => {
+const SalinityRiskLegend = ({ kiHieu, className = "" }) => {
     const items = [
         getSingleStationClassification(0.5, kiHieu),
         getSingleStationClassification(2, kiHieu),
@@ -25,7 +25,7 @@ const SalinityRiskLegend = ({ kiHieu }) => {
     ];
 
     return (
-        <div className="d-flex flex-wrap gap-3 small mb-2">
+        <div className={`d-flex flex-wrap gap-3 small mb-2 ${className}`}>
             {items.map((item) => (
                 <span key={item.class} className="d-inline-flex align-items-center gap-1">
                     <span
