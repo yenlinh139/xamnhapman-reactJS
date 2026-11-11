@@ -30,6 +30,13 @@ const parseDisplayToIso = (text) => {
     return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 };
 
+const clampToRange = (isoDate, min, max) => {
+    if (!isoDate) return isoDate;
+    if (min && isoDate < min) return min;
+    if (max && isoDate > max) return max;
+    return isoDate;
+};
+
 const LocalizedDateInput = ({
     id,
     name,
@@ -89,8 +96,9 @@ const LocalizedDateInput = ({
                 value={displayValue}
                 onChange={(e) => setDisplayValue(e.target.value)}
                 onBlur={() => {
-                    const isoDate = parseDisplayToIso(displayValue);
-                    if (isoDate) {
+                    const parsedIso = parseDisplayToIso(displayValue);
+                    if (parsedIso) {
+                        const isoDate = clampToRange(parsedIso, min, max);
                         setDisplayValue(formatIsoToDisplay(isoDate));
                         emitChange(isoDate);
                     } else {

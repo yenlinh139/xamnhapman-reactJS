@@ -764,7 +764,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                                     </div>
                                                     <div className="map-chart-footer mt-1 d-flex justify-content-between align-items-center">
                                                         <div className="text-muted small">
-                                                            Hiển thị: <strong>{forecastDisplayCount}</strong>{" "}
+                                                            Hiển thị <strong>{forecastDisplayCount}</strong>{" "}
                                                             bản ghi. Phát hành lúc:{" "}
                                                             {forecastState.issuedAt
                                                                 ? new Date(
@@ -840,7 +840,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                                 </div>
                                                 <div className="map-chart-footer mt-1 d-flex justify-content-between align-items-center">
                                                     <div className="text-muted small">
-                                                        Hiển thị: <strong>{filteredData.length}</strong> bản
+                                                        Hiển thị <strong>{filteredData.length}</strong> bản
                                                         ghi
                                                     </div>
                                                     <button

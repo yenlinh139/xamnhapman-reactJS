@@ -151,7 +151,10 @@
 
     .chartfull-topbar {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
         gap: 0.4rem;
         padding: 0.2rem 0;
         border: none;

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axiosInstance from "@config/axios-config";
-import HydrometBarChart from "@pages/map/HydrometBarChart";
+import HydrometBarChart, { detectHydrometCategory, formatDateDMY } from "@pages/map/HydrometBarChart";
 import html2canvas from "html2canvas";
 import { getDisplayStationName, getFilenameSafeStationName } from "@common/stationMapping";
 import "@styles/components/_hydrometChart.scss";
@@ -23,6 +23,12 @@ const parseNumber = (value) => {
 
     const parsed = Number(normalized);
     return Number.isFinite(parsed) ? parsed : null;
+};
+
+const CATEGORY_TITLE_MAP = {
+    rain: "Diễn biến lượng mưa",
+    meteo: "Diễn biến khí tượng",
+    hydro: "Diễn biến thủy văn",
 };
 
 const formatNumberVi = (value, fractionDigits = 2) => {
@@ -162,7 +168,7 @@ const ExportPreviewTable = ({ data }) => {
                             onClick={() => handleSort(data[0]?.date ? "date" : "Ngày")}
                         >
                             <div className="d-flex align-items-center justify-content-between">
-                                <span>📅 Ngày</span>
+                                <span>Ngày</span>
                                 {getSortIcon(data[0]?.date ? "date" : "Ngày")}
                             </div>
                         </th>
@@ -189,7 +195,11 @@ const ExportPreviewTable = ({ data }) => {
                     {sortedData.map((item, idx) => (
                         <tr key={idx}>
                             <td>{idx + 1}</td>
-                            <td>{item.date || item.Ngày}</td>
+                            <td>
+                                {item.date || item.Ngày
+                                    ? formatDateDMY(item.date || item.Ngày)
+                                    : "-"}
+</td>
                             {columns.map((col) => (
                                 <td key={col} className="text-end">
                                     {item[col] !== null && item[col] !== undefined && item[col] !== ""
@@ -581,6 +591,19 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
 
     if (!show) return null;
 
+    const dataCategory = detectHydrometCategory(data);
+    const categoryTitle = CATEGORY_TITLE_MAP[dataCategory] || CATEGORY_TITLE_MAP.meteo;
+
+    // Khống chế input ngày trong phạm vi chuỗi số liệu thực tế của trạm (data đã sort tăng dần).
+    const normalizeToIso = (dateValue) =>
+        typeof dateValue === "string" && dateValue.includes("/")
+            ? convertVietnameseDateToISO(dateValue)
+            : dateValue.split("T")[0];
+
+    const dataMinISO = data.length > 0 ? normalizeToIso(data[0].date || data[0].Ngày) : undefined;
+    const dataMaxISO =
+        data.length > 0 ? normalizeToIso(data[data.length - 1].date || data[data.length - 1].Ngày) : undefined;
+
     // Helper function to format date for display
     const formatDateForDisplay = (dateValue) => {
         if (typeof dateValue === "string" && dateValue.includes("/")) {
@@ -615,7 +638,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                     <div className="modal-header border-0 py-2">
                         <div className="w-100 text-center" id="hydromet-chart-title">
                             <h5 className="modal-title mb-1 fw-bold">
-                                Diễn biến khí tượng thủy văn - {displayStationName}
+                                {categoryTitle} - {displayStationName}
                             </h5>
                             {startDate && endDate && (
                                 <div className="text-muted small">
@@ -642,7 +665,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                     aria-selected={activeTab === "chart"}
                                     onClick={() => setActiveTab("chart")}
                                 >
-                                    📊 Biểu đồ
+                                    Biểu đồ
                                 </button>
                                 <button
                                     className={`nav-link ${activeTab === "export" ? "active" : ""}`}
@@ -667,6 +690,8 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                             name="startDate"
                                             value={chartDateRange.startDate}
                                             onChange={handleChartDateRangeChange}
+                                            min={dataMinISO}
+                                            max={dataMaxISO}
                                         />
                                     </label>
                                     <label className="toolbar-field">
@@ -676,31 +701,10 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                             name="endDate"
                                             value={chartDateRange.endDate}
                                             onChange={handleChartDateRangeChange}
+                                            min={dataMinISO}
+                                            max={dataMaxISO}
                                         />
                                     </label>
-                                    <button
-                                        type="button"
-                                        className="btn btn-outline-secondary btn-sm"
-                                        onClick={() => {
-                                            setPresetRange("all");
-                                            setFilteredChartData(data);
-                                            const firstDate = data[0]?.date || data[0]?.Ngày;
-                                            const lastDate =
-                                                data[data.length - 1]?.date || data[data.length - 1]?.Ngày;
-                                            if (firstDate && lastDate) {
-                                                setChartDateRange({
-                                                    startDate: firstDate.includes("/")
-                                                        ? convertVietnameseDateToISO(firstDate)
-                                                        : firstDate.split("T")[0],
-                                                    endDate: lastDate.includes("/")
-                                                        ? convertVietnameseDateToISO(lastDate)
-                                                        : lastDate.split("T")[0],
-                                                });
-                                            }
-                                        }}
-                                    >
-                                        Reset
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -720,8 +724,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                         </div>
                                         <div className="map-chart-footer export-actions mt-1 d-flex justify-content-between align-items-center">
                                             <div className="text-muted small">
-                                                📊 Hiển thị: <strong>{filteredChartData.length}</strong> /{" "}
-                                                <strong>{data.length}</strong> ngày có dữ liệu
+                                                Hiển thị <strong>{filteredChartData.length}</strong> bản ghi
                                             </div>
                                             <button
                                                 className={`btn btn-sm ${isLoggedIn ? "btn-outline-primary" : "btn-outline-secondary"}`}
@@ -763,10 +766,10 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
 
                                         <div className="d-flex justify-content-between align-items-center">
                                             <div className="text-muted small">
-                                                📊 Số dòng xuất:{" "}
+                                                Hiển thị {" "}
                                                 <strong>
                                                     {(filteredData.length > 0 ? filteredData : data).length}
-                                                </strong>
+                                                </strong> bản ghi 
                                             </div>
                                             <button
                                                 className={`btn btn-sm ${isLoggedIn ? "btn-outline-success" : "btn-outline-secondary"}`}

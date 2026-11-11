@@ -1921,6 +1921,21 @@ button:hover,
                 font-size: 11px;
             }
         }
+
+        // Badge phân cấp mực nước / phân cấp mưa (màu chữ + viền đặt inline theo cấp)
+        .popup-status.station-level-badge {
+            position: relative;
+            z-index: 1;
+            flex-shrink: 0;
+            background: #ffffff;
+            border: 1.5px solid currentColor;
+            padding: 3px 8px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+        }
     }
 
     .popup-content {
@@ -1959,8 +1974,19 @@ button:hover,
                     .param-value {
                         font-size: 11px;
                     }
+
+                    .param-date {
+                        font-size: 9px;
+                        font-style: italic;
+                        color: var(--textColorLight);
+                    }
                 }
             }
+        }
+
+        .popup-main-value .value-date {
+            font-size: 10px;
+            margin-top: 3px;
         }
 
         .popup-details {

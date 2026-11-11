@@ -22,6 +22,11 @@ const formatNumberVi = (value, fractionDigits = 1) => {
     });
 };
 
+const isRainfallSeriesKey = (key = "") => {
+    const normalized = String(key).trim();
+    return /^R(_|$)/i.test(normalized);
+};
+
 const isTemperatureSeriesKey = (key = "") => {
     const normalized = String(key).trim();
     return /^(Ttb|Tx|Tm)(_|$)/i.test(normalized) || /^T_/i.test(normalized);
@@ -30,6 +35,65 @@ const isTemperatureSeriesKey = (key = "") => {
 const isWaterLevelSeriesKey = (key = "") => {
     const normalized = String(key).trim();
     return /^(Htb|Hx|Hm)(_|$)/i.test(normalized) || /^H_/i.test(normalized);
+};
+
+const hasUsableValue = (value) => value !== null && value !== undefined && value !== "" && value !== "NULL";
+
+// Xác định loại trạm dựa trên các tham số thực sự có dữ liệu, dùng để chọn tiêu đề/định dạng
+// phù hợp (Điểm đo mưa / Trạm khí tượng / Trạm thủy văn) ở cả modal tiêu đề lẫn biểu đồ.
+export const detectHydrometCategory = (rows = []) => {
+    let hasRain = false;
+    let hasTemp = false;
+    let hasWater = false;
+
+    for (const row of rows || []) {
+        for (const key of Object.keys(row || {})) {
+            if (key === "date" || key === "Ngày") continue;
+            if (!hasUsableValue(row[key])) continue;
+
+            if (isRainfallSeriesKey(key)) hasRain = true;
+            else if (isTemperatureSeriesKey(key)) hasTemp = true;
+            else if (isWaterLevelSeriesKey(key)) hasWater = true;
+        }
+    }
+
+    if (hasWater) return "hydro";
+    if (hasRain && hasTemp) return "meteo";
+    if (hasRain) return "rain";
+    return "meteo";
+};
+
+// Dữ liệu trạm có thể đến dạng "MM/DD/YYYY" (API cũ) hoặc "DD/MM/YYYY"/ISO - gom chung 1 nơi parse
+// để trục X và tooltip luôn hiển thị cùng 1 cách đọc ngày, tránh lệch nhau khi sửa sau này.
+const parseStationDate = (dateValue) => {
+    if (typeof dateValue === "string" && dateValue.includes("/")) {
+        const parts = dateValue.split("/");
+        const [first, second, year] = parts;
+
+        let month, day;
+        if (parseInt(first) <= 12 && parseInt(second) <= 31) {
+            // MM/DD/YYYY format (common from API)
+            month = parseInt(first) - 1;
+            day = parseInt(second);
+        } else {
+            // DD/MM/YYYY format
+            day = parseInt(first);
+            month = parseInt(second) - 1;
+        }
+
+        return new Date(parseInt(year), month, day);
+    }
+    return new Date(dateValue);
+};
+
+export const formatDateDMY = (dateValue) => {
+    const parsed = parseStationDate(dateValue);
+    if (Number.isNaN(parsed.getTime())) return String(dateValue ?? "-");
+
+    const day = String(parsed.getDate()).padStart(2, "0");
+    const month = String(parsed.getMonth() + 1).padStart(2, "0");
+    const year = parsed.getFullYear();
+    return `${day}/${month}/${year}`;
 };
 
 const getParameterInfo = (data) => {
@@ -173,87 +237,39 @@ const getParameterInfo = (data) => {
 };
 
 const CustomTooltip = ({ active, payload, hasWaterSeries, isRainOnlyChart }) => {
-    if (active && payload?.length) {
-        const data = payload[0].payload;
-        const dateValue = data.date || data.Ngày;
+    if (!active || !payload?.length) return null;
 
-        return (
-            <div className="bg-white border p-3 rounded shadow-sm" style={{ minWidth: 250, maxWidth: 350 }}>
-                <div className="fw-bold mb-2 d-flex align-items-center gap-2 text-primary">
-                    <span>🌡️🌧️</span>
-                    <span>Dữ liệu khí tượng</span>
-                </div>
+    const data = payload[0].payload;
+    const tempLabel = hasWaterSeries ? "Mực nước" : "Nhiệt độ không khí";
+    const tempUnit = hasWaterSeries ? "cm" : "°C";
 
-                <div className="mb-2">
-                    <div className="small text-muted mb-1">📅 Thời gian</div>
-                    <div className="fw-semibold">{dateValue}</div>
-                </div>
-
-                {/* Rainfall data */}
-                {data.rainfall !== undefined && data.rainfall !== null && (
-                    <div className="mb-2 p-2 bg-primary bg-opacity-10 rounded">
-                        <div className="small text-muted mb-1">🌧️ Lượng mưa</div>
-                        <div className="fs-6 fw-bold text-primary">{formatNumberVi(data.rainfall, 2)} mm</div>
-                        <div className="small">
-                            {data.rainfall === 0
-                                ? "☀️ Không mưa"
-                                : data.rainfall < 10
-                                  ? "🌦️ Mưa nhỏ"
-                                  : data.rainfall < 50
-                                    ? "🌧️ Mưa vừa"
-                                    : data.rainfall < 100
-                                      ? "⛈️ Mưa to"
-                                      : "🌊 Mưa rất to"}
-                        </div>
-                    </div>
-                )}
-
-                {!isRainOnlyChart && (
-                    <div className="mb-2">
-                        <div className="small text-muted mb-1">
-                            {hasWaterSeries ? "🌊 Mực nước" : "🌡️ Nhiệt độ"}
-                        </div>
-                        <div className="row g-1">
-                            {data.ttb !== undefined && data.ttb !== null && (
-                                <div className="col-4">
-                                    <div className="p-1 bg-success bg-opacity-10 rounded text-center">
-                                        <div className="small text-muted">trung bình</div>
-                                        <div className="fw-bold text-success small">
-                                            {formatNumberVi(data.ttb, 2)}
-                                            {hasWaterSeries ? "cm" : "°C"}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                            {data.tx !== undefined && data.tx !== null && (
-                                <div className="col-4">
-                                    <div className="p-1 bg-danger bg-opacity-10 rounded text-center">
-                                        <div className="small text-muted">tối cao</div>
-                                        <div className="fw-bold text-danger small">
-                                            {formatNumberVi(data.tx, 2)}
-                                            {hasWaterSeries ? "cm" : "°C"}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                            {data.tm !== undefined && data.tm !== null && (
-                                <div className="col-4">
-                                    <div className="p-1 bg-info bg-opacity-10 rounded text-center">
-                                        <div className="small text-muted">tối thấp</div>
-                                        <div className="fw-bold text-info small">
-                                            {formatNumberVi(data.tm, 2)}
-                                            {hasWaterSeries ? "cm" : "°C"}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    }
-    return null;
+    return (
+        <div className="bg-white border p-2 rounded shadow-sm">
+            <p className="mb-1">Ngày: {formatDateDMY(data.dateValue)}</p>
+            {data.rainfall !== undefined && data.rainfall !== null && (
+                <p className="mb-1">Lượng mưa (mm): {formatNumberVi(data.rainfall, 2)}</p>
+            )}
+            {!isRainOnlyChart && (
+                <>
+                    {data.ttb !== undefined && data.ttb !== null && (
+                        <p className="mb-1">
+                            {tempLabel} trung bình ({tempUnit}): {formatNumberVi(data.ttb, 2)}
+                        </p>
+                    )}
+                    {data.tx !== undefined && data.tx !== null && (
+                        <p className="mb-1">
+                            {tempLabel} cao nhất ({tempUnit}): {formatNumberVi(data.tx, 2)}
+                        </p>
+                    )}
+                    {data.tm !== undefined && data.tm !== null && (
+                        <p className="mb-0">
+                            {tempLabel} thấp nhất ({tempUnit}): {formatNumberVi(data.tm, 2)}
+                        </p>
+                    )}
+                </>
+            )}
+        </div>
+    );
 };
 
 const HydrometBarChart = ({ data, height = 600 }) => {
@@ -340,28 +356,7 @@ const HydrometBarChart = ({ data, height = 600 }) => {
     });
 
     // Get unique years for X-axis
-    const getDateValue = (item) => {
-        const dateValue = item.dateValue;
-        if (typeof dateValue === "string" && dateValue.includes("/")) {
-            const parts = dateValue.split("/");
-            const [first, second, year] = parts;
-
-            // Handle both MM/DD/YYYY and DD/MM/YYYY formats
-            let month, day;
-            if (parseInt(first) <= 12 && parseInt(second) <= 31) {
-                // MM/DD/YYYY format (common from API)
-                month = parseInt(first) - 1; // JavaScript months are 0-based
-                day = parseInt(second);
-            } else {
-                // DD/MM/YYYY format
-                day = parseInt(first);
-                month = parseInt(second) - 1;
-            }
-
-            return new Date(parseInt(year), month, day);
-        }
-        return new Date(dateValue);
-    };
+    const getDateValue = (item) => parseStationDate(item.dateValue);
 
     const uniqueYears = [...new Set(formattedData.map((d) => getDateValue(d).getFullYear()))];
     const ticksByYear = uniqueYears
@@ -414,17 +409,9 @@ const HydrometBarChart = ({ data, height = 600 }) => {
                         {/* X Axis */}
                         <XAxis
                             dataKey="dateValue"
-                            tickFormatter={(d) => {
-                                if (typeof d === "string" && d.includes("/")) {
-                                    const parts = d.split("/");
-                                    // Handle MM/DD/YYYY format
-                                    const year = parts[2] || parts[0];
-                                    return year;
-                                }
-                                return new Date(d).getFullYear();
-                            }}
+                            tickFormatter={formatDateDMY}
                             ticks={ticksByYear}
-                            tick={{ fontSize: height < 300 ? 12 : 16 }}
+                            tick={{ fontSize: height < 300 ? 11 : 14 }}
                             height={height < 300 ? 40 : 60}
                         />
 
@@ -437,17 +424,21 @@ const HydrometBarChart = ({ data, height = 600 }) => {
                                 tick={{ fontSize: height < 300 ? 10 : 16, fill: "#0d6efd" }}
                                 width={height < 300 ? 50 : 90}
                                 tickMargin={height < 300 ? 5 : 15}
-                                label={{
-                                    value: "🌧️ Lượng mưa (mm)",
-                                    angle: -90,
-                                    position: "insideLeft",
-                                    style: {
-                                        textAnchor: "middle",
-                                        fontSize: height < 300 ? "12px" : "16px",
-                                        fontWeight: "bold",
-                                        fill: "#0d6efd",
-                                    },
-                                }}
+                                label={
+                                    isRainOnlyChart
+                                        ? undefined
+                                        : {
+                                              value: "Lượng mưa (mm)",
+                                              angle: -90,
+                                              position: "insideLeft",
+                                              style: {
+                                                  textAnchor: "middle",
+                                                  fontSize: height < 300 ? "12px" : "16px",
+                                                  fontWeight: "bold",
+                                                  fill: "#0d6efd",
+                                              },
+                                          }
+                                }
                             />
                         )}
 
@@ -461,17 +452,21 @@ const HydrometBarChart = ({ data, height = 600 }) => {
                                 tick={{ fontSize: height < 300 ? 10 : 16, fill: "#dc3545" }}
                                 width={height < 300 ? 50 : 90}
                                 tickMargin={height < 300 ? 5 : 15}
-                                label={{
-                                    value: hasWaterSeries ? "🌊 Mực nước (cm)" : "🌡️ Nhiệt độ (°C)",
-                                    angle: isHydrologyOnlyChart ? -90 : 90,
-                                    position: isHydrologyOnlyChart ? "insideLeft" : "insideRight",
-                                    style: {
-                                        textAnchor: "middle",
-                                        fontSize: height < 300 ? "12px" : "16px",
-                                        fontWeight: "bold",
-                                        fill: "#dc3545",
-                                    },
-                                }}
+                                label={
+                                    isHydrologyOnlyChart
+                                        ? undefined
+                                        : {
+                                              value: hasWaterSeries ? "Mực nước (cm)" : "Nhiệt độ (°C)",
+                                              angle: 90,
+                                              position: "insideRight",
+                                              style: {
+                                                  textAnchor: "middle",
+                                                  fontSize: height < 300 ? "12px" : "16px",
+                                                  fontWeight: "bold",
+                                                  fill: "#dc3545",
+                                              },
+                                          }
+                                }
                             />
                         )}
 
@@ -484,8 +479,8 @@ const HydrometBarChart = ({ data, height = 600 }) => {
                             }
                         />
 
-                        {/* Legend */}
-                        <Legend wrapperStyle={{ paddingTop: "20px" }} iconType="line" />
+                        {/* Legend - bỏ khi chỉ có 1 chuỗi dữ liệu (trạm đo mưa) vì không cần phân biệt */}
+                        {!isRainOnlyChart && <Legend wrapperStyle={{ paddingTop: "20px" }} iconType="line" />}
 
                         {hasRainSeries && (
                             <Bar

@@ -53,7 +53,7 @@ const getHydrometTypeLabel = (station = {}) => {
     }
 
     if (metadata.includes("thuy van") || stationCode.endsWith("_TV") || stationCode.includes("TV")) {
-        return "Thủy văn";
+        return "Trạm thủy văn";
     }
 
     if (metadata.includes("khi tuong") || stationCode.endsWith("_KT") || stationCode.includes("KT")) {
@@ -233,22 +233,22 @@ const inferHydrometStationTypeKey = (station = {}) => {
     return "meteorology";
 };
 
-const formatHydrometDateLabel = (value) => {
-    if (!value) return "Chưa có dữ liệu";
+// dd/mm/yyyy (không kèm giờ)
+const formatHydrometDateOnly = (value) => {
+    if (!value) return null;
 
     const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-        return String(value);
-    }
+    if (Number.isNaN(parsed.getTime())) return String(value);
 
-    return parsed.toLocaleString("vi-VN", {
+    return parsed.toLocaleDateString("vi-VN", {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
     });
 };
+
+const getHydrometRowDate = (row) =>
+    getFirstValidValue(row?.Ngày, row?.Ngay, row?.date, row?.Date, row?.timestamp, row?.created_at);
 
 const formatHydrometNumber = (value, digits = 2) => {
     const numeric = Number.parseFloat(value);
@@ -297,20 +297,39 @@ const getWaterLevelAlertMeta = (value, unit = "") => {
         };
     }
 
+    // Phân cấp mực nước: < 140 cm bình thường, [140-150) cấp I, [150-160) cấp II, >= 160 cấp III
     if (waterLevelMeters >= FLOOD_ALERT_THRESHOLDS_M.BD3) {
-        return { level: "BD3", color: "#dc3545" };
+        return { level: "Báo động cấp III", color: "#dc2626" };
     }
     if (waterLevelMeters >= FLOOD_ALERT_THRESHOLDS_M.BD2) {
-        return { level: "BD2", color: "#fd7e14" };
+        return { level: "Báo động cấp II", color: "#ea580c" };
     }
     if (waterLevelMeters >= FLOOD_ALERT_THRESHOLDS_M.BD1) {
-        return { level: "BD1", color: "#ffc107" };
+        return { level: "Báo động cấp I", color: "#ca8a04" };
     }
 
-    return { level: "Dưới BD1", color: "#28a745" };
+    return { level: "Bình thường", color: "#0d6efd" };
 };
 
-const createMetricCard = ({ label, value, unit, color }) => {
+// Phân cấp mưa theo lượng mưa ngày (mm)
+const getRainfallLevelMeta = (value) => {
+    const numeric = Number.parseFloat(value);
+    if (!Number.isFinite(numeric) || numeric < 0) return null;
+
+    if (numeric === 0) return { level: "Không mưa", color: "#475569" };
+    if (numeric < 5) return { level: "Mưa rất nhỏ", color: "#0ea5e9" };
+    if (numeric <= 15) return { level: "Mưa nhỏ", color: "#ca8a04" };
+    if (numeric <= 50) return { level: "Mưa vừa", color: "#ef4444" };
+    if (numeric <= 100) return { level: "Mưa to", color: "#991b1b" };
+    return { level: "Mưa rất to", color: "#c026d3" };
+};
+
+const createLevelBadge = (meta) => {
+    if (!meta) return "";
+    return `<div class="popup-status station-level-badge" style="color: ${meta.color}; border-color: ${meta.color};">${meta.level}</div>`;
+};
+
+const createMetricCard = ({ label, value, unit, color, dateText }) => {
     const displayValue = formatHydrometNumber(value, 2);
 
     return `
@@ -320,6 +339,7 @@ const createMetricCard = ({ label, value, unit, color }) => {
                     <span class="param-value" style="color: ${color}">
                         ${displayValue} ${unit || ""}
                     </span>
+                    ${dateText ? `<span class="param-date">${dateText}</span>` : ""}
                 </div>
             </div>
         `;
@@ -344,7 +364,6 @@ const createBasicPopup = (station, message = "Chưa có dữ liệu") => {
     return `
     <div class="modern-popup hydromet-popup basic">
       <div class="popup-header">
-        <div class="popup-icon">🌤️</div>
         <div class="popup-title">
                     <h4 class="popup-name">${normalizedStation.TenTram}</h4>
           <span class="popup-type">${normalizedStation.PhanLoai}</span>
@@ -359,7 +378,7 @@ const createBasicPopup = (station, message = "Chưa có dữ liệu") => {
           <div class="detail-grid">
             <div class="detail-item">
               <div class="detail-content">
-                <strong class="detail-label">Ký hiệu:</strong>
+                <strong class="detail-label">Mã trạm:</strong>
                                 <span class="detail-value">${normalizedStation.KiHieu || "N/A"}</span>
               </div>
             </div>
@@ -386,7 +405,6 @@ const createBasicPopup = (station, message = "Chưa có dữ liệu") => {
 
                 <div class="popup-actions">
                     <button class="action-btn primary" onclick="window.openHydrometDetails('${stationCodeForClick}', '${stationNameForClick}')">
-                        <i class="btn-icon">📈</i>
                         Xem dữ liệu chi tiết
                     </button>
                 </div>
@@ -397,6 +415,9 @@ const createBasicPopup = (station, message = "Chưa có dữ liệu") => {
 
 // Enhanced popup creation with multiple parameter support
 export const createHydrometPopup = (station, hydrometeorologyData) => {
+    // Khoảng thời gian có số liệu do API trả về (MIN/MAX "Ngày" của trạm)
+    const rangeStart = Array.isArray(hydrometeorologyData) ? null : hydrometeorologyData?.start_time;
+    const rangeEnd = Array.isArray(hydrometeorologyData) ? null : hydrometeorologyData?.end_time;
     const normalizedStation = normalizeHydrometStation(station);
     const stationTypeKey = inferHydrometStationTypeKey(normalizedStation);
     const stationCodeForClick = escapePopupActionValue(normalizedStation.KiHieu);
@@ -483,9 +504,12 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
         normalizedStation,
     );
 
-    const formattedDate = formatHydrometDateLabel(
-        getFirstValidValue(latestData?.Ngày, latestData?.Ngay, latestData?.date, latestData?.Date),
-    );
+    const latestDateRaw = getHydrometRowDate(latestData);
+    const latestDateText = formatHydrometDateOnly(latestDateRaw);
+    const startDateText = formatHydrometDateOnly(rangeStart);
+    const endDateText = formatHydrometDateOnly(rangeEnd) || latestDateText;
+    const periodText =
+        startDateText && endDateText ? `${startDateText} - ${endDateText}` : endDateText || null;
     const element = getFirstValidValue(
         latestData?.YeuTo,
         latestData?.yeuTo,
@@ -513,6 +537,7 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
         temperatureParams,
         humidityParams,
         primaryKey,
+        latestDateText,
     );
     const isMeteorology = stationTypeKey === "meteorology";
     const isHydrology = stationTypeKey === "hydrology";
@@ -521,7 +546,37 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
         value: primaryValue,
         unit: primaryUnit,
         color: statusColor,
+        dateText: latestDateText,
     });
+
+    // Badge phân cấp theo ngày gần nhất, hiển thị bên phải tiêu đề
+    let levelBadgeHtml = "";
+    if (isHydrology) {
+        // Phân cấp báo động theo mực nước trung bình (Htb)
+        const hydroKeys = Object.keys(humidityParams);
+
+        const averageKey = hydroKeys.find(
+            (key) =>
+                /^htb/i.test(key) &&
+                Number.isFinite(Number.parseFloat(humidityParams[key]))
+        );
+
+        if (averageKey) {
+            const unitMap = prefixUnitMap();
+            const unit = unitMap[resolveHydrologyType(averageKey)]?.donvi || "cm";
+
+            levelBadgeHtml = createLevelBadge(
+                getWaterLevelAlertMeta(humidityParams[averageKey], unit)
+            );
+        }
+    } else {
+        const rainKey = Object.keys(rainfallParams).find((key) =>
+            Number.isFinite(Number.parseFloat(rainfallParams[key])),
+        );
+        if (rainKey) {
+            levelBadgeHtml = createLevelBadge(getRainfallLevelMeta(rainfallParams[rainKey]));
+        }
+    }
     const metricCardsHtml = isMeteorology ? `${primaryCard}${secondaryCards}` : secondaryCards;
     const metricGridClass = isMeteorology ? "meteorology-grid" : isHydrology ? "hydrology-grid" : "";
 
@@ -532,6 +587,7 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
                     <h4 class="popup-name">${normalizedStation.TenTram}</h4>
                     <span class="popup-type">${normalizedStation.PhanLoai}</span>
                 </div>
+                ${levelBadgeHtml}
             </div>
 
             <div class="popup-content">
@@ -542,6 +598,7 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
                     <span class="value-number" style="color: ${statusColor}">
                         ${formatHydrometNumber(primaryValue, 2)} ${primaryUnit}
                     </span>
+                    ${latestDateText ? `<span class="value-date">${latestDateText}</span>` : ""}
                 </div>`
                         : ""
                 }
@@ -556,14 +613,7 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
                     <div class="detail-grid">
                         <div class="detail-item">
                             <div class="detail-content">
-                                <strong class="detail-label">Quan trắc:</strong>
-                                <span class="detail-value">${formattedDate}</span>
-                            </div>
-                        </div>
-
-                        <div class="detail-item">
-                            <div class="detail-content">
-                                <strong class="detail-label">Ký hiệu:</strong>
+                                <strong class="detail-label">Mã trạm:</strong>
                                 <span class="detail-value">${normalizedStation.KiHieu || "N/A"}</span>
                             </div>
                         </div>
@@ -574,6 +624,17 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
                                 <span class="detail-value">${TanSuat || "Không xác định"}</span>
                             </div>
                         </div>
+
+                        ${
+                            periodText
+                                ? `<div class="detail-item">
+                            <div class="detail-content">
+                                <strong class="detail-label">Thời gian:</strong>
+                                <span class="detail-value">${periodText}</span>
+                            </div>
+                        </div>`
+                                : ""
+                        }
 
                         ${
                             shouldShowElement
@@ -590,8 +651,7 @@ export const createHydrometPopup = (station, hydrometeorologyData) => {
 
                 <div class="popup-actions">
                     <button class="action-btn primary" onclick="window.openHydrometDetails('${stationCodeForClick}', '${stationNameForClick}')">
-                        <i class="btn-icon">📈</i>
-                        Xem biểu đồ chi tiết
+                        Xem dữ liệu chi tiết
                     </button>
                 </div>
             </div>
@@ -679,6 +739,7 @@ const createSecondaryParameterCards = (
     temperatureParams,
     humidityParams,
     excludedPrimaryKey,
+    dateText = null,
 ) => {
     if (stationTypeKey === "rain") {
         return "";
@@ -709,6 +770,7 @@ const createSecondaryParameterCards = (
               <span class="param-value" style="color: ${details.color}">
                                 ${formatHydrometNumber(details.value, 2)} ${details.unit}
               </span>
+              ${dateText ? `<span class="param-date">${dateText}</span>` : ""}
             </div>
           </div>
         `;
@@ -766,7 +828,7 @@ const getPrimaryParameter = (
         const alertMeta = getWaterLevelAlertMeta(humidityValue, unitMap[humidityType].donvi);
 
         return {
-            primaryLabel: `${unitMap[humidityType].content} (${alertMeta.level})`,
+            primaryLabel: unitMap[humidityType].content,
             primaryValue: humidityValue,
             primaryUnit: unitMap[humidityType].donvi,
             statusColor: alertMeta.color,
@@ -845,10 +907,8 @@ const getParameterDetails = (paramKey, value) => {
         };
     } else if (isHydrologyParamKey(paramKey)) {
         const humidityType = resolveHydrologyType(paramKey);
-        const waterLevelAlert = getWaterLevelAlertMeta(numValue, unitMap[humidityType].donvi);
-
         return {
-            label: `${unitMap[humidityType].content} (${waterLevelAlert.level})`,
+            label: unitMap[humidityType].content,
             value: numValue,
             unit: unitMap[humidityType].donvi,
             color: getHumidityColor(numValue, unitMap[humidityType].donvi),
@@ -978,7 +1038,11 @@ export const renderHydrometStations = async (
                           ? fetchResult.data
                           : [];
 
-                    const popupHTML = createHydrometPopup(station, hydrometeorologyData);
+                    const popupHTML = createHydrometPopup(station, {
+                        data: hydrometeorologyData,
+                        start_time: fetchResult?.start_time,
+                        end_time: fetchResult?.end_time,
+                    });
 
                     marker.bindPopup(popupHTML, {
                         maxWidth: 400,

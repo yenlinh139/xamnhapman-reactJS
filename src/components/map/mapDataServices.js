@@ -290,16 +290,6 @@ export const fetchReservoirData = async (kiHieu, options = {}) => {
     }
 };
 
-export const fetchReservoirLatest = async () => {
-    try {
-        const response = await axiosInstance.get("/reservoir-latest");
-        return response.data;
-    } catch (error) {
-        console.error("Error fetching reservoir latest:", error);
-        return [];
-    }
-};
-
 // API mới để lấy dữ liệu mới nhất (tối ưu cho hiển thị map)
 export const fetchLatestHydrometData = async () => {
     try {
