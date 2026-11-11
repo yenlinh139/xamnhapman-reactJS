@@ -96,6 +96,7 @@ const buildEmptyForm = (stations) => ({
     runId: "",
     ThoiDiem: "",
     ...Object.fromEntries(stations.map((s) => [s.manualCode, ""])),
+    ...Object.fromEntries(stations.map((s) => [`${s.manualCode}_Daily`, ""])),
 });
 
 const ForecastManagementTab = ({ userInfo }) => {
@@ -305,6 +306,12 @@ const ForecastManagementTab = ({ userInfo }) => {
             ...Object.fromEntries(
                 stations.map((s) => [s.manualCode, toNullableNumber(row[s.manualCode]) ?? ""]),
             ),
+            ...Object.fromEntries(
+                stations.map((s) => [
+                    `${s.manualCode}_Daily`,
+                    toNullableNumber(row[`${s.manualCode}_Daily`]) ?? "",
+                ]),
+            ),
         });
         setDataFormErrors({});
         setShowDataModal(true);
@@ -330,6 +337,12 @@ const ForecastManagementTab = ({ userInfo }) => {
                     : fromInputDateTimeValue(dataForm.ThoiDiem),
             ...Object.fromEntries(
                 stations.map((s) => [s.manualCode, toNullableNumber(dataForm[s.manualCode])]),
+            ),
+            ...Object.fromEntries(
+                stations.map((s) => [
+                    `${s.manualCode}_Daily`,
+                    toNullableNumber(dataForm[`${s.manualCode}_Daily`]),
+                ]),
             ),
         };
 
@@ -394,8 +407,14 @@ const ForecastManagementTab = ({ userInfo }) => {
                 "Thời điểm": toDisplayDateTime(row.ThoiDiem),
                 ...Object.fromEntries(
                     stations.map((s) => [
-                        `${s.displayName} (${s.manualCode})`,
+                        `${s.displayName} (${s.manualCode}) - 2h`,
                         toNullableNumber(row[s.manualCode]) ?? "",
+                    ]),
+                ),
+                ...Object.fromEntries(
+                    stations.map((s) => [
+                        `${s.displayName} (${s.manualCode}) - ngày`,
+                        toNullableNumber(row[`${s.manualCode}_Daily`]) ?? "",
                     ]),
                 ),
             }));
@@ -589,7 +608,7 @@ const ForecastManagementTab = ({ userInfo }) => {
                                     <th>Thời điểm</th>
                                     {showRunColumn && <th>Lượt dự báo</th>}
                                     {stations.map((s) => (
-                                        <th key={s.manualCode} title={s.displayName}>
+                                        <th key={s.manualCode} title={`${s.displayName} - trên: theo 2h (do_man), dưới: theo ngày (DailyForecast)`}>
                                             {s.manualCode} (‰)
                                         </th>
                                     ))}
@@ -618,7 +637,10 @@ const ForecastManagementTab = ({ userInfo }) => {
                                             {showRunColumn && <td className="small">{row.run_id}</td>}
                                             {stations.map((s) => (
                                                 <td key={s.manualCode}>
-                                                    {formatMetric(row[s.manualCode], 2)}
+                                                    <div>{formatMetric(row[s.manualCode], 2)}</div>
+                                                    <div className="text-muted small">
+                                                        {formatMetric(row[`${s.manualCode}_Daily`], 2)}
+                                                    </div>
                                                 </td>
                                             ))}
                                             {userInfo && (
@@ -734,23 +756,42 @@ const ForecastManagementTab = ({ userInfo }) => {
                                             )}
                                         </div>
                                         {stations.map((s) => (
-                                            <div className="col-md-6" key={s.manualCode}>
-                                                <label className="form-label">
-                                                    {s.displayName} ({s.manualCode}) - ‰
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    className="form-control"
-                                                    value={dataForm[s.manualCode]}
-                                                    onChange={(e) =>
-                                                        setDataForm((prev) => ({
-                                                            ...prev,
-                                                            [s.manualCode]: e.target.value,
-                                                        }))
-                                                    }
-                                                />
-                                            </div>
+                                            <React.Fragment key={s.manualCode}>
+                                                <div className="col-md-3">
+                                                    <label className="form-label">
+                                                        {s.displayName} ({s.manualCode}) - theo 2h
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        className="form-control"
+                                                        value={dataForm[s.manualCode]}
+                                                        onChange={(e) =>
+                                                            setDataForm((prev) => ({
+                                                                ...prev,
+                                                                [s.manualCode]: e.target.value,
+                                                            }))
+                                                        }
+                                                    />
+                                                </div>
+                                                <div className="col-md-3">
+                                                    <label className="form-label">
+                                                        {s.manualCode} - theo ngày
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        className="form-control"
+                                                        value={dataForm[`${s.manualCode}_Daily`]}
+                                                        onChange={(e) =>
+                                                            setDataForm((prev) => ({
+                                                                ...prev,
+                                                                [`${s.manualCode}_Daily`]: e.target.value,
+                                                            }))
+                                                        }
+                                                    />
+                                                </div>
+                                            </React.Fragment>
                                         ))}
                                     </div>
                                 </div>

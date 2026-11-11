@@ -298,6 +298,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                 const points = timeGrid.map((time, index) => ({
                     time,
                     salinity: station ? station.values[index] : null,
+                    dailySalinity: station ? station.dailyValues?.[index] : null,
                 }));
 
                 setForecastState({
@@ -659,6 +660,33 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                             {subTab === "chart" ? (
                                                 <div className="map-chart-pane h-100">
                                                     <SalinityRiskLegend kiHieu={kiHieu} />
+                                                    <div className="d-flex gap-3 small mb-1">
+                                                        <span>
+                                                            <span
+                                                                style={{
+                                                                    display: "inline-block",
+                                                                    width: 14,
+                                                                    height: 2,
+                                                                    background: "#0d6efd",
+                                                                    marginRight: 4,
+                                                                }}
+                                                            ></span>
+                                                            Dự báo theo 2h (do_man)
+                                                        </span>
+                                                        <span>
+                                                            <span
+                                                                style={{
+                                                                    display: "inline-block",
+                                                                    width: 14,
+                                                                    height: 2,
+                                                                    background:
+                                                                        "repeating-linear-gradient(90deg,#6c757d 0 4px,transparent 4px 7px)",
+                                                                    marginRight: 4,
+                                                                }}
+                                                            ></span>
+                                                            Dự báo theo ngày (DailyForecast)
+                                                        </span>
+                                                    </div>
                                                     <div
                                                         id="forecast-salinity-chart"
                                                         className="map-chart-box"
