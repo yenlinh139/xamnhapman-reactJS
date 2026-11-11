@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import axiosInstance from "@config/axios-config";
 import SalinityBarChart from "@pages/map/SalinityBarChart";
-import ForecastLineChart from "@pages/map/ForecastLineChart";
-import SalinityRiskLegend, { RISK_COLOR_MAP } from "@pages/map/SalinityRiskLegend";
-import html2canvas from "html2canvas";
+import ForecastBarChart from "@pages/map/ForecastBarChart";
+import ForecastDataTable from "@pages/map/ForecastDataTable";
+import SalinityRiskLegend from "@pages/map/SalinityRiskLegend";
+import { downloadChartImage } from "@common/downloadChartImage";
 import * as XLSX from "xlsx";
 import { getDisplayStationName, getFilenameSafeStationName } from "@common/stationMapping";
-import { getSingleStationClassification } from "@common/salinityClassification";
+import { getSingleStationClassification, getRiskBadgeMeta } from "@common/salinityClassification";
 import "@styles/components/_hydrometChart.scss";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
 
@@ -37,6 +38,20 @@ const formatNumberVi = (value, fractionDigits = 2) => {
         minimumFractionDigits: fractionDigits,
         maximumFractionDigits: fractionDigits,
     });
+};
+
+// Dữ liệu quan trắc (hochiminh."DoMan") là cột DATE thuần (không giờ), nhưng khi driver
+// Postgres/JSON hoá lại serialize thành chuỗi UTC (vd ngày 2/10/2026 -> "2026-10-01T17:00:00.000Z",
+// vì server chạy giờ VN +07 nên nửa đêm VN = 17h hôm trước theo UTC). Lấy trực tiếp 10 ký tự đầu
+// của chuỗi này ("2026-10-01") sẽ RA SAI 1 NGÀY. Phải dựng lại Date rồi đọc theo giờ LOCAL của
+// trình duyệt (trùng giờ VN) mới ra đúng ngày thật, giống cách subtitle vẫn hiển thị xưa nay.
+const toLocalDateKey = (value) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
 };
 
 const ExportPreviewTable = ({ data, kiHieu }) => {
@@ -116,66 +131,42 @@ const ExportPreviewTable = ({ data, kiHieu }) => {
                 </thead>
                 <tbody>
                     {sortedData.map((item, idx) => {
-                        const riskClassification = getSingleStationClassification(item.salinity, kiHieu);
+                        const risk = getRiskBadgeMeta(item.salinity, kiHieu);
+                        const hasValue = item.salinity !== null && !Number.isNaN(Number(item.salinity));
 
                         return (
                             <tr key={idx}>
                                 <td>{idx + 1}</td>
                                 <td>{new Date(item.date).toLocaleDateString("vi-VN")}</td>
                                 <td
-                                    className="text-end fw-bold"
-                                    style={{
-                                        backgroundColor:
-                                            RISK_COLOR_MAP[riskClassification.class] || "#6c757d",
-                                        color: "white",
-                                    }}
+                                    className="text-end"
+                                    style={
+                                        hasValue
+                                            ? { backgroundColor: risk.backgroundColor, color: risk.textColor }
+                                            : undefined
+                                    }
                                 >
-                                    {formatNumberVi(item.salinity, 2)}
+                                    {hasValue ? (
+                                        <div className="d-flex justify-content-end align-items-center gap-2">
+                                            <span className="fw-semibold">
+                                                {formatNumberVi(item.salinity, 2)}
+                                            </span>
+                                            <span
+                                                className="badge rounded-pill"
+                                                title={risk.description}
+                                                style={{
+                                                    backgroundColor: risk.textColor,
+                                                    color: "#fff",
+                                                    minWidth: 38,
+                                                }}
+                                            >
+                                                {risk.label}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        "-"
+                                    )}
                                 </td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
-        </div>
-    );
-};
-
-const ForecastDataTable = ({ points, kiHieu }) => {
-    return (
-        <div className="table-responsive mb-3 map-data-table-wrap">
-            <table className="table table-bordered table-sm table-striped map-data-table">
-                <thead className="table-light">
-                    <tr>
-                        <th style={{ width: "60px" }}>#</th>
-                        <th>Thời điểm</th>
-                        <th>Theo 2h - do_man (‰)</th>
-                        <th>Theo ngày - DailyForecast (‰)</th>
-                        <th>Cấp độ</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {points.map((item, idx) => {
-                        const riskClassification = getSingleStationClassification(item.salinity, kiHieu);
-
-                        return (
-                            <tr key={idx}>
-                                <td>{idx + 1}</td>
-                                <td>{new Date(item.time).toLocaleString("vi-VN")}</td>
-                                <td
-                                    className="text-end fw-bold"
-                                    style={{
-                                        backgroundColor:
-                                            RISK_COLOR_MAP[riskClassification.class] || "#6c757d",
-                                        color: "white",
-                                    }}
-                                >
-                                    {formatNumberVi(item.salinity, 2)}
-                                </td>
-                                <td className="text-end text-muted">
-                                    {formatNumberVi(item.dailySalinity, 2)}
-                                </td>
-                                <td>{riskClassification.shortText}</td>
                             </tr>
                         );
                     })}
@@ -226,16 +217,71 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
 
     const hasForecast = forecastStations.find((s) => s.manualCode === kiHieu)?.hasForecast || false;
 
-    // Bật/tắt từng đường trên biểu đồ dự báo để dễ so sánh biến thiên theo 2h và theo ngày
-    const [lineVisibility, setLineVisibility] = useState({ biHourly: true, daily: true });
-    const toggleLine = (key) => {
-        setLineVisibility((prev) => {
-            const next = { ...prev, [key]: !prev[key] };
-            // Không cho tắt cả 2 đường cùng lúc (biểu đồ sẽ trống)
-            if (!next.biHourly && !next.daily) return prev;
-            return next;
-        });
+    // Giai đoạn lọc + tần suất hiển thị cho tab "Dự báo" (mặc định: toàn bộ chuỗi, tần suất 2 giờ)
+    const [forecastRange, setForecastRange] = useState({ startDate: "", endDate: "" });
+    const [forecastFrequency, setForecastFrequency] = useState("2gio");
+
+    const handleForecastRangeChange = (e) => {
+        const { name, value } = e.target;
+        setForecastRange((prev) => ({ ...prev, [name]: value }));
     };
+
+    // Khống chế Giai đoạn Quan trắc theo đúng ngày của chuỗi số liệu của trạm (xem toLocalDateKey
+    // ở trên - KHÔNG được cắt chuỗi ISO trực tiếp vì dữ liệu quan trắc bị lệch múi giờ khi serialize)
+    const actualBounds = React.useMemo(() => {
+        if (!data || data.length === 0) return { min: undefined, max: undefined };
+        return {
+            min: toLocalDateKey(data[0].date),
+            max: toLocalDateKey(data[data.length - 1].date),
+        };
+    }, [data]);
+
+    const forecastBounds = React.useMemo(() => {
+        if (!forecastState.points || forecastState.points.length === 0) {
+            return { min: undefined, max: undefined };
+        }
+        return {
+            min: String(forecastState.points[0].time).slice(0, 10),
+            max: String(forecastState.points[forecastState.points.length - 1].time).slice(0, 10),
+        };
+    }, [forecastState.points]);
+
+    // Dữ liệu dự báo sau khi áp dụng Giai đoạn đã chọn (mặc định = toàn bộ chuỗi).
+    // So sánh bằng chuỗi "YYYY-MM-DD" (không dựng đối tượng Date) để tránh lệch múi giờ khi
+    // parse chuỗi ngày không có offset (new Date("2024-09-20") bị hiểu là UTC midnight, có thể
+    // lệch vài tiếng so với mốc dữ liệu thật tính theo giờ VN - xem bug tương tự ở forecastTime.js).
+    const filteredForecastPoints = React.useMemo(() => {
+        if (!forecastRange.startDate || !forecastRange.endDate) return forecastState.points;
+
+        return forecastState.points.filter((p) => {
+            const dayKey = String(p.time).slice(0, 10);
+            return dayKey >= forecastRange.startDate && dayKey <= forecastRange.endDate;
+        });
+    }, [forecastState.points, forecastRange]);
+
+    // Gộp về 1 bản ghi/ngày (giá trị DailyForecast) dùng cho biểu đồ cột khi chọn tần suất "Ngày"
+    const dailyAggregatedPoints = React.useMemo(() => {
+        const seenDays = new Set();
+        const result = [];
+        for (const p of filteredForecastPoints) {
+            const dayKey = String(p.time).slice(0, 10);
+            if (seenDays.has(dayKey)) continue;
+            seenDays.add(dayKey);
+            if (p.dailySalinity === null || p.dailySalinity === undefined) continue;
+            result.push({ x: dayKey, salinity: Number(p.dailySalinity) });
+        }
+        return result;
+    }, [filteredForecastPoints]);
+
+    // Giữ nguyên từng mốc 2h (không gộp) dùng cho biểu đồ cột khi chọn tần suất "2 giờ"
+    const biHourlyBarPoints = React.useMemo(() => {
+        return filteredForecastPoints
+            .filter((p) => Number.isFinite(Number(p.salinity)))
+            .map((p) => ({ x: p.time, salinity: Number(p.salinity) }));
+    }, [filteredForecastPoints]);
+
+    const forecastDisplayCount =
+        forecastFrequency === "ngay" ? dailyAggregatedPoints.length : biHourlyBarPoints.length;
 
     useEffect(() => {
         if (show && salinityData) {
@@ -248,8 +294,8 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
             setFilteredData(validSalinityData);
             if (validSalinityData.length > 0) {
                 setExportRange({
-                    startDate: validSalinityData[0].date.split("T")[0],
-                    endDate: validSalinityData[validSalinityData.length - 1].date.split("T")[0],
+                    startDate: toLocalDateKey(validSalinityData[0].date),
+                    endDate: toLocalDateKey(validSalinityData[validSalinityData.length - 1].date),
                 });
             }
         } else {
@@ -279,8 +325,20 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                 issuedAt: null,
                 isSynthetic: false,
             });
+            setForecastRange({ startDate: "", endDate: "" });
+            setForecastFrequency("2gio");
         }
     }, [show, kiHieu]);
+
+    // Mặc định Giai đoạn dự báo = toàn bộ chuỗi vừa tải về
+    useEffect(() => {
+        if (forecastState.points.length > 0) {
+            setForecastRange({
+                startDate: String(forecastState.points[0].time).slice(0, 10),
+                endDate: String(forecastState.points[forecastState.points.length - 1].time).slice(0, 10),
+            });
+        }
+    }, [forecastState.points]);
 
     // Danh sách trạm có dữ liệu dự báo (fetch 1 lần khi modal mở) để quyết định có hiện tab "Dự báo" hay không
     useEffect(() => {
@@ -344,14 +402,15 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
             [name]: value,
         }));
 
-        // Filter data based on date range
-        const startDate = new Date(name === "startDate" ? value : exportRange.startDate);
-        const endDate = new Date(name === "endDate" ? value : exportRange.endDate);
+        // So sánh bằng chuỗi "YYYY-MM-DD" (dùng toLocalDateKey, KHÔNG cắt chuỗi ISO trực tiếp -
+        // xem giải thích ở toLocalDateKey phía trên)
+        const nextStartDate = name === "startDate" ? value : exportRange.startDate;
+        const nextEndDate = name === "endDate" ? value : exportRange.endDate;
 
-        if (startDate && endDate && startDate <= endDate) {
+        if (nextStartDate && nextEndDate && nextStartDate <= nextEndDate) {
             const filtered = data.filter((item) => {
-                const itemDate = new Date(item.date);
-                return itemDate >= startDate && itemDate <= endDate;
+                const dayKey = toLocalDateKey(item.date);
+                return dayKey >= nextStartDate && dayKey <= nextEndDate;
             });
             setFilteredData(filtered);
         }
@@ -407,7 +466,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
             return;
         }
 
-        const points = forecastState.points.filter((p) => parseNumber(p.salinity) !== null);
+        const points = filteredForecastPoints.filter((p) => parseNumber(p.salinity) !== null);
         if (points.length === 0) {
             alert("Không có dữ liệu dự báo để xuất");
             return;
@@ -424,7 +483,14 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
             }));
 
             const worksheet = XLSX.utils.json_to_sheet(formatted);
-            worksheet["!cols"] = [{ wch: 5 }, { wch: 20 }, { wch: 18 }, { wch: 22 }, { wch: 25 }, { wch: 20 }];
+            worksheet["!cols"] = [
+                { wch: 5 },
+                { wch: 20 },
+                { wch: 18 },
+                { wch: 22 },
+                { wch: 25 },
+                { wch: 20 },
+            ];
 
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Dữ liệu dự báo");
@@ -465,70 +531,21 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
         }
 
         const isForecast = mainTab === "forecast";
-        const chartTitle = isForecast ? "Dự báo độ mặn" : "Diễn biến độ mặn";
         const rangeStart = isForecast ? forecastStartDate : startDate;
         const rangeEnd = isForecast ? forecastEndDate : endDate;
         const chartElementId = isForecast ? "forecast-salinity-chart" : "salinity-chart";
         const filePrefix = isForecast ? "bieu_do_du_bao_do_man" : "bieu_do_do_man";
 
         try {
-            const chartContainer = document.createElement("div");
-            chartContainer.style.backgroundColor = "white";
-            chartContainer.style.padding = "20px";
-
-            // Set width cho container
-            chartContainer.style.width = "800px"; // Đặt chiều rộng cố định
-            chartContainer.style.margin = "0 auto";
-
-            // Tạo và thêm phần tiêu đề
-            const titleDiv = document.createElement("div");
-            titleDiv.style.width = "100%";
-            titleDiv.style.textAlign = "center";
-            titleDiv.style.marginBottom = "20px";
-            titleDiv.innerHTML = `
-                <h5 style="font-weight: bold; margin-bottom: 8px; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    ${chartTitle} - ${displayStationName}
-                </h5>
-                ${
+            await downloadChartImage({
+                title: `Diễn biến độ mặn - ${displayStationName}`,
+                subtitleHtml:
                     rangeStart && rangeEnd
-                        ? `
-                    <div style="color: #6c757d; font-size: 14px">
-                        📅 Từ <strong>${rangeStart}</strong> đến <strong>${rangeEnd}</strong>
-                    </div>
-                `
-                        : ""
-                }
-            `;
-            chartContainer.appendChild(titleDiv);
-
-            // Sao chép phần biểu đồ
-            const chartElement = document.getElementById(chartElementId);
-            if (!chartElement) {
-                alert("Không thể tìm thấy biểu đồ để tải xuống");
-                return;
-            }
-            const chartClone = chartElement.cloneNode(true);
-            chartContainer.appendChild(chartClone);
-
-            // Thêm container tạm thời vào document
-            document.body.appendChild(chartContainer);
-
-            // Chuyển thành canvas và tải xuống
-            const canvas = await html2canvas(chartContainer, {
-                backgroundColor: "#ffffff",
-                scale: 2, // Tăng độ phân giải
+                        ? `${isForecast ? "Dự báo" : "Quan trắc"} từ <strong>${rangeStart}</strong> đến <strong>${rangeEnd}</strong>`
+                        : "",
+                chartElementId,
+                filename: `${filePrefix}_${filenameSafeName}_${new Date().getTime()}.png`,
             });
-
-            // Xóa container tạm
-            document.body.removeChild(chartContainer);
-
-            const url = canvas.toDataURL("image/png");
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = `${filePrefix}_${filenameSafeName}_${new Date().getTime()}.png`;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
         } catch (error) {
             console.error("❌ Tải ảnh biểu đồ lỗi:", error);
             alert("Không thể tải ảnh biểu đồ.");
@@ -576,7 +593,8 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                 : startDate &&
                                   endDate && (
                                       <div className="text-muted small">
-                                          Từ <strong>{startDate}</strong> đến <strong>{endDate}</strong>
+                                          Quan trắc từ <strong>{startDate}</strong> đến{" "}
+                                          <strong>{endDate}</strong>
                                       </div>
                                   )}
                         </div>
@@ -589,32 +607,32 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
 
                     <div className="modal-body d-flex flex-column" style={{ minHeight: 0 }}>
                         <div className="chartfull-topbar mb-2">
-                            <ul className="nav nav-tabs mb-2" role="tablist">
-                                {hasForecast && (
+                            <div className="chartfull-controls-row">
+                                <ul className="nav nav-tabs mb-0" role="tablist">
+                                    {hasForecast && (
+                                        <li className="nav-item">
+                                            <button
+                                                className={`nav-link ${mainTab === "forecast" ? "active" : ""}`}
+                                                id="main-forecast-tab"
+                                                type="button"
+                                                onClick={() => selectMainTab("forecast")}
+                                            >
+                                                Dự báo
+                                            </button>
+                                        </li>
+                                    )}
                                     <li className="nav-item">
                                         <button
-                                            className={`nav-link ${mainTab === "forecast" ? "active" : ""}`}
-                                            id="main-forecast-tab"
+                                            className={`nav-link ${mainTab === "actual" ? "active" : ""}`}
+                                            id="main-actual-tab"
                                             type="button"
-                                            onClick={() => selectMainTab("forecast")}
+                                            onClick={() => selectMainTab("actual")}
                                         >
-                                            Dự báo
+                                            Quan trắc
                                         </button>
                                     </li>
-                                )}
-                                <li className="nav-item">
-                                    <button
-                                        className={`nav-link ${mainTab === "actual" ? "active" : ""}`}
-                                        id="main-actual-tab"
-                                        type="button"
-                                        onClick={() => selectMainTab("actual")}
-                                    >
-                                        Quan trắc
-                                    </button>
-                                </li>
-                            </ul>
+                                </ul>
 
-                            <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
                                 <ul className="nav nav-pills nav-sm mb-0">
                                     <li className="nav-item">
                                         <button
@@ -639,13 +657,15 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                 </ul>
 
                                 {mainTab === "actual" && (
-                                    <div className="chartfull-topbar-controls">
+                                    <div className="chartfull-topbar-controls ms-auto">
                                         <span className="small text-muted fw-semibold">Giai đoạn:</span>
                                         <LocalizedDateInput
                                             className="form-control form-control-sm"
                                             name="startDate"
                                             value={exportRange.startDate}
                                             onChange={handleDateRangeChange}
+                                            min={actualBounds.min}
+                                            max={actualBounds.max}
                                             style={{ width: 145, minWidth: 145 }}
                                         />
                                         <span className="small text-muted">-</span>
@@ -654,11 +674,59 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                             name="endDate"
                                             value={exportRange.endDate}
                                             onChange={handleDateRangeChange}
+                                            min={actualBounds.min}
+                                            max={actualBounds.max}
+                                            style={{ width: 145, minWidth: 145 }}
+                                        />
+                                    </div>
+                                )}
+
+                                {mainTab === "forecast" && (
+                                    <div className="chartfull-topbar-controls ms-auto">
+                                        {subTab === "chart" && (
+                                            <>
+                                                <span className="small text-muted fw-semibold">
+                                                    Tần suất:
+                                                </span>
+                                                <select
+                                                    className="form-select form-select-sm"
+                                                    style={{ width: 100, minWidth: 100 }}
+                                                    value={forecastFrequency}
+                                                    onChange={(e) => setForecastFrequency(e.target.value)}
+                                                >
+                                                    <option value="2gio">2 giờ</option>
+                                                    <option value="ngay">Ngày</option>
+                                                </select>
+                                            </>
+                                        )}
+                                        <span className="small text-muted fw-semibold">Giai đoạn:</span>
+                                        <LocalizedDateInput
+                                            className="form-control form-control-sm"
+                                            name="startDate"
+                                            value={forecastRange.startDate}
+                                            onChange={handleForecastRangeChange}
+                                            min={forecastBounds.min}
+                                            max={forecastBounds.max}
+                                            style={{ width: 145, minWidth: 145 }}
+                                        />
+                                        <span className="small text-muted">-</span>
+                                        <LocalizedDateInput
+                                            className="form-control form-control-sm"
+                                            name="endDate"
+                                            value={forecastRange.endDate}
+                                            onChange={handleForecastRangeChange}
+                                            min={forecastBounds.min}
+                                            max={forecastBounds.max}
                                             style={{ width: 145, minWidth: 145 }}
                                         />
                                     </div>
                                 )}
                             </div>
+
+                            <SalinityRiskLegend
+                                kiHieu={kiHieu}
+                                className="risk-legend-row flex-nowrap justify-content-center mt-2 mb-0"
+                            />
                         </div>
 
                         <div
@@ -675,73 +743,29 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                         <>
                                             {subTab === "chart" ? (
                                                 <div className="map-chart-pane h-100">
-                                                    <SalinityRiskLegend kiHieu={kiHieu} />
-                                                    <div className="d-flex gap-3 small mb-1 forecast-line-toggle">
-                                                        <button
-                                                            type="button"
-                                                            className="btn btn-sm p-0 border-0 bg-transparent d-inline-flex align-items-center"
-                                                            style={{
-                                                                opacity: lineVisibility.biHourly ? 1 : 0.4,
-                                                            }}
-                                                            onClick={() => toggleLine("biHourly")}
-                                                            title={
-                                                                lineVisibility.biHourly
-                                                                    ? "Bấm để ẩn đường theo 2h"
-                                                                    : "Bấm để hiện đường theo 2h"
-                                                            }
-                                                        >
-                                                            <span
-                                                                style={{
-                                                                    display: "inline-block",
-                                                                    width: 14,
-                                                                    height: 2,
-                                                                    background: "#0d6efd",
-                                                                    marginRight: 4,
-                                                                }}
-                                                            ></span>
-                                                            Dự báo theo 2h (do_man)
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className="btn btn-sm p-0 border-0 bg-transparent d-inline-flex align-items-center"
-                                                            style={{
-                                                                opacity: lineVisibility.daily ? 1 : 0.4,
-                                                            }}
-                                                            onClick={() => toggleLine("daily")}
-                                                            title={
-                                                                lineVisibility.daily
-                                                                    ? "Bấm để ẩn đường theo ngày"
-                                                                    : "Bấm để hiện đường theo ngày"
-                                                            }
-                                                        >
-                                                            <span
-                                                                style={{
-                                                                    display: "inline-block",
-                                                                    width: 14,
-                                                                    height: 2,
-                                                                    background:
-                                                                        "repeating-linear-gradient(90deg,#8e44ad 0 4px,transparent 4px 7px)",
-                                                                    marginRight: 4,
-                                                                }}
-                                                            ></span>
-                                                            Dự báo theo ngày (DailyForecast)
-                                                        </button>
-                                                    </div>
                                                     <div
                                                         id="forecast-salinity-chart"
                                                         className="map-chart-box"
                                                     >
-                                                        <ForecastLineChart
-                                                            data={forecastState.points}
+                                                        <ForecastBarChart
+                                                            data={
+                                                                forecastFrequency === "ngay"
+                                                                    ? dailyAggregatedPoints
+                                                                    : biHourlyBarPoints
+                                                            }
                                                             kiHieu={kiHieu}
                                                             height="100%"
-                                                            showBiHourly={lineVisibility.biHourly}
-                                                            showDaily={lineVisibility.daily}
+                                                            mode={
+                                                                forecastFrequency === "ngay"
+                                                                    ? "date"
+                                                                    : "datetime"
+                                                            }
                                                         />
                                                     </div>
                                                     <div className="map-chart-footer mt-1 d-flex justify-content-between align-items-center">
                                                         <div className="text-muted small">
-                                                            Dự báo 10 ngày tới, mỗi 6 giờ. Phát hành lúc:{" "}
+                                                            Hiển thị: <strong>{forecastDisplayCount}</strong>{" "}
+                                                            bản ghi. Phát hành lúc:{" "}
                                                             {forecastState.issuedAt
                                                                 ? new Date(
                                                                       forecastState.issuedAt,
@@ -772,13 +796,13 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                                         style={{ flex: 1, minHeight: 0 }}
                                                     >
                                                         <ForecastDataTable
-                                                            points={forecastState.points}
+                                                            points={filteredForecastPoints}
                                                             kiHieu={kiHieu}
                                                         />
                                                     </div>
                                                     <div className="d-flex gap-2 justify-content-between align-items-center">
                                                         <div className="text-muted small">
-                                                            Hiển thị {forecastState.points.length} bản ghi
+                                                            Hiển thị {filteredForecastPoints.length} bản ghi
                                                         </div>
                                                         <button
                                                             className={`btn btn-sm ${isLoggedIn ? "btn-outline-success" : "btn-outline-secondary"}`}
@@ -807,7 +831,6 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                     {subTab === "chart" ? (
                                         filteredData.length > 0 ? (
                                             <div className="map-chart-pane h-100">
-                                                <SalinityRiskLegend kiHieu={kiHieu} />
                                                 <div id="salinity-chart" className="map-chart-box">
                                                     <SalinityBarChart
                                                         data={filteredData}

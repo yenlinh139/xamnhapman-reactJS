@@ -608,7 +608,10 @@ const ForecastManagementTab = ({ userInfo }) => {
                                     <th>Thời điểm</th>
                                     {showRunColumn && <th>Lượt dự báo</th>}
                                     {stations.map((s) => (
-                                        <th key={s.manualCode} title={`${s.displayName} - trên: theo 2h (do_man), dưới: theo ngày (DailyForecast)`}>
+                                        <th
+                                            key={s.manualCode}
+                                            title={`${s.displayName} - trên: theo 2h (do_man), dưới: theo ngày (DailyForecast)`}
+                                        >
                                             {s.manualCode} (‰)
                                         </th>
                                     ))}

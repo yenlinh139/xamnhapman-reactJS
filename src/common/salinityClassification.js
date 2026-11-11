@@ -212,6 +212,53 @@ export const getSystemWideClassification = (data) => {
     };
 };
 
+// Màu nền/chữ + nhãn ngắn dùng cho tag (badge) cấp rủi ro trong các bảng dữ liệu (IoT, quan trắc,
+// dự báo độ mặn) - dùng chung 1 bộ màu để các bảng đồng nhất với nhau.
+const RISK_BADGE_META = {
+    normal: {
+        label: "bình thường",
+        textColor: "#198754",
+        backgroundColor: "rgba(25, 135, 84, 0.12)",
+    },
+    warning: {
+        label: "rủi ro cấp 1",
+        textColor: "#b58105",
+        backgroundColor: "rgba(255, 193, 7, 0.18)",
+    },
+    "high-warning": {
+        label: "rủi ro cấp 2",
+        textColor: "#c75b12",
+        backgroundColor: "rgba(253, 126, 20, 0.16)",
+    },
+    critical: {
+        label: "rủi ro cấp 3",
+        textColor: "#dc3545",
+        backgroundColor: "rgba(220, 53, 69, 0.14)",
+    },
+    "no-data": {
+        label: "--",
+        textColor: "#6c757d",
+        backgroundColor: "rgba(108, 117, 125, 0.12)",
+    },
+};
+
+/**
+ * Get risk badge styling (label + colors) for a value, for use as a small tag/badge in data tables
+ * (nền nhạt + badge tròn ghi cấp rủi ro), thay vì tô nguyên ô theo màu đậm.
+ * @param {number|string} value - Salinity value
+ * @param {string} stationCode - Station code
+ * @returns {Object} - { label, textColor, backgroundColor, description }
+ */
+export const getRiskBadgeMeta = (value, stationCode = null) => {
+    const classification = getSingleStationClassification(value, stationCode);
+    const meta = RISK_BADGE_META[classification.class] || RISK_BADGE_META["no-data"];
+
+    return {
+        ...meta,
+        description: classification.shortText || classification.description || "Khuyết số liệu",
+    };
+};
+
 /**
  * Get CSS class name for salinity level (backward compatibility)
  * @param {number|string} value - Salinity value

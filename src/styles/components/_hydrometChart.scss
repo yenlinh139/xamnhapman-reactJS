@@ -22,8 +22,40 @@
         padding-top: 0.75rem;
     }
 
+    // "Dự báo / Quan trắc" (hoặc "Quan trắc" riêng với IoT) là trục điều khiển CHÍNH - chọn
+    // NGUỒN dữ liệu đang xem. Thiết kế đậm, bo tròn kiểu pill xanh để nổi bật hơn hẳn segmented
+    // control "Biểu đồ/Dữ liệu" bên dưới nó (xem .chartfull-controls-row .nav-pills) - 2 tầng điều
+    // khiển khác vai trò thì phải khác hẳn về hình dạng, không chỉ khác màu.
     .nav-tabs {
         flex-shrink: 0;
+        border-bottom: none;
+        gap: 0.4rem;
+
+        .nav-link {
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid #d7e2f1;
+            border-radius: 999px;
+            background: #f8fbff;
+            color: #475569;
+            font-weight: 600;
+            padding: 0.32rem 0.9rem;
+            line-height: 1.2;
+            transition: all 0.2s ease;
+
+            &:hover {
+                border-color: #93c5fd;
+                color: #1d4ed8;
+                background: #eef6ff;
+            }
+
+            &.active {
+                border-color: #3b82f6;
+                color: #ffffff;
+                background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+                box-shadow: 0 4px 10px rgba(37, 99, 235, 0.22);
+            }
+        }
     }
 
     .tab-content {
@@ -109,19 +141,67 @@
         tbody tr:hover {
             background: #f8fafc;
         }
+
+        // Ranh giới rõ giữa các khối ngày đã gộp ô (rowSpan) ở ForecastDataTable - chỉ dựa vào
+        // màu nền nhạt thì khó nhận ra 1 giá trị đang gộp bao nhiêu dòng, cần thêm viền đậm.
+        tbody tr.day-group-start td {
+            border-top: 2px solid #94a3b8;
+        }
     }
 
     .chartfull-topbar {
         display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.75rem;
+        flex-direction: column;
+        gap: 0.4rem;
         padding: 0.2rem 0;
         border: none;
         border-radius: 8px;
         background: transparent;
-        flex-wrap: nowrap;
         flex-shrink: 0;
+    }
+
+    // Tất cả control trên 1 hàng ngang: tab Dự báo/Quan trắc, tab Biểu đồ/Dữ liệu, Tần suất, Giai đoạn
+    .chartfull-controls-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+
+        // "Biểu đồ / Dữ liệu" là lựa chọn CÁCH HIỂN THỊ (con) của dữ liệu đang chọn ở hàng
+        // Dự báo/Quan trắc (cha) - cố tình thiết kế khác hẳn nav-tabs ở trên (dạng segmented
+        // control màu xám, không phải pill xanh) để người dùng phân biệt được đây là 2 cấp điều
+        // khiển khác nhau, không phải 2 nhóm tab ngang hàng.
+        .nav-pills {
+            display: flex;
+            gap: 2px;
+            background: #eef1f5;
+            border-radius: 8px;
+            padding: 3px;
+            flex-shrink: 0;
+
+            .nav-link {
+                display: inline-flex;
+                align-items: center;
+                border-radius: 6px;
+                color: #64748b;
+                font-weight: 600;
+                font-size: 0.82rem;
+                padding: 0.3rem 0.8rem;
+                line-height: 1.2;
+                transition: all 0.15s ease;
+
+                &:hover:not(.active) {
+                    color: #334155;
+                    background: rgba(255, 255, 255, 0.7);
+                }
+
+                &.active {
+                    background: #ffffff;
+                    color: #1d4ed8;
+                    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.18);
+                }
+            }
+        }
     }
 
     .chartfull-topbar-controls {
@@ -129,71 +209,6 @@
         align-items: center;
         gap: 0.5rem;
         flex-wrap: nowrap;
-        margin-left: auto;
-    }
-}
-
-// SaltChartFull (Điểm đo mặn) Styles
-.salt-chart-modal {
-    .nav-tabs {
-        border-bottom: none;
-        gap: 0.4rem;
-
-        .nav-link {
-            border: 1px solid #d7e2f1;
-            border-radius: 999px;
-            background: #f8fbff;
-            color: #475569;
-            font-weight: 600;
-            padding: 0.32rem 0.85rem;
-            line-height: 1.2;
-            transition: all 0.2s ease;
-
-            &:hover {
-                border-color: #93c5fd;
-                color: #1d4ed8;
-                background: #eef6ff;
-            }
-
-            &.active {
-                border-color: #3b82f6;
-                color: #ffffff;
-                background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-                box-shadow: 0 4px 10px rgba(37, 99, 235, 0.22);
-            }
-        }
-    }
-}
-
-// IoTChartFull Styles
-.iot-chart-modal {
-    .nav-tabs {
-        border-bottom: none;
-        gap: 0.4rem;
-
-        .nav-link {
-            border: 1px solid #d7e2f1;
-            border-radius: 999px;
-            background: #f8fbff;
-            color: #475569;
-            font-weight: 600;
-            padding: 0.32rem 0.85rem;
-            line-height: 1.2;
-            transition: all 0.2s ease;
-
-            &:hover {
-                border-color: #93c5fd;
-                color: #1d4ed8;
-                background: #eef6ff;
-            }
-
-            &.active {
-                border-color: #3b82f6;
-                color: #ffffff;
-                background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-                box-shadow: 0 4px 10px rgba(37, 99, 235, 0.22);
-            }
-        }
     }
 }
 

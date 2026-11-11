@@ -4,8 +4,30 @@ import { convertDMSToDecimal } from "@components/convertDMSToDecimal";
 import IoTCongAnHaImage from "@assets/IoT_CongAnHa.jpg";
 import IoTCongKenhCImage from "@assets/IoT_CongKenhC.jpg";
 import IoTCongVuonThomImage from "@assets/IoT_CongVuonThom.jpg";
-import { fetchIoTStations, fetchIoTData, normalizeIoTDataRows } from "@components/map/mapDataServices";
+import {
+    fetchIoTStations,
+    fetchIoTData,
+    normalizeIoTDataRows,
+    fetchForecastLatest,
+} from "@components/map/mapDataServices";
 import { getSingleStationClassification } from "@common/salinityClassification";
+import {
+    buildForecastLookup,
+    buildValueBoxHtml,
+    buildTrendMeta,
+    statusColorFromLevel,
+    formatForecastTime,
+    formatForecastDateOnly,
+    formatDecimalDisplay,
+} from "@components/map/SalinityMarkers";
+
+// Trạm IoT nào có mã trạm độ mặn tương ứng (manualCode) thì dùng chung API dự báo
+// (/forecast-latest) của điểm đo mặn đó - sau này nhóm AI sẽ có API dự báo IoT riêng, nhưng thuộc
+// tính/giá trị trả về vẫn theo đúng quy tắc này nên map lại là dùng được ngay.
+export const IOT_STATION_FORECAST_MAP = {
+    CAH_IoT: "KXAH",
+    CKC_IoT: "CKC",
+};
 
 const ensureStationPanes = (mapInstance) => {
     const paneConfigs = [
@@ -37,7 +59,11 @@ const buildIoTChartPayload = (station, iotResponse) => {
     const rawRows = getIoTRowsFromResponse(iotResponse);
     const normalizedRows = normalizeIoTDataRows(rawRows);
 
-    const stationInfo = iotResponse?.station || station;
+    // Merge (không ghi đè hoàn toàn): /iot/data/:serial co the tra ve "station" thieu mot so field
+    // (vd station_code, start_time) so voi station list item goc - merge de khong bi mat du lieu
+    // qua moi lan fetch (tung gay bug: hasForecast bi "chop tat" giua 2 lan render do thieu
+    // station_code).
+    const stationInfo = { ...station, ...(iotResponse?.station || {}) };
     const stationName =
         stationInfo?.station_name || station?.station_name || station?.stationName || "Trạm IoT";
     const serialNumber =
@@ -47,13 +73,14 @@ const buildIoTChartPayload = (station, iotResponse) => {
         stationInfo,
         stationName,
         serialNumber,
+        stationCode: stationInfo?.station_code || station?.station_code || "",
         dataPoints: normalizedRows,
         data: normalizedRows,
         summary: {
             totalRecords: iotResponse?.count || normalizedRows.length,
             totalRecordsInRange: normalizedRows.length,
             totalRecordsAll: parseInt(stationInfo?.total_records || station?.total_records || 0),
-            rangeLabel: "14 ngày gần nhất",
+            rangeLabel: "toàn bộ chuỗi số liệu",
             firstRecord: normalizedRows[0]?.Date || null,
             lastRecord: normalizedRows[normalizedRows.length - 1]?.Date || null,
         },
@@ -146,15 +173,6 @@ const inferStationCodeFromName = (stationName) => {
     return "";
 };
 
-const formatDecimalDisplay = (value, digits = 2) => {
-    const numeric = Number.parseFloat(value);
-    if (!Number.isFinite(numeric)) return "--";
-    return numeric.toLocaleString("vi-VN", {
-        minimumFractionDigits: digits,
-        maximumFractionDigits: digits,
-    });
-};
-
 const getIoTStationImages = (station = {}) => {
     const baseCode =
         normalizeStationCode(station?.station_code || station?.StationCode) ||
@@ -203,16 +221,6 @@ const renderIoTImageContainer = (station) => {
     `;
 };
 
-// Helper: get risk classification for IoT station based on latest salt value
-const getIoTRiskClassification = (station) => {
-    const saltValue = getLatestIoTSaltValue(station);
-    // Derive base station code (e.g. "CKC_IoT" → "CKC") for MNB detection
-    const baseCode = String(station?.station_code || station?.StationCode || "")
-        .replace(/_IoT$/i, "")
-        .replace(/_iot$/i, "");
-    return getSingleStationClassification(saltValue, baseCode);
-};
-
 // Create custom IoT icon using the same risk palette as the salinity markers.
 export const getIoTIcon = (status, totalRecords, riskClass = "no-data") => {
     const normalizedRiskClass = String(riskClass || "no-data");
@@ -257,36 +265,44 @@ const toYMD = (date) => {
     return `${year}-${month}-${day}`;
 };
 
-// Keep IoT detail payload lightweight: fetch only 14 days from latest data point.
-const getRecent14DaysRange = (lastDataTime) => {
+// Mặc định lấy TOÀN BỘ chuỗi số liệu của trạm (không chỉ 14 ngày gần nhất) - khớp với cách popup
+// hiển thị "Thời gian: <start> - <end>" là cả chuỗi. Vẫn nhẹ vì dùng groupBy=hour khi fetch (xem
+// window.openIoTChartDetails bên dưới) thay vì lấy dữ liệu thô 5 phút/lần.
+const getFullDataRange = (startTime, lastDataTime) => {
     const end = lastDataTime ? new Date(lastDataTime) : new Date();
-    if (Number.isNaN(end.getTime())) {
-        const fallbackEnd = new Date();
-        const fallbackStart = new Date(fallbackEnd);
-        fallbackStart.setDate(fallbackStart.getDate() - 14);
-        return {
-            startDate: toYMD(fallbackStart),
-            endDate: toYMD(fallbackEnd),
-        };
-    }
+    const start = startTime ? new Date(startTime) : null;
 
-    const start = new Date(end);
-    start.setDate(start.getDate() - 14);
+    const fallbackEnd = Number.isNaN(end.getTime()) ? new Date() : end;
+    const fallbackStart =
+        start && !Number.isNaN(start.getTime())
+            ? start
+            : (() => {
+                  const d = new Date(fallbackEnd);
+                  d.setDate(d.getDate() - 14);
+                  return d;
+              })();
 
     return {
-        startDate: toYMD(start),
-        endDate: toYMD(end),
+        startDate: toYMD(fallbackStart),
+        endDate: toYMD(fallbackEnd),
     };
 };
 
 // Create IoT station popup - Lấy dữ liệu từ API thực tế
-export const createIoTPopup = (station) => {
+// forecastInfo/forecastMeta/classificationValue: dùng chung quy tắc hiển thị dự báo với điểm đo mặn
+// (xem buildForecastLookup/renderSalinityPoints trong SalinityMarkers.jsx) - trạm IoT nào có
+// manualCode tương ứng (IOT_STATION_FORECAST_MAP) mới có 2 khung dự báo.
+export const createIoTPopup = (
+    station,
+    forecastInfo = null,
+    forecastMeta = null,
+    classificationValue = null,
+) => {
     const stationSerial = String(
         station?.serial_number ?? station?.serialNumber ?? station?.serial ?? station?.serial_no ?? "",
     ).trim();
     const hasSerial = stationSerial !== "";
 
-    const mainMetricLabel = station?.display_metric_label || station?.metric_label || "Độ mặn hiện tại";
     const mainMetricUnit =
         station?.display_metric_unit || station?.metric_unit || station?.latest_salt_unit || "‰";
 
@@ -305,7 +321,6 @@ export const createIoTPopup = (station) => {
             ? parseFloat(previousSaltValueRaw)
             : null;
     const hasSaltValue = Number.isFinite(latestSaltValue);
-    const saltUnit = station?.latest_salt_unit || "‰";
 
     // Previous day salinity average (optional summary field)
     const previousDayAvgRaw =
@@ -314,23 +329,6 @@ export const createIoTPopup = (station) => {
         previousDayAvgRaw !== null && previousDayAvgRaw !== undefined && previousDayAvgRaw !== ""
             ? parseFloat(previousDayAvgRaw)
             : null;
-    const previousDay = station?.previous_day || station?.previousDay || null;
-    const previousDayLabel = (() => {
-        if (!previousDay) return null;
-        const parsed = new Date(previousDay);
-        if (!Number.isNaN(parsed.getTime())) {
-            return parsed.toLocaleDateString("vi-VN");
-        }
-        return String(previousDay);
-    })();
-
-    // Format values
-    const saltDisplay = hasSaltValue
-        ? `${formatDecimalDisplay(latestSaltValue, 2)} ${mainMetricUnit}`
-        : "N/A";
-    const previousHourSaltDisplay = Number.isFinite(previousSaltValue)
-        ? `${formatDecimalDisplay(previousSaltValue, 2)} ${mainMetricUnit}`
-        : "--";
     const previousDaySaltDisplay = Number.isFinite(previousDayAvgSalt)
         ? `${formatDecimalDisplay(previousDayAvgSalt, 2)} ${mainMetricUnit}`
         : "--";
@@ -358,42 +356,16 @@ export const createIoTPopup = (station) => {
           })
         : "Giờ liền trước";
 
-    // Risk level based on latest salt value
-    const riskClassification = getIoTRiskClassification(station);
-    const { statusClass: riskStatusClass, color: riskColor } =
-        RISK_CLASS_MAP[riskClassification.class] || RISK_CLASS_MAP["no-data"];
+    const baseStationCode = normalizeStationCode(station?.station_code || station?.StationCode);
 
-    const buildTrend = (baselineValue, baselineLabel) => {
-        if (!Number.isFinite(latestSaltValue) || !Number.isFinite(baselineValue)) {
-            return null;
-        }
-
-        const diff = latestSaltValue - baselineValue;
-        const absDiff = Math.abs(diff);
-        if (absDiff < 0.01) {
-            return {
-                icon: "→",
-                text: `Không đổi so với`,
-                color: "#6c757d",
-                date: baselineLabel,
-                directionClass: "trend-flat",
-            };
-        }
-
-        return {
-            icon: diff > 0 ? "↑" : "↓",
-            text: `${diff > 0 ? "Tăng" : "Giảm"} ${formatDecimalDisplay(absDiff, 2)} ${saltUnit} so với`,
-            color: diff > 0 ? "#dc3545" : "#28a745",
-            date: baselineLabel,
-            directionClass: diff > 0 ? "trend-up" : "trend-down",
-        };
-    };
-
-    // Show trends for previous hour and previous day average.
-    const trendItems = [
-        buildTrend(previousSaltValue, previousHourLabel),
-        buildTrend(previousDayAvgSalt, previousDayLabel || "Ngày liền trước"),
-    ].filter(Boolean);
+    // Nhãn trạng thái ở header + màu icon: ưu tiên mốc dự báo gần nhất trong tương lai (nếu có);
+    // nếu không thì dùng quan trắc gần nhất (classificationValue do renderIoTStations tính sẵn).
+    const valueForClassification = Number.isFinite(Number(classificationValue))
+        ? Number(classificationValue)
+        : latestSaltValue;
+    const classification = getSingleStationClassification(valueForClassification, baseStationCode);
+    const riskStatusClass = `status-${classification.level}`;
+    const riskColor = statusColorFromLevel(classification.level);
 
     // Get format coordinates
     const lngDecimal = convertDMSToDecimal(station?.longitude);
@@ -428,6 +400,77 @@ export const createIoTPopup = (station) => {
 
     const startTime = formatDateTime(station.start_time);
     const endTime = formatDateTime(station.end_time);
+    // Giá trị quan trắc hiển thị luôn là trung bình GIỜ (latest_hour_avg_salt/previous_hour_avg_salt
+    // từ backend - xem iot.controller.js), không phải tần suất gửi dữ liệu thô của cảm biến
+    // (station.frequency, vd "5 phút") - nên ghi rõ "(1 giờ)" thay vì tần suất thô của trạm.
+    const frequencyText = "1 giờ";
+
+    // 2 khung dự báo (2h / ngày) - chỉ trạm có manualCode tương ứng (IOT_STATION_FORECAST_MAP) mới có
+    let boxesHtml = "";
+    const forecastSalinity = Number(forecastInfo?.salinity);
+    if (forecastInfo && Number.isFinite(forecastSalinity)) {
+        const salinityClass = getSingleStationClassification(forecastSalinity, baseStationCode);
+        const dailySalinity = Number(forecastInfo?.dailySalinity);
+        const dailyClass = Number.isFinite(dailySalinity)
+            ? getSingleStationClassification(dailySalinity, baseStationCode)
+            : null;
+
+        const trend2h = buildTrendMeta(forecastSalinity, forecastInfo.previousSalinity);
+        const trendDaily = Number.isFinite(dailySalinity)
+            ? buildTrendMeta(dailySalinity, forecastInfo.previousDailySalinity)
+            : null;
+
+        const rangeText =
+            forecastMeta?.firstTime && forecastMeta?.lastTime
+                ? `Thời gian: ${formatForecastTime(forecastMeta.firstTime)} - ${formatForecastTime(forecastMeta.lastTime)}`
+                : "";
+        const totalForecastText = Number.isFinite(forecastMeta?.totalRecords)
+            ? forecastMeta.totalRecords.toLocaleString("vi-VN")
+            : "";
+
+        const box2hHtml = buildValueBoxHtml({
+            boxClass: "popup-forecast-value",
+            label: "ĐỘ MẶN DỰ BÁO (2 GIỜ)",
+            valueText: `${formatDecimalDisplay(forecastSalinity, 2)} ‰`,
+            statusColor: salinityClass ? statusColorFromLevel(salinityClass.level) : riskColor,
+            dateText: formatForecastTime(forecastInfo.time),
+            trend: trend2h,
+            previousDateText: forecastInfo.previousTime ? formatForecastTime(forecastInfo.previousTime) : "",
+            totalRecordsText: totalForecastText,
+            rangeText,
+        });
+
+        const boxDailyHtml = Number.isFinite(dailySalinity)
+            ? buildValueBoxHtml({
+                  boxClass: "popup-forecast-value",
+                  label: "ĐỘ MẶN DỰ BÁO (NGÀY)",
+                  valueText: `${formatDecimalDisplay(dailySalinity, 2)} ‰`,
+                  statusColor: dailyClass ? statusColorFromLevel(dailyClass.level) : riskColor,
+                  dateText: formatForecastDateOnly(forecastInfo.time),
+                  trend: trendDaily,
+                  previousDateText: forecastInfo.previousDailyTime
+                      ? formatForecastDateOnly(forecastInfo.previousDailyTime)
+                      : "",
+                  totalRecordsText: totalForecastText,
+                  rangeText,
+              })
+            : "";
+
+        boxesHtml = `${box2hHtml}${boxDailyHtml}`;
+    }
+
+    const quanTracTrend = buildTrendMeta(latestSaltValue, previousSaltValue);
+    const quanTracBoxHtml = buildValueBoxHtml({
+        boxClass: "popup-main-value",
+        label: `ĐỘ MẶN QUAN TRẮC (${frequencyText})`,
+        valueText: hasSaltValue ? `${formatDecimalDisplay(latestSaltValue, 2)} ${mainMetricUnit}` : "N/A",
+        statusColor: riskColor,
+        dateText: latestTime,
+        trend: quanTracTrend,
+        previousDateText: previousHourLabel,
+        totalRecordsText,
+        rangeText: `Thời gian: ${startTime} - ${endTime}`,
+    });
 
     return `
         <div class="modern-popup salinity-popup iot-popup">
@@ -437,44 +480,12 @@ export const createIoTPopup = (station) => {
                     <span class="popup-type">Trạm IoT</span>
                 </div>
                 <div class="popup-status ${riskStatusClass}">
-                    ${riskClassification.shortText}
+                    ${classification.shortText}
                 </div>
             </div>
-            
+
             <div class="popup-content">
-                <div class="popup-main-value">
-                    <span class="value-label">${mainMetricLabel}</span>
-                    <span class="value-number" style="color: ${riskColor}">
-                        ${saltDisplay}
-                    </span>
-                    <span class="value-date">${latestTime}</span>
-                </div>
-                
-                ${
-                    trendItems.length > 0
-                        ? `
-                    <div class="iot-trend-list">
-                        ${trendItems
-                            .map(
-                                (trend) => `
-                    <div class="trend-indicator ${trend.directionClass}">
-                        <div class="trend-icon" style="color: ${trend.color}">
-                            ${trend.icon}
-                        </div>
-                        <div class="trend-content">
-                            <span class="trend-text" style="color: ${trend.color}">
-                                ${trend.text}
-                            </span>
-                            <span class="trend-date">${trend.date}</span>
-                        </div>
-                    </div>
-                `,
-                            )
-                            .join("")}
-                    </div>
-                `
-                        : ""
-                }
+                <div class="popup-value-row${boxesHtml ? " double" : ""}">${boxesHtml}${quanTracBoxHtml}</div>
 
                 <div class="popup-details">
                     <div class="detail-grid">
@@ -484,7 +495,7 @@ export const createIoTPopup = (station) => {
                                 <span class="detail-value">${stationCode}</span>
                             </div>
                         </div>
-                        
+
                         <div class="detail-item">
                             <div class="detail-content py-1">
                                 <strong class="detail-label">Kinh độ: </strong>
@@ -498,44 +509,9 @@ export const createIoTPopup = (station) => {
                                 <span class="detail-value">${latDisplay}</span>
                             </div>
                         </div>
-
-                        <div class="detail-item">
-                            <div class="detail-content py-1">
-                                <strong class="detail-label">Tần suất: </strong>
-                                <span class="detail-value">${station.frequency || ""}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="detail-item">
-                            <div class="detail-content py-1">
-                                <strong class="detail-label">Thời gian: </strong>
-                                <span class="detail-value">${startTime} - ${endTime}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="detail-item">
-                            <div class="detail-content py-1">
-                                <strong class="detail-label">Tổng bản ghi: </strong>
-                                <span class="detail-value">${totalRecordsText}</span>
-                            </div>
-                        </div>
-
-                        <div class="detail-item">
-                            <div class="detail-content py-1">
-                                <strong class="detail-label">Độ mặn giờ trước: </strong>
-                                <span class="detail-value">${previousHourSaltDisplay}</span>
-                            </div>
-                        </div>
-
-                        <div class="detail-item">
-                            <div class="detail-content py-1">
-                                <strong class="detail-label">Độ mặn TB ngày trước: </strong>
-                                <span class="detail-value">${previousDaySaltDisplay}</span>
-                            </div>
-                        </div>
                     </div>
                 </div>
-                
+
                 ${
                     hasSerial
                         ? `
@@ -582,13 +558,17 @@ export const renderIoTStations = async (mapInstance, setIotData) => {
     try {
         ensureStationPanes(mapInstance);
 
-        const stationsResponse = await fetchIoTStations();
+        const [stationsResponse, forecastPayload] = await Promise.all([
+            fetchIoTStations(),
+            fetchForecastLatest(),
+        ]);
 
         if (!stationsResponse.success || !stationsResponse.data) {
             console.warn("⚠️ No IoT stations data received", stationsResponse);
             return;
         }
 
+        const forecastLookup = buildForecastLookup(forecastPayload);
         const stations = stationsResponse.data;
         const stationMapBySerial = new Map();
 
@@ -621,13 +601,16 @@ export const renderIoTStations = async (mapInstance, setIotData) => {
                     window.onOpenIoTChart(fallbackPayload);
                 }
 
-                const { startDate, endDate } = getRecent14DaysRange(
-                    matchedStation.latest_hour_end_time || matchedStation.last_data_time,
+                const { startDate, endDate } = getFullDataRange(
+                    matchedStation.start_time,
+                    matchedStation.latest_hour_end_time ||
+                        matchedStation.last_data_time ||
+                        matchedStation.end_time,
                 );
                 const iotResponse = await fetchIoTData(serial, {
                     startDate,
                     endDate,
-                    groupBy: "none",
+                    groupBy: "hour",
                 });
                 const chartPayload = buildIoTChartPayload(matchedStation, iotResponse);
 
@@ -660,7 +643,21 @@ export const renderIoTStations = async (mapInstance, setIotData) => {
                 continue;
             }
 
-            const riskInfo = getIoTRiskClassification(station);
+            // Mau icon/tooltip/badge: uu tien moc du bao 2h gan nhat trong TUONG LAI (neu con, va
+            // tram co manualCode tuong ung); neu khong thi dung quan trac gan nhat (cung quy tac
+            // nhu diem do man - xem renderSalinityPoints trong SalinityMarkers.jsx).
+            const forecastManualCode = IOT_STATION_FORECAST_MAP[station.station_code];
+            const forecastInfo = forecastManualCode
+                ? forecastLookup.stations[forecastManualCode] || null
+                : null;
+            const forecastSalinityValue = Number(forecastInfo?.salinity);
+            const latestSaltValue = getLatestIoTSaltValue(station);
+            const classificationValue =
+                forecastLookup.hasFutureForecast && Number.isFinite(forecastSalinityValue)
+                    ? forecastSalinityValue
+                    : latestSaltValue;
+            const baseStationCode = normalizeStationCode(station?.station_code);
+            const riskInfo = getSingleStationClassification(classificationValue, baseStationCode);
             const icon = getIoTIcon(station.status, station.total_records, riskInfo.class);
             const tooltipClass = getIoTTooltipClass(station.status, station.total_records, riskInfo.class);
 
@@ -690,9 +687,9 @@ export const renderIoTStations = async (mapInstance, setIotData) => {
                 pane: "iotTooltipPane",
             });
 
-            const popupHTML = createIoTPopup(station);
+            const popupHTML = createIoTPopup(station, forecastInfo, forecastLookup, classificationValue);
             marker.bindPopup(popupHTML, {
-                maxWidth: 380,
+                maxWidth: forecastInfo ? 440 : 380,
                 className: "custom-popup iot-custom-popup",
                 autoClose: true,
                 closeOnClick: false,
