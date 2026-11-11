@@ -41,7 +41,12 @@ const CustomTooltip = ({ active, payload, kiHieu }) => {
         return (
             <div className="bg-white border p-2 rounded shadow-sm">
                 <p className="mb-1">Thời điểm: {formatAxisTick(point.time)}</p>
-                <p className="mb-1">Độ mặn dự báo: {formatNumberVi(point.salinity, 2)} ‰</p>
+                <p className="mb-1">Độ mặn dự báo (2h): {formatNumberVi(point.salinity, 2)} ‰</p>
+                {point.dailySalinity != null && (
+                    <p className="mb-1 text-muted">
+                        Dự báo theo ngày: {formatNumberVi(point.dailySalinity, 2)} ‰
+                    </p>
+                )}
                 <p className="mb-0" style={{ color: RISK_COLOR_MAP[riskClassification.class] }}>
                     {riskClassification.shortText}
                 </p>
@@ -107,7 +112,19 @@ const ForecastLineChart = ({ data, kiHieu, height = "100%" }) => {
 
                 <Line
                     type="monotone"
+                    dataKey="dailySalinity"
+                    name="Dự báo theo ngày"
+                    stroke="#6c757d"
+                    strokeWidth={1.5}
+                    strokeDasharray="6 4"
+                    dot={false}
+                    activeDot={false}
+                    connectNulls
+                />
+                <Line
+                    type="monotone"
                     dataKey="salinity"
+                    name="Dự báo theo 2h"
                     stroke="#0d6efd"
                     strokeWidth={2}
                     dot={buildRiskDotRenderer(kiHieu)}

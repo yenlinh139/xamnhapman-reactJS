@@ -97,6 +97,7 @@ export const buildForecastLookup = (forecastPayload) => {
                 lastTime,
                 intervalHours: forecastPayload.intervalHours,
                 salinity,
+                dailySalinity: station.dailyValues?.[index] ?? null,
                 isSynthetic: forecastPayload.isSynthetic,
             };
         }
@@ -174,12 +175,18 @@ export const createSalinityPopup = (
     let forecastMetaHtml = "";
     const forecastSalinity = Number(forecastInfo?.salinity);
     if (forecastInfo && Number.isFinite(forecastSalinity)) {
+        const dailySalinity = Number(forecastInfo?.dailySalinity);
+        const dailyLineHtml = Number.isFinite(dailySalinity)
+            ? `<span class="value-sub">Theo ngày: ${formatDecimalDisplay(dailySalinity, 2)} ‰</span>`
+            : "";
+
         forecastBoxHtml = `
           <div class="popup-forecast-value">
-            <span class="value-label">Dự báo</span>
+            <span class="value-label">Dự báo (2h)</span>
             <span class="value-number" style="color: ${statusColor}">
               ${formatDecimalDisplay(forecastSalinity, 2)} ‰
             </span>
+            ${dailyLineHtml}
             <span class="value-date">${formatForecastTime(forecastInfo.time)}</span>
           </div>
         `;
