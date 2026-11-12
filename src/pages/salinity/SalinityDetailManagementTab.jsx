@@ -102,11 +102,16 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
     const [deleteTarget, setDeleteTarget] = useState(null);
 
     // Khoảng ngày-giờ hiện có (khóa "Từ ngày"/"Đến ngày" trong khoảng này) - dùng khoảng của
-    // đúng trạm đang lọc, hoặc khoảng CHUNG của tất cả trạm khi đang chọn "Tất cả điểm đo".
+    // đúng trạm đang lọc, hoặc khoảng CHUNG của tất cả trạm khi đang chọn "Tất cả điểm đo". Mặc
+    // định điền sẵn luôn "Từ ngày"/"Đến ngày" = đúng min/max của khoảng này (thay vì để trống).
     useEffect(() => {
         axiosInstance
             .get(`/salinity-detail/range/${filterKiHieu || "all"}`)
-            .then((res) => setFilterRange(res.data))
+            .then((res) => {
+                setFilterRange(res.data);
+                setFilterStart(res.data?.minTime ? toVNDateKey(res.data.minTime) : "");
+                setFilterEnd(res.data?.maxTime ? toVNDateKey(res.data.maxTime) : "");
+            })
             .catch(() => setFilterRange({ minTime: null, maxTime: null, total: 0 }));
     }, [filterKiHieu]);
 
