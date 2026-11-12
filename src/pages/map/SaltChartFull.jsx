@@ -121,6 +121,33 @@ const ExportPreviewTable = ({ data, kiHieu }) => {
                                 {getSortIcon("salinity")}
                             </div>
                         </th>
+                        <th
+                            style={{ cursor: "pointer", userSelect: "none" }}
+                            onClick={() => handleSort("ph")}
+                        >
+                            <div className="d-flex align-items-center justify-content-between">
+                                <span>pH</span>
+                                {getSortIcon("ph")}
+                            </div>
+                        </th>
+                        <th
+                            style={{ cursor: "pointer", userSelect: "none" }}
+                            onClick={() => handleSort("doDanDien")}
+                        >
+                            <div className="d-flex align-items-center justify-content-between">
+                                <span>EC (S/m)</span>
+                                {getSortIcon("doDanDien")}
+                            </div>
+                        </th>
+                        <th
+                            style={{ cursor: "pointer", userSelect: "none" }}
+                            onClick={() => handleSort("doDuc")}
+                        >
+                            <div className="d-flex align-items-center justify-content-between">
+                                <span>Độ đục (NTU)</span>
+                                {getSortIcon("doDuc")}
+                            </div>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -131,7 +158,7 @@ const ExportPreviewTable = ({ data, kiHieu }) => {
                         return (
                             <tr key={idx}>
                                 <td>{idx + 1}</td>
-                                <td>{new Date(item.date).toLocaleDateString("vi-VN")}</td>
+                                <td>{formatVNDate(item.date)}</td>
                                 <td
                                     className="text-end"
                                     style={
@@ -160,6 +187,21 @@ const ExportPreviewTable = ({ data, kiHieu }) => {
                                     ) : (
                                         "-"
                                     )}
+                                </td>
+                                <td className="text-end">
+                                    {item.ph !== null && item.ph !== undefined
+                                        ? formatNumberVi(item.ph, 2)
+                                        : "-"}
+                                </td>
+                                <td className="text-end">
+                                    {item.doDanDien !== null && item.doDanDien !== undefined
+                                        ? formatNumberVi(item.doDanDien, 2)
+                                        : "-"}
+                                </td>
+                                <td className="text-end">
+                                    {item.doDuc !== null && item.doDuc !== undefined
+                                        ? formatNumberVi(item.doDuc, 2)
+                                        : "-"}
                                 </td>
                             </tr>
                         );

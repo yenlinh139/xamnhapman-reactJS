@@ -148,6 +148,9 @@ export const fetchSalinityData = async (kiHieu) => {
                 return {
                     date: toIsoDate(rawDate),
                     salinity: toNullableNumber(rawSalinity),
+                    ph: toNullableNumber(item?.pH ?? item?.ph),
+                    doDanDien: toNullableNumber(item?.DoDanDien ?? item?.do_dan_dien),
+                    doDuc: toNullableNumber(item?.DoDuc ?? item?.do_duc),
                 };
             })
             .filter((item) => item.date);
