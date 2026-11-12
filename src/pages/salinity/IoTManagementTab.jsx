@@ -55,7 +55,9 @@ const TODAY_ISO = toVNDateKey(new Date());
 
 const DEFAULT_IOT_FILTERS = {
     serialNumber: "",
-    startDate: "2025-08-25",
+    // Điền tạm = hôm nay cho tới khi /iot/stations tải xong và set lại đúng min/max thật của dữ
+    // liệu (xem ioTDateRange) - tránh hiện trống hoàn toàn trong lúc chờ.
+    startDate: TODAY_ISO,
     endDate: TODAY_ISO,
 };
 
@@ -246,6 +248,39 @@ const IoTManagementTab = ({ userInfo }) => {
     const dataFormStationOptions = useMemo(() => {
         return [...stationFilterOptions].sort((a, b) => a.name.localeCompare(b.name, "vi"));
     }, [stationFilterOptions]);
+
+    // Khoảng ngày thực tế hiện có (khóa "Từ ngày"/"Đến ngày" trong khoảng này) - của đúng trạm
+    // đang lọc, hoặc khoảng CHUNG (min start_time - max end_time) của mọi trạm khi đang chọn
+    // "Tất cả trạm" - /iot/stations đã trả sẵn start_time/end_time/total_records cho mỗi trạm.
+    const ioTDateRange = useMemo(() => {
+        const getSerial = (s) =>
+            s.serial_number || s.serialNumber || s.DeviceSerialNumber || s.serial || s.code || "";
+
+        if (filters.serialNumber) {
+            const station = stationOptions.find((s) => getSerial(s) === filters.serialNumber);
+            return { minDate: station?.start_time || null, maxDate: station?.end_time || null };
+        }
+
+        let minDate = null;
+        let maxDate = null;
+        stationOptions.forEach((s) => {
+            if (s.start_time && (!minDate || s.start_time < minDate)) minDate = s.start_time;
+            if (s.end_time && (!maxDate || s.end_time > maxDate)) maxDate = s.end_time;
+        });
+        return { minDate, maxDate };
+    }, [filters.serialNumber, stationOptions]);
+
+    const ioTMinDate = ioTDateRange.minDate ? toVNDateKey(ioTDateRange.minDate) : "";
+    const ioTMaxDate = ioTDateRange.maxDate ? toVNDateKey(ioTDateRange.maxDate) : "";
+
+    // Mặc định điền sẵn "Từ ngày"/"Đến ngày" = đúng min/max của khoảng này (thay vì để trống/mốc
+    // cứng cũ), mỗi khi đổi trạm lọc hoặc khi danh sách trạm vừa tải xong.
+    useEffect(() => {
+        if (!ioTMinDate && !ioTMaxDate) return;
+        setCurrentPage(1);
+        setFilters((prev) => ({ ...prev, startDate: ioTMinDate, endDate: ioTMaxDate }));
+        setInputDateFilter({ startDate: formatDateDisplay(ioTMinDate), endDate: formatDateDisplay(ioTMaxDate) });
+    }, [ioTMinDate, ioTMaxDate]);
 
     const loadStationOptions = useCallback(async () => {
         try {
@@ -556,6 +591,8 @@ const IoTManagementTab = ({ userInfo }) => {
                                 id="iotStartDate"
                                 className="filter-input"
                                 value={parseDisplayDateToIso(inputDateFilter.startDate) || ""}
+                                min={ioTMinDate || undefined}
+                                max={parseDisplayDateToIso(inputDateFilter.endDate) || ioTMaxDate || undefined}
                                 onChange={(e) =>
                                     setInputDateFilter((prev) => ({
                                         ...prev,
@@ -571,6 +608,8 @@ const IoTManagementTab = ({ userInfo }) => {
                                 id="iotEndDate"
                                 className="filter-input"
                                 value={parseDisplayDateToIso(inputDateFilter.endDate) || ""}
+                                min={parseDisplayDateToIso(inputDateFilter.startDate) || ioTMinDate || undefined}
+                                max={ioTMaxDate || undefined}
                                 onChange={(e) =>
                                     setInputDateFilter((prev) => ({
                                         ...prev,

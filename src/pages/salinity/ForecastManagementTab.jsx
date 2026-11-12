@@ -130,6 +130,28 @@ const ForecastManagementTab = ({ userInfo }) => {
     );
     const showRunColumn = filters.runId === ALL_RUNS;
 
+    // Khoảng ngày thực tế hiện có (khóa "Từ ngày"/"Đến ngày" trong khoảng này) - của đúng lượt
+    // dự báo đang chọn, hoặc khoảng CHUNG (min current_time/forecast_start_at - max
+    // forecast_end_at) của mọi lượt khi đang chọn "Tất cả lượt".
+    const forecastDateRange = useMemo(() => {
+        if (selectedRun) {
+            return {
+                minDate: selectedRun.current_time ?? selectedRun.forecast_start_at,
+                maxDate: selectedRun.forecast_end_at,
+            };
+        }
+        let minDate = null;
+        let maxDate = null;
+        runs.forEach((run) => {
+            const start = run.current_time ?? run.forecast_start_at;
+            if (start && (!minDate || start < minDate)) minDate = start;
+            if (run.forecast_end_at && (!maxDate || run.forecast_end_at > maxDate)) maxDate = run.forecast_end_at;
+        });
+        return { minDate, maxDate };
+    }, [selectedRun, runs]);
+    const forecastMinDate = forecastDateRange.minDate ? toInputDateValue(forecastDateRange.minDate) : "";
+    const forecastMaxDate = forecastDateRange.maxDate ? toInputDateValue(forecastDateRange.maxDate) : "";
+
     const loadStations = useCallback(async () => {
         try {
             const response = await axiosInstance.get("/forecast-stations");
@@ -170,18 +192,16 @@ const ForecastManagementTab = ({ userInfo }) => {
     // bat dau. "Den ngay" luon la moc cuoi (forecast_end_at). Khong ghi de neu nguoi dung da
     // tu nhap (chi dien khi con trong).
     useEffect(() => {
-        if (!selectedRun) return;
+        if (!forecastMinDate && !forecastMaxDate) return;
         setFilters((prev) => {
             if (prev.startDate && prev.endDate) return prev;
             return {
                 ...prev,
-                startDate:
-                    prev.startDate ||
-                    toInputDateValue(selectedRun.current_time ?? selectedRun.forecast_start_at),
-                endDate: prev.endDate || toInputDateValue(selectedRun.forecast_end_at),
+                startDate: prev.startDate || forecastMinDate,
+                endDate: prev.endDate || forecastMaxDate,
             };
         });
-    }, [selectedRun]);
+    }, [forecastMinDate, forecastMaxDate]);
 
     const buildQueryParams = useCallback(
         (page, pageLimit) => {
@@ -477,6 +497,8 @@ const ForecastManagementTab = ({ userInfo }) => {
                                 id="forecastStartDate"
                                 className="filter-input"
                                 value={filters.startDate}
+                                min={forecastMinDate || undefined}
+                                max={filters.endDate || forecastMaxDate || undefined}
                                 onChange={(e) => handleFilterChange("startDate", e.target.value)}
                             />
                         </div>
@@ -487,6 +509,8 @@ const ForecastManagementTab = ({ userInfo }) => {
                                 id="forecastEndDate"
                                 className="filter-input"
                                 value={filters.endDate}
+                                min={filters.startDate || forecastMinDate || undefined}
+                                max={forecastMaxDate || undefined}
                                 onChange={(e) => handleFilterChange("endDate", e.target.value)}
                             />
                         </div>
