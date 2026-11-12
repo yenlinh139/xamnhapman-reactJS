@@ -47,6 +47,15 @@ export const formatVNDateTime = (value) => {
     return `${day}/${month}/${year} ${hour}:${minute}`;
 };
 
+// "HH:mm" theo giờ VN - dùng cho cột "Giờ" riêng (tách khỏi ngày) trong các bảng chi tiết theo
+// từng lần đo (vd quan trắc độ mặn nhiều lần/ngày).
+export const formatVNHour = (value) => {
+    const date = toDate(value);
+    if (!date) return "";
+    const { hour, minute } = getParts(date, { hour: "2-digit", minute: "2-digit", hour12: false });
+    return `${hour}:${minute}`;
+};
+
 // "HH:mm, dd/mm/yyyy" theo giờ VN - gọn cho trục X khi tần suất theo giờ, luôn có năm để không bị
 // nhầm giữa các năm khi chuỗi số liệu dài (fix lỗi "thiếu yyyy" trên trục X).
 export const formatVNTickDateTime = (value) => {

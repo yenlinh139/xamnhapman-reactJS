@@ -8,7 +8,8 @@ import { downloadChartImage } from "@common/downloadChartImage";
 import * as XLSX from "xlsx";
 import { getDisplayStationName, getFilenameSafeStationName } from "@common/stationMapping";
 import { getSingleStationClassification, getRiskBadgeMeta } from "@common/salinityClassification";
-import { toVNDateKey, formatVNDate } from "@common/vnDateTime";
+import { toVNDateKey, formatVNDate, formatVNDateTime, formatVNHour } from "@common/vnDateTime";
+import { fetchSalinityDataDetail } from "@components/map/mapDataServices";
 import "@styles/components/_hydrometChart.scss";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
 
@@ -52,13 +53,13 @@ const ExportPreviewTable = ({ data, kiHieu }) => {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
     const sortedData = React.useMemo(() => {
-        const effectiveSort = sortConfig.key ? sortConfig : { key: "date", direction: "desc" };
+        const effectiveSort = sortConfig.key ? sortConfig : { key: "thoiDiem", direction: "desc" };
 
         const sorted = [...data].sort((a, b) => {
             let aValue = a[effectiveSort.key];
             let bValue = b[effectiveSort.key];
 
-            if (effectiveSort.key === "date") {
+            if (effectiveSort.key === "thoiDiem") {
                 aValue = new Date(aValue);
                 bValue = new Date(bValue);
             } else if (effectiveSort.key === "salinity") {
@@ -105,13 +106,14 @@ const ExportPreviewTable = ({ data, kiHieu }) => {
                         <th style={{ width: "60px" }}>#</th>
                         <th
                             style={{ cursor: "pointer", userSelect: "none" }}
-                            onClick={() => handleSort("date")}
+                            onClick={() => handleSort("thoiDiem")}
                         >
                             <div className="d-flex align-items-center justify-content-between">
-                                <span>Ngày</span>
-                                {getSortIcon("date")}
+                                <span>Thời điểm</span>
+                                {getSortIcon("thoiDiem")}
                             </div>
                         </th>
+                        <th style={{ width: "80px" }}>Giờ</th>
                         <th
                             style={{ cursor: "pointer", userSelect: "none" }}
                             onClick={() => handleSort("salinity")}
@@ -158,7 +160,8 @@ const ExportPreviewTable = ({ data, kiHieu }) => {
                         return (
                             <tr key={idx}>
                                 <td>{idx + 1}</td>
-                                <td>{formatVNDate(item.date)}</td>
+                                <td>{formatVNDateTime(item.thoiDiem)}</td>
+                                <td>{formatVNHour(item.thoiDiem)}</td>
                                 <td
                                     className="text-end"
                                     style={
@@ -226,6 +229,14 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
         endDate: "",
     });
     const [filteredData, setFilteredData] = useState([]);
+
+    // Từng lần đo thực tế (có thể nhiều dòng/ngày, vd "Kênh C" tới 18 lần/ngày) - chỉ dùng để
+    // hiển thị cột "Thời điểm"/"Giờ" thật trong bảng "Dữ liệu", không ảnh hưởng biểu đồ (biểu đồ
+    // vẫn dùng giá trị trung bình/ngày như cũ qua `data`/`filteredData`).
+    const [detailData, setDetailData] = useState([]);
+    const [filteredDetailData, setFilteredDetailData] = useState([]);
+    const [detailLoading, setDetailLoading] = useState(false);
+    const detailLoadedForRef = useRef(null);
 
     // 2 tab chính: "forecast" (Dự báo, hiện trước) và "actual" (Quan trắc).
     // Mỗi tab chính có chung 2 tab con: "chart" (Biểu đồ) / "data" (Dữ liệu).
@@ -341,6 +352,41 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
         }
     }, [show, salinityData]);
 
+    // Tải từng lần đo thật (cho cột "Thời điểm"/"Giờ") chỉ khi người dùng thực sự mở tab "Dữ liệu"
+    // của "Quan trắc" - tránh gọi API thừa cho những lượt chỉ xem biểu đồ.
+    useEffect(() => {
+        if (!show || !kiHieu || mainTab !== "actual" || subTab !== "data") return;
+        if (detailLoadedForRef.current === kiHieu) return;
+
+        detailLoadedForRef.current = kiHieu;
+        setDetailLoading(true);
+        fetchSalinityDataDetail(kiHieu)
+            .then((rows) => {
+                setDetailData(rows);
+
+                const { startDate, endDate } = exportRange;
+                if (startDate && endDate) {
+                    setFilteredDetailData(
+                        rows.filter((item) => {
+                            const dayKey = toLocalDateKey(item.thoiDiem);
+                            return dayKey >= startDate && dayKey <= endDate;
+                        }),
+                    );
+                } else {
+                    setFilteredDetailData(rows);
+                }
+            })
+            .finally(() => setDetailLoading(false));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [show, kiHieu, mainTab, subTab]);
+
+    useEffect(() => {
+        if (!kiHieu) return;
+        detailLoadedForRef.current = null;
+        setDetailData([]);
+        setFilteredDetailData([]);
+    }, [kiHieu]);
+
     useEffect(() => {
         if (!show) {
             setData([]);
@@ -449,6 +495,12 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                 return dayKey >= nextStartDate && dayKey <= nextEndDate;
             });
             setFilteredData(filtered);
+
+            const filteredDetail = detailData.filter((item) => {
+                const dayKey = toLocalDateKey(item.thoiDiem);
+                return dayKey >= nextStartDate && dayKey <= nextEndDate;
+            });
+            setFilteredDetailData(filteredDetail);
         }
     };
 
@@ -896,18 +948,24 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                         ) : (
                                             <p className="text-muted">Không có dữ liệu hợp lệ.</p>
                                         )
-                                    ) : filteredData.length > 0 ? (
+                                    ) : detailLoading ? (
+                                        <div className="text-center py-4">
+                                            <div className="spinner-border text-primary" role="status">
+                                                <span className="visually-hidden">Đang tải...</span>
+                                            </div>
+                                        </div>
+                                    ) : filteredDetailData.length > 0 ? (
                                         <div className="h-100 d-flex flex-column" style={{ minHeight: 0 }}>
                                             <div
                                                 className="map-data-scroll"
                                                 style={{ flex: 1, minHeight: 0 }}
                                             >
-                                                <ExportPreviewTable data={filteredData} kiHieu={kiHieu} />
+                                                <ExportPreviewTable data={filteredDetailData} kiHieu={kiHieu} />
                                             </div>
 
                                             <div className="d-flex gap-2 justify-content-between align-items-center">
                                                 <div className="text-muted small">
-                                                    Hiển thị {filteredData.length} bản ghi
+                                                    Hiển thị {filteredDetailData.length} bản ghi
                                                 </div>
                                                 <button
                                                     className={`btn btn-sm ${isLoggedIn ? "btn-outline-success" : "btn-outline-secondary"}`}

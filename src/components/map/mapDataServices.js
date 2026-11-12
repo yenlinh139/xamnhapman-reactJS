@@ -163,6 +163,33 @@ export const fetchSalinityData = async (kiHieu) => {
     }
 };
 
+// Từng lần đo thực tế (có thể nhiều dòng/ngày) - dùng để hiển thị cột "Thời điểm"/"Giờ" thật
+// trong bảng quan trắc, khác với fetchSalinityData (trả về giá trị trung bình/ngày, dùng cho
+// biểu đồ).
+export const fetchSalinityDataDetail = async (kiHieu, { startDate, endDate } = {}) => {
+    try {
+        const params = { limit: 20000, orderBy: "desc" };
+        if (startDate) params.startDate = startDate;
+        if (endDate) params.endDate = endDate;
+
+        const response = await axiosInstance.get(`/salinity-data/${kiHieu}/detail`, { params });
+        const rawRows = asArray(response.data);
+
+        return rawRows
+            .map((item) => ({
+                thoiDiem: item?.ThoiDiem ?? null,
+                salinity: toNullableNumber(item?.DoMan),
+                ph: toNullableNumber(item?.pH),
+                doDanDien: toNullableNumber(item?.DoDanDien),
+                doDuc: toNullableNumber(item?.DoDuc),
+            }))
+            .filter((item) => item.thoiDiem);
+    } catch (error) {
+        console.error("Error fetching salinity data detail:", error);
+        return [];
+    }
+};
+
 export const fetchHydrometStations = async () => {
     try {
         const response = await axiosInstance.get("/hydrometeorology-stations");
