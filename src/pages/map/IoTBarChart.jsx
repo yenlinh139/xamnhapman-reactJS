@@ -47,6 +47,22 @@ const formatNumberVi = (value, fractionDigits = 2) => {
     });
 };
 
+// Xu thế độ mặn so với mốc liền trước - kèm tốc độ biến đổi theo giờ vì các mốc IoT có thể cách
+// nhau không đều (5 phút/giờ/ngày tuỳ Tần suất đang chọn), khác với dữ liệu quan trắc thủ công
+// (luôn cách nhau đúng 1 ngày nên chỉ cần hiện chênh lệch tuyệt đối).
+const calculateSaltTrend = (current, previous, hoursDelta) => {
+    if (current === null || current === undefined || !Number.isFinite(current)) return null;
+    if (previous === null || previous === undefined || !Number.isFinite(previous)) return null;
+
+    const diff = current - previous;
+    return {
+        difference: diff,
+        direction: diff > 0 ? "increase" : diff < 0 ? "decrease" : "stable",
+        percentage: previous !== 0 ? (Math.abs(diff) / Math.abs(previous)) * 100 : null,
+        ratePerHour: hoursDelta > 0 ? diff / hoursDelta : null,
+    };
+};
+
 const normalizeHeight = (height) => {
     if (typeof height === "number") {
         return `${height}px`;
@@ -113,6 +129,60 @@ function normalizeChartData(data, groupBy = "none") {
     return Object.values(grouped).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 }
 
+const TREND_DIRECTION_META = {
+    increase: { icon: "▲", label: "Tăng", color: "#dc3545" },
+    decrease: { icon: "▼", label: "Giảm", color: "#198754" },
+    stable: { icon: "■", label: "Không đổi", color: "#6c757d" },
+};
+
+const SERIES_UNIT_BY_NAME = {
+    [SENSOR_MAP.distance.name]: "cm",
+    [SENSOR_MAP.rainfall.name]: "mm",
+    [SENSOR_MAP.salt.name]: "‰",
+    [SENSOR_MAP.temp.name]: "°C",
+};
+
+const IoTCustomTooltip = ({ active, payload, label }) => {
+    if (!active || !payload?.length) return null;
+
+    const point = payload[0]?.payload;
+    const trend = point?.saltTrend;
+    // Chỉ hiện xu thế khi Độ mặn đang được hiển thị trên biểu đồ (payload chỉ chứa các series
+    // đang bật - xem visibleSeries), tránh nói về 1 đại lượng người dùng đã tắt khỏi chart.
+    const showTrend = trend && payload.some((entry) => entry.dataKey === "salt");
+    const trendMeta = showTrend ? TREND_DIRECTION_META[trend.direction] : null;
+
+    return (
+        <div className="bg-white border p-2 rounded shadow-sm" style={{ minWidth: 220 }}>
+            <p className="mb-1 fw-semibold">{label}</p>
+            {payload.map((entry) => {
+                if (entry.value === null || entry.value === undefined) return null;
+                const unit = SERIES_UNIT_BY_NAME[entry.name] || "";
+                const riskLabel =
+                    entry.name === SENSOR_MAP.salt.name && point?.saltRiskLabel
+                        ? ` (${point.saltRiskLabel})`
+                        : "";
+
+                return (
+                    <p className="mb-1" key={entry.dataKey} style={{ color: entry.color }}>
+                        {entry.name}: {formatNumberVi(entry.value, 2)} {unit}
+                        {riskLabel}
+                    </p>
+                );
+            })}
+            {trendMeta && (
+                <p className="mb-0" style={{ color: trendMeta.color }}>
+                    {trendMeta.icon} Xu thế độ mặn: {trendMeta.label}{" "}
+                    {formatNumberVi(Math.abs(trend.difference), 2)}‰ so với mốc trước
+                    {Number.isFinite(trend.ratePerHour)
+                        ? ` (tốc độ ${trend.ratePerHour >= 0 ? "+" : ""}${formatNumberVi(trend.ratePerHour, 3)}‰/giờ)`
+                        : ""}
+                </p>
+            )}
+        </div>
+    );
+};
+
 const IoTBarChart = ({ data, height = 300, isCompact = false, groupBy = "none", stationCode = "" }) => {
     const chartHeight = normalizeHeight(height);
     const safeData = Array.isArray(data) ? data : [];
@@ -132,15 +202,25 @@ const IoTBarChart = ({ data, height = 300, isCompact = false, groupBy = "none", 
     const chartData = useMemo(() => {
         const normalizedData = normalizeChartData(safeData, groupBy);
 
+        let previous = null;
         return normalizedData.map((item) => {
             const classification = getSingleStationClassification(item.salt, normalizedStationCode);
             const riskKey = classification.class || "no-data";
 
-            return {
+            const hoursDelta =
+                previous && Number.isFinite(item.timestamp) && Number.isFinite(previous.timestamp)
+                    ? (item.timestamp - previous.timestamp) / (1000 * 60 * 60)
+                    : null;
+            const saltTrend = previous ? calculateSaltTrend(item.salt, previous.salt, hoursDelta) : null;
+
+            const result = {
                 ...item,
                 saltColor: SALINITY_RISK_COLORS[riskKey] || SALINITY_RISK_COLORS["no-data"],
                 saltRiskLabel: classification.shortText || classification.description || "Khuyết số liệu",
+                saltTrend,
             };
+            previous = item;
+            return result;
         });
     }, [groupBy, normalizedStationCode, safeData]);
 
@@ -218,30 +298,7 @@ const IoTBarChart = ({ data, height = 300, isCompact = false, groupBy = "none", 
                             fontSize={12}
                             width={yAxisWidth}
                         />
-                        <Tooltip
-                            formatter={(value, name, payload) => {
-                                if (value === null || value === undefined) {
-                                    return ["-", name];
-                                }
-
-                                if (name === SENSOR_MAP.distance.name)
-                                    return [`${formatNumberVi(value, 2)} cm`, SENSOR_MAP.distance.name];
-                                if (name === SENSOR_MAP.rainfall.name)
-                                    return [`${formatNumberVi(value, 2)} mm`, SENSOR_MAP.rainfall.name];
-                                if (name === SENSOR_MAP.salt.name) {
-                                    const riskLabel = payload?.payload?.saltRiskLabel
-                                        ? ` (${payload.payload.saltRiskLabel})`
-                                        : "";
-                                    return [
-                                        `${formatNumberVi(value, 2)} ‰${riskLabel}`,
-                                        SENSOR_MAP.salt.name,
-                                    ];
-                                }
-                                if (name === SENSOR_MAP.temp.name)
-                                    return [`${formatNumberVi(value, 2)} °C`, SENSOR_MAP.temp.name];
-                                return [formatNumberVi(value, 2), name];
-                            }}
-                        />
+                        <Tooltip content={<IoTCustomTooltip />} />
 
                         {visibleSeries.salt && (
                             <Bar

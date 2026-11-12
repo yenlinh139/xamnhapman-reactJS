@@ -106,6 +106,49 @@ const getRangeFromRows = (rows) => {
     };
 };
 
+// Giai đoạn chọn sẵn cho Quan trắc IoT - mặc định 7 ngày (gần mốc dữ liệu mới nhất, không phải
+// "hôm nay", vì trạm có thể đã ngừng gửi dữ liệu trước đó - xem dateBounds bên dưới).
+const IOT_RANGE_PRESETS = [
+    { key: "7d", label: "7 ngày", days: 7 },
+    { key: "30d", label: "30 ngày", days: 30 },
+    { key: "90d", label: "90 ngày", days: 90 },
+    { key: "all", label: "Toàn bộ", days: null },
+];
+
+const addDaysToIsoDate = (isoDate, days) => {
+    const [y, m, d] = isoDate.split("-").map(Number);
+    const date = new Date(y, m - 1, d);
+    date.setDate(date.getDate() + days);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+};
+
+// bounds = { startDate, endDate } (ISO, từ dateBounds) - "neo" theo endDate thật của chuỗi số
+// liệu, không phải ngày hệ thống hôm nay.
+const getPresetRange = (preset, bounds) => {
+    if (!preset || !bounds?.endDate) return null;
+    if (preset.days === null) {
+        return { startDate: bounds.startDate || "", endDate: bounds.endDate };
+    }
+
+    const computedStart = addDaysToIsoDate(bounds.endDate, -(preset.days - 1));
+    const startDate = bounds.startDate && computedStart < bounds.startDate ? bounds.startDate : computedStart;
+    return { startDate, endDate: bounds.endDate };
+};
+
+const filterRowsByDateRange = (rows, startDate, endDate) => {
+    if (!startDate && !endDate) return rows;
+    return rows.filter((row) => {
+        const key = toInputDateValue(getIoTRowTime(row));
+        if (!key) return false;
+        if (startDate && key < startDate) return false;
+        if (endDate && key > endDate) return false;
+        return true;
+    });
+};
+
 const getTodayIso = () => {
     const now = new Date();
     const year = now.getFullYear();
@@ -123,7 +166,9 @@ const getIoTSalinityRiskMeta = (value, stationCode = "") => {
     return getRiskBadgeMeta(value, baseCode);
 };
 
-const IoTQueryControls = ({ queryOptions, onChange, minDate, maxDate, compact = false }) => {
+const IoTQueryControls = ({ queryOptions, onChange, onPresetSelect, minDate, maxDate, compact = false }) => {
+    const bounds = { startDate: minDate, endDate: maxDate };
+
     return (
         <div
             className={`d-flex flex-wrap align-items-center gap-2 ${compact ? "mb-0" : "mb-2"}`}
@@ -131,7 +176,7 @@ const IoTQueryControls = ({ queryOptions, onChange, minDate, maxDate, compact = 
         >
             {/* Tần số - đưa lên trước */}
             <div className="d-flex align-items-center gap-2">
-                <label className="form-label fw-semibold small mb-0 text-nowrap">Tần số:</label>
+                <label className="form-label fw-semibold small mb-0 text-nowrap">Tần suất:</label>
 
                 <select
                     className="form-select form-select-sm"
@@ -147,8 +192,29 @@ const IoTQueryControls = ({ queryOptions, onChange, minDate, maxDate, compact = 
             </div>
 
             {/* Giai đoạn */}
-            <div className="d-flex align-items-center gap-2">
+            <div className="d-flex align-items-center gap-2 flex-wrap">
                 <label className="form-label fw-semibold small mb-0 text-nowrap">Giai đoạn:</label>
+
+                <div className="btn-group btn-group-sm" role="group">
+                    {IOT_RANGE_PRESETS.map((preset) => {
+                        const presetRange = getPresetRange(preset, bounds);
+                        const isActive =
+                            presetRange &&
+                            presetRange.startDate === queryOptions.startDate &&
+                            presetRange.endDate === queryOptions.endDate;
+
+                        return (
+                            <button
+                                key={preset.key}
+                                type="button"
+                                className={`btn ${isActive ? "btn-primary" : "btn-outline-primary"}`}
+                                onClick={() => onPresetSelect(preset.key)}
+                            >
+                                {preset.label}
+                            </button>
+                        );
+                    })}
+                </div>
 
                 <LocalizedDateInput
                     className="form-control form-control-sm"
@@ -628,13 +694,22 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
             return baseEnd;
         })();
 
+        // Mặc định mở lên chỉ hiện 7 ngày gần nhất (preset đầu tiên) thay vì toàn bộ payload ban
+        // đầu - lọc ngay trên dataPoints đã có sẵn trong bộ nhớ nên không cần gọi API thêm; các
+        // preset rộng hơn (30/90 ngày, Toàn bộ) mới cần fetch nếu vượt quá payload ban đầu.
+        const defaultRange =
+            getPresetRange(IOT_RANGE_PRESETS[0], { startDate: clampedStartDate, endDate: clampedEndDate }) || {
+                startDate: clampedStartDate,
+                endDate: clampedEndDate,
+            };
+
         setActiveTab("chart");
-        setDisplayData(dataPoints);
+        setDisplayData(filterRowsByDateRange(dataPoints, defaultRange.startDate, defaultRange.endDate));
         setLoadError("");
         setHasUserAdjustedQuery(false);
         setQueryOptions((prev) => ({
-            startDate: clampedStartDate,
-            endDate: clampedEndDate,
+            startDate: defaultRange.startDate,
+            endDate: defaultRange.endDate,
             groupBy: prev.groupBy || "hour",
         }));
     }, [show, dataPoints, dateBounds.startDate, dateBounds.endDate]);
@@ -736,6 +811,15 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
 
             return nextOptions;
         });
+    };
+
+    const applyPreset = (presetKey) => {
+        const preset = IOT_RANGE_PRESETS.find((item) => item.key === presetKey);
+        const range = getPresetRange(preset, dateBounds);
+        if (!range) return;
+
+        setHasUserAdjustedQuery(true);
+        setQueryOptions((prev) => ({ ...prev, startDate: range.startDate, endDate: range.endDate }));
     };
 
     const downloadChart = async () => {
@@ -1061,6 +1145,7 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
                                         <IoTQueryControls
                                             queryOptions={queryOptions}
                                             onChange={handleQueryOptionChange}
+                                            onPresetSelect={applyPreset}
                                             minDate={dateBounds.startDate}
                                             maxDate={dateBounds.endDate}
                                             compact
