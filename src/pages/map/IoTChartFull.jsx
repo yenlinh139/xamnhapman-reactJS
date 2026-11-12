@@ -191,30 +191,9 @@ const IoTQueryControls = ({ queryOptions, onChange, onPresetSelect, minDate, max
                 </select>
             </div>
 
-            {/* Giai đoạn */}
+            {/* Giai đoạn: <Từ> - <Đến> <dropdown chọn nhanh> cùng 1 hàng */}
             <div className="d-flex align-items-center gap-2 flex-wrap">
                 <label className="form-label fw-semibold small mb-0 text-nowrap">Giai đoạn:</label>
-
-                <div className="btn-group btn-group-sm" role="group">
-                    {IOT_RANGE_PRESETS.map((preset) => {
-                        const presetRange = getPresetRange(preset, bounds);
-                        const isActive =
-                            presetRange &&
-                            presetRange.startDate === queryOptions.startDate &&
-                            presetRange.endDate === queryOptions.endDate;
-
-                        return (
-                            <button
-                                key={preset.key}
-                                type="button"
-                                className={`btn ${isActive ? "btn-primary" : "btn-outline-primary"}`}
-                                onClick={() => onPresetSelect(preset.key)}
-                            >
-                                {preset.label}
-                            </button>
-                        );
-                    })}
-                </div>
 
                 <LocalizedDateInput
                     className="form-control form-control-sm"
@@ -237,6 +216,31 @@ const IoTQueryControls = ({ queryOptions, onChange, onPresetSelect, minDate, max
                     max={maxDate || undefined}
                     style={{ minWidth: 148 }}
                 />
+
+                <select
+                    className="form-select form-select-sm"
+                    style={{ minWidth: 130 }}
+                    value={
+                        IOT_RANGE_PRESETS.find((preset) => {
+                            const presetRange = getPresetRange(preset, bounds);
+                            return (
+                                presetRange &&
+                                presetRange.startDate === queryOptions.startDate &&
+                                presetRange.endDate === queryOptions.endDate
+                            );
+                        })?.key || ""
+                    }
+                    onChange={(e) => onPresetSelect(e.target.value)}
+                >
+                    <option value="" disabled>
+                        Chọn nhanh...
+                    </option>
+                    {IOT_RANGE_PRESETS.map((preset) => (
+                        <option key={preset.key} value={preset.key}>
+                            {preset.label}
+                        </option>
+                    ))}
+                </select>
             </div>
         </div>
     );
