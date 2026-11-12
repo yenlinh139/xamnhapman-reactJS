@@ -56,6 +56,21 @@ export const formatVNHour = (value) => {
     return `${hour}:${minute}`;
 };
 
+// "HH" (chỉ giờ, không phút) theo giờ VN - khớp đúng định dạng cột "Gio" trong file Excel nguồn
+// (vd "12" cho mốc 12:00).
+export const formatVNHourOnly = (value) => {
+    const date = toDate(value);
+    if (!date) return "";
+    const { hour } = getParts(date, { hour: "2-digit", hour12: false });
+    return hour;
+};
+
+// Giờ VN dạng số (0-23) - dùng để sort cột "Giờ" theo đúng thứ tự số, không phải chuỗi.
+export const getVNHourNumber = (value) => {
+    const formatted = formatVNHourOnly(value);
+    return formatted === "" ? null : Number(formatted);
+};
+
 // "HH:mm, dd/mm/yyyy" theo giờ VN - gọn cho trục X khi tần suất theo giờ, luôn có năm để không bị
 // nhầm giữa các năm khi chuỗi số liệu dài (fix lỗi "thiếu yyyy" trên trục X).
 export const formatVNTickDateTime = (value) => {

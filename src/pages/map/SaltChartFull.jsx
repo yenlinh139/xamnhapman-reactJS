@@ -8,7 +8,13 @@ import { downloadChartImage } from "@common/downloadChartImage";
 import * as XLSX from "xlsx";
 import { getDisplayStationName, getFilenameSafeStationName } from "@common/stationMapping";
 import { getSingleStationClassification, getRiskBadgeMeta } from "@common/salinityClassification";
-import { toVNDateKey, formatVNDate, formatVNDateTime, formatVNHour } from "@common/vnDateTime";
+import {
+    toVNDateKey,
+    formatVNDate,
+    formatVNDateTime,
+    formatVNHourOnly,
+    getVNHourNumber,
+} from "@common/vnDateTime";
 import { fetchSalinityDataDetail } from "@components/map/mapDataServices";
 import "@styles/components/_hydrometChart.scss";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
@@ -59,9 +65,15 @@ const ExportPreviewTable = ({ data, kiHieu }) => {
             let aValue = a[effectiveSort.key];
             let bValue = b[effectiveSort.key];
 
-            if (effectiveSort.key === "thoiDiem") {
-                aValue = new Date(aValue);
-                bValue = new Date(bValue);
+            if (effectiveSort.key === "thoiDiem" || effectiveSort.key === "ngay") {
+                // "ngay" vẫn sort theo đúng mốc thời gian đầy đủ (thoiDiem) - chỉ khác cách hiển
+                // thị, không phải 1 field riêng, nên không có chuyện 2 lần đo khác giờ cùng ngày
+                // bị coi là bằng nhau.
+                aValue = new Date(a.thoiDiem);
+                bValue = new Date(b.thoiDiem);
+            } else if (effectiveSort.key === "gio") {
+                aValue = getVNHourNumber(a.thoiDiem);
+                bValue = getVNHourNumber(b.thoiDiem);
             } else if (effectiveSort.key === "salinity") {
                 aValue = Number(aValue);
                 bValue = Number(bValue);
@@ -113,7 +125,24 @@ const ExportPreviewTable = ({ data, kiHieu }) => {
                                 {getSortIcon("thoiDiem")}
                             </div>
                         </th>
-                        <th style={{ width: "80px" }}>Giờ</th>
+                        <th
+                            style={{ cursor: "pointer", userSelect: "none" }}
+                            onClick={() => handleSort("ngay")}
+                        >
+                            <div className="d-flex align-items-center justify-content-between">
+                                <span>Ngày</span>
+                                {getSortIcon("ngay")}
+                            </div>
+                        </th>
+                        <th
+                            style={{ width: "70px", cursor: "pointer", userSelect: "none" }}
+                            onClick={() => handleSort("gio")}
+                        >
+                            <div className="d-flex align-items-center justify-content-between">
+                                <span>Giờ</span>
+                                {getSortIcon("gio")}
+                            </div>
+                        </th>
                         <th
                             style={{ cursor: "pointer", userSelect: "none" }}
                             onClick={() => handleSort("salinity")}
@@ -161,7 +190,8 @@ const ExportPreviewTable = ({ data, kiHieu }) => {
                             <tr key={idx}>
                                 <td>{idx + 1}</td>
                                 <td>{formatVNDateTime(item.thoiDiem)}</td>
-                                <td>{formatVNHour(item.thoiDiem)}</td>
+                                <td>{formatVNDate(item.thoiDiem)}</td>
+                                <td>{formatVNHourOnly(item.thoiDiem)}</td>
                                 <td
                                     className="text-end"
                                     style={
