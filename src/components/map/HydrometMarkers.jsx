@@ -1024,13 +1024,11 @@ export const renderHydrometStations = async (
                     );
                     marker.openPopup();
 
-                    // limit tối đa backend cho phép (1000) để mặc định hiện trọn chuỗi số liệu của
-                    // trạm thay vì chỉ 100 bản ghi gần nhất (item 6: "data hiện max-min mặc định
-                    // không giới hạn ngày"). orderBy ASC (thay vì DESC) để khi trạm có hơn 1000 bản
-                    // ghi, biểu đồ ưu tiên neo đúng mốc BẮT ĐẦU thật của chuỗi (vd 1990) thay vì bị
-                    // cắt cụt về phía quá khứ - phù hợp với mục đích xem "diễn biến" lịch sử.
+                    // Trần backend đã nâng lên 20000 (đủ cho trạm dày nhất ~13000 bản ghi/35 năm số
+                    // liệu ngày) để mặc định hiện TRỌN max-min của cả chuỗi, không giới hạn theo
+                    // ngày (thay vì chỉ 100 bản ghi gần nhất như trước).
                     const fetchResult = await fetchHydrometData(station.KiHieu, {
-                        limit: 1000,
+                        limit: 20000,
                         orderBy: "ASC",
                     });
                     const hydrometeorologyData = Array.isArray(fetchResult)
