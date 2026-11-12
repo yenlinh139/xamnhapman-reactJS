@@ -57,7 +57,7 @@ export const createUser = (params) => {
     };
 };
 
-export const deleteUser = (params) => {
+export const deleteUser = (params, onSuccess) => {
     return async (dispatch, getState) => {
         try {
             const resp = await axiosInstance.delete("/user", {
@@ -65,7 +65,11 @@ export const deleteUser = (params) => {
             });
             if (resp) {
                 dispatch(getListUser());
-                ToastCommon(TOAST.SUCCESS, "Xóa người dùng thành công");
+                if (typeof onSuccess === "function") {
+                    onSuccess();
+                } else {
+                    ToastCommon(TOAST.SUCCESS, "Xóa người dùng thành công");
+                }
             }
         } catch (error) {
             ToastCommon(TOAST.ERROR, error.response?.data?.message || error.message);
