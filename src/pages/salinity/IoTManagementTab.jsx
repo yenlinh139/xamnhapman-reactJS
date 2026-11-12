@@ -8,6 +8,7 @@ import { fetchAllIoTData, fetchIoTStations } from "@components/map/mapDataServic
 import { ToastCommon } from "@/components/ToastCommon";
 import { TOAST } from "@/common/constants";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
+import { toVNDateKey } from "@common/vnDateTime";
 
 const formatDateDisplay = (dateString) => {
     if (!dateString) return "";
@@ -47,7 +48,7 @@ const parseDisplayDateToIso = (value) => {
     return Number.isNaN(parsedDate.getTime()) ? null : isoDate;
 };
 
-const TODAY_ISO = new Date().toISOString().slice(0, 10);
+const TODAY_ISO = toVNDateKey(new Date());
 
 const DEFAULT_IOT_FILTERS = {
     serialNumber: "",

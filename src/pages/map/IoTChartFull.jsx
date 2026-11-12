@@ -475,8 +475,8 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
     useEffect(() => {
         if (forecastState.points.length > 0) {
             setForecastRange({
-                startDate: String(forecastState.points[0].time).slice(0, 10),
-                endDate: String(forecastState.points[forecastState.points.length - 1].time).slice(0, 10),
+                startDate: toVNDateKey(forecastState.points[0].time),
+                endDate: toVNDateKey(forecastState.points[forecastState.points.length - 1].time),
             });
         }
     }, [forecastState.points]);
@@ -486,8 +486,8 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
             return { min: undefined, max: undefined };
         }
         return {
-            min: String(forecastState.points[0].time).slice(0, 10),
-            max: String(forecastState.points[forecastState.points.length - 1].time).slice(0, 10),
+            min: toVNDateKey(forecastState.points[0].time),
+            max: toVNDateKey(forecastState.points[forecastState.points.length - 1].time),
         };
     }, [forecastState.points]);
 
@@ -496,12 +496,13 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
         setForecastRange((prev) => ({ ...prev, [name]: value }));
     };
 
-    // So sánh bằng chuỗi "YYYY-MM-DD" (timeGrid dự báo luôn có offset +07:00 tường minh nên an
-    // toàn khi so sánh trực tiếp bằng chuỗi, không cần dựng Date - xem SaltChartFull.jsx)
+    // dayKey PHẢI quy đổi tường minh về giờ VN (toVNDateKey) - KHÔNG cắt chuỗi thô: mốc dự báo
+    // thật từ server trả về dạng "...+00:00" (UTC) chứ không phải "+07:00" như data mẫu test ở
+    // local, nên cắt chuỗi thô từng ra sai lệch 1 ngày (xem SaltChartFull.jsx).
     const filteredForecastPoints = useMemo(() => {
         if (!forecastRange.startDate || !forecastRange.endDate) return forecastState.points;
         return forecastState.points.filter((p) => {
-            const dayKey = String(p.time).slice(0, 10);
+            const dayKey = toVNDateKey(p.time);
             return dayKey >= forecastRange.startDate && dayKey <= forecastRange.endDate;
         });
     }, [forecastState.points, forecastRange]);
@@ -510,7 +511,7 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
         const seenDays = new Set();
         const result = [];
         for (const p of filteredForecastPoints) {
-            const dayKey = String(p.time).slice(0, 10);
+            const dayKey = toVNDateKey(p.time);
             if (seenDays.has(dayKey)) continue;
             seenDays.add(dayKey);
             if (p.dailySalinity === null || p.dailySalinity === undefined) continue;
@@ -915,8 +916,7 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
             metaWorksheet["!cols"] = [{ wch: 20 }, { wch: 30 }];
             XLSX.utils.book_append_sheet(workbook, metaWorksheet, "Th\u00F4ng tin");
 
-            const toFileDate = (time) => String(time).slice(0, 10);
-            const fileName = `du_bao_do_man_iot_${serialNumber}_${toFileDate(points[0].time)}_${toFileDate(points[points.length - 1].time)}.xlsx`;
+            const fileName = `du_bao_do_man_iot_${serialNumber}_${toVNDateKey(points[0].time)}_${toVNDateKey(points[points.length - 1].time)}.xlsx`;
             XLSX.writeFile(workbook, fileName, { bookType: "xlsx" });
         } catch (error) {
             console.error("\u274C Xu\u1EA5t Excel d\u1EF1 b\u00E1o l\u1ED7i:", error);

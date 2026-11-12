@@ -235,20 +235,20 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
             return { min: undefined, max: undefined };
         }
         return {
-            min: String(forecastState.points[0].time).slice(0, 10),
-            max: String(forecastState.points[forecastState.points.length - 1].time).slice(0, 10),
+            min: toVNDateKey(forecastState.points[0].time),
+            max: toVNDateKey(forecastState.points[forecastState.points.length - 1].time),
         };
     }, [forecastState.points]);
 
-    // Dữ liệu dự báo sau khi áp dụng Giai đoạn đã chọn (mặc định = toàn bộ chuỗi).
-    // So sánh bằng chuỗi "YYYY-MM-DD" (không dựng đối tượng Date) để tránh lệch múi giờ khi
-    // parse chuỗi ngày không có offset (new Date("2024-09-20") bị hiểu là UTC midnight, có thể
-    // lệch vài tiếng so với mốc dữ liệu thật tính theo giờ VN - xem bug tương tự ở forecastTime.js).
+    // Dữ liệu dự báo sau khi áp dụng Giai đoạn đã chọn (mặc định = toàn bộ chuỗi). dayKey PHẢI quy
+    // đổi tường minh về giờ VN (toVNDateKey) - KHÔNG cắt chuỗi thô (String(p.time).slice(0,10)):
+    // mốc dự báo thật từ server trả về dạng "...+00:00" (UTC) chứ không phải "+07:00" như data mẫu
+    // test ở local, nên cắt chuỗi thô từng ra sai lệch 1 ngày (vd "2024-09-19" thay vì "2024-09-20").
     const filteredForecastPoints = React.useMemo(() => {
         if (!forecastRange.startDate || !forecastRange.endDate) return forecastState.points;
 
         return forecastState.points.filter((p) => {
-            const dayKey = String(p.time).slice(0, 10);
+            const dayKey = toVNDateKey(p.time);
             return dayKey >= forecastRange.startDate && dayKey <= forecastRange.endDate;
         });
     }, [forecastState.points, forecastRange]);
@@ -258,7 +258,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
         const seenDays = new Set();
         const result = [];
         for (const p of filteredForecastPoints) {
-            const dayKey = String(p.time).slice(0, 10);
+            const dayKey = toVNDateKey(p.time);
             if (seenDays.has(dayKey)) continue;
             seenDays.add(dayKey);
             if (p.dailySalinity === null || p.dailySalinity === undefined) continue;
@@ -328,8 +328,8 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
     useEffect(() => {
         if (forecastState.points.length > 0) {
             setForecastRange({
-                startDate: String(forecastState.points[0].time).slice(0, 10),
-                endDate: String(forecastState.points[forecastState.points.length - 1].time).slice(0, 10),
+                startDate: toVNDateKey(forecastState.points[0].time),
+                endDate: toVNDateKey(forecastState.points[forecastState.points.length - 1].time),
             });
         }
     }, [forecastState.points]);
@@ -509,7 +509,7 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
             metaWorksheet["!cols"] = [{ wch: 20 }, { wch: 30 }];
             XLSX.utils.book_append_sheet(workbook, metaWorksheet, "Thông tin");
 
-            const toFileDate = (time) => String(time).slice(0, 10);
+            const toFileDate = (time) => toVNDateKey(time);
             const fileName = `du_bao_do_man_${filenameSafeName}_${toFileDate(points[0].time)}_${toFileDate(points[points.length - 1].time)}.xlsx`;
             XLSX.writeFile(workbook, fileName, { bookType: "xlsx" });
         } catch (error) {

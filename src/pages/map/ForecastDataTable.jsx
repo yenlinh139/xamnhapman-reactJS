@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { getRiskBadgeMeta } from "@common/salinityClassification";
+import { toVNDateKey } from "@common/vnDateTime";
 
 const parseNumber = (value) => {
     if (value === null || value === undefined || value === "" || value === "NULL") {
@@ -100,9 +101,9 @@ const ForecastDataTable = ({ points, kiHieu }) => {
         const spans = new Array(sortedPoints.length).fill(0);
         let i = 0;
         while (i < sortedPoints.length) {
-            const dayKey = String(sortedPoints[i].time).slice(0, 10);
+            const dayKey = toVNDateKey(sortedPoints[i].time);
             let j = i + 1;
-            while (j < sortedPoints.length && String(sortedPoints[j].time).slice(0, 10) === dayKey) {
+            while (j < sortedPoints.length && toVNDateKey(sortedPoints[j].time) === dayKey) {
                 j++;
             }
             spans[i] = j - i;
