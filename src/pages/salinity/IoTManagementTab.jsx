@@ -9,6 +9,7 @@ import { ToastCommon } from "@/components/ToastCommon";
 import { TOAST } from "@/common/constants";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
 import { toVNDateKey } from "@common/vnDateTime";
+import { getRiskBadgeMeta } from "@common/salinityClassification";
 
 const formatDateDisplay = (dateString) => {
     if (!dateString) return "";
@@ -645,7 +646,43 @@ const IoTManagementTab = ({ userInfo }) => {
                                                 row.DeviceSerialNumber ||
                                                 "-"}
                                         </td>
-                                        <td>{formatMetric(row.salt_value ?? row.salt_value_avg, 2)}</td>
+                                        <td>
+                                            {(() => {
+                                                const saltValue = row.salt_value ?? row.salt_value_avg;
+                                                const risk = getRiskBadgeMeta(
+                                                    saltValue,
+                                                    row.station_code || row.serial_number,
+                                                );
+                                                const hasValue =
+                                                    saltValue !== null &&
+                                                    saltValue !== undefined &&
+                                                    saltValue !== "" &&
+                                                    !Number.isNaN(Number(saltValue));
+
+                                                if (!hasValue) return "-";
+
+                                                return (
+                                                    <div className="d-flex align-items-center gap-2">
+                                                        <span
+                                                            className="fw-semibold"
+                                                            style={{ color: risk.textColor }}
+                                                        >
+                                                            {formatMetric(saltValue, 2)}
+                                                        </span>
+                                                        <span
+                                                            className="badge rounded-pill"
+                                                            title={risk.description}
+                                                            style={{
+                                                                backgroundColor: risk.textColor,
+                                                                color: "#fff",
+                                                            }}
+                                                        >
+                                                            {risk.label}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })()}
+                                        </td>
                                         <td>
                                             {formatMetric(row.distance_value ?? row.distance_value_avg, 2)}
                                         </td>
