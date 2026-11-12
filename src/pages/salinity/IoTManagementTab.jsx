@@ -10,6 +10,8 @@ import { TOAST } from "@/common/constants";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
 import { toVNDateKey } from "@common/vnDateTime";
 import { getRiskBadgeMeta } from "@common/salinityClassification";
+import { useSortableRows } from "@common/useSortableRows";
+import SortableHeader from "@components/common/SortableHeader";
 
 const formatDateDisplay = (dateString) => {
     if (!dateString) return "";
@@ -508,6 +510,22 @@ const IoTManagementTab = ({ userInfo }) => {
         }
     };
 
+    const getSortValue = useCallback((row, key) => {
+        if (key === "date_time") return new Date(row.date_time || row.Date || row.timestamp).getTime();
+        if (key === "station_name") return row.station_name || row.stationName || "";
+        if (key === "serial_number") return row.serial_number || row.serialNumber || row.DeviceSerialNumber || "";
+        if (key === "salt_value") return Number(row.salt_value ?? row.salt_value_avg);
+        if (key === "distance_value") return Number(row.distance_value ?? row.distance_value_avg);
+        if (key === "daily_rainfall_value") return Number(row.daily_rainfall_value ?? row.daily_rainfall_value_sum);
+        if (key === "temp_value") return Number(row.temp_value ?? row.temp_value_avg);
+        return row[key];
+    }, []);
+    const { sortedRows, sortConfig, handleSort } = useSortableRows(iotDataRows, {
+        defaultKey: "date_time",
+        defaultDirection: "desc",
+        getSortValue,
+    });
+
     return (
         <div className="iot-management-tab">
             {dataLoading && !iotDataRows.length && <Loading />}
@@ -616,18 +634,18 @@ const IoTManagementTab = ({ userInfo }) => {
                             <thead className="table-primary">
                                 <tr>
                                     <th>#</th>
-                                    <th>Thời gian</th>
-                                    <th>Tên trạm</th>
-                                    <th>Serial</th>
-                                    <th>Độ mặn (‰)</th>
-                                    <th>Mực nước (cm)</th>
-                                    <th>Lượng mưa (mm)</th>
-                                    <th>Nhiệt độ (°C)</th>
+                                    <SortableHeader label="Thời gian" sortKey="date_time" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableHeader label="Tên trạm" sortKey="station_name" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableHeader label="Serial" sortKey="serial_number" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableHeader label="Độ mặn (‰)" sortKey="salt_value" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableHeader label="Mực nước (cm)" sortKey="distance_value" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableHeader label="Lượng mưa (mm)" sortKey="daily_rainfall_value" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableHeader label="Nhiệt độ (°C)" sortKey="temp_value" sortConfig={sortConfig} onSort={handleSort} />
                                     {userInfo && <th style={{ width: 160 }}>Thao tác</th>}
                                 </tr>
                             </thead>
                             <tbody>
-                                {iotDataRows.map((row, index) => (
+                                {sortedRows.map((row, index) => (
                                     <tr
                                         key={
                                             row.id ||

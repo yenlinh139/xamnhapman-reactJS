@@ -7,6 +7,10 @@ import { ToastCommon } from "@/components/ToastCommon";
 import { TOAST } from "@/common/constants";
 import { getRiskBadgeMeta } from "@common/salinityClassification";
 import { toVNDateKey, formatVNDateTime } from "@common/vnDateTime";
+import { useSortableRows } from "@common/useSortableRows";
+import SortableHeader from "@components/common/SortableHeader";
+import LocalizedDateInput from "@components/common/LocalizedDateInput";
+import LocalizedDateTimeInput from "@components/common/LocalizedDateTimeInput";
 
 const STATION_NAMES = {
     CRT: "Cầu Rạch Tra",
@@ -97,14 +101,11 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
 
     const [deleteTarget, setDeleteTarget] = useState(null);
 
-    // Khoảng ngày-giờ hiện có của trạm đang lọc (khóa "Từ ngày"/"Đến ngày" trong khoảng này).
+    // Khoảng ngày-giờ hiện có (khóa "Từ ngày"/"Đến ngày" trong khoảng này) - dùng khoảng của
+    // đúng trạm đang lọc, hoặc khoảng CHUNG của tất cả trạm khi đang chọn "Tất cả điểm đo".
     useEffect(() => {
-        if (!filterKiHieu) {
-            setFilterRange({ minTime: null, maxTime: null, total: 0 });
-            return;
-        }
         axiosInstance
-            .get(`/salinity-detail/range/${filterKiHieu}`)
+            .get(`/salinity-detail/range/${filterKiHieu || "all"}`)
             .then((res) => setFilterRange(res.data))
             .catch(() => setFilterRange({ minTime: null, maxTime: null, total: 0 }));
     }, [filterKiHieu]);
@@ -266,6 +267,17 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
         [],
     );
 
+    const getSortValue = useCallback((row, key) => {
+        if (key === "ThoiDiem") return new Date(row.ThoiDiem).getTime();
+        if (key === "KiHieu") return STATION_NAMES[row.KiHieu] || row.KiHieu || "";
+        return Number(row[key]);
+    }, []);
+    const { sortedRows, sortConfig, handleSort } = useSortableRows(rows, {
+        defaultKey: "ThoiDiem",
+        defaultDirection: "desc",
+        getSortValue,
+    });
+
     return (
         <div className="salinity-detail-management-tab">
             {loading && !rows.length && <Loading />}
@@ -297,14 +309,12 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
 
                         <div className="filter-group filter-group-date">
                             <label htmlFor="salinityDetailStart">Từ ngày:</label>
-                            <input
+                            <LocalizedDateInput
                                 id="salinityDetailStart"
-                                type="date"
                                 className="filter-input"
                                 value={filterStart}
                                 min={filterMinDate || undefined}
-                                max={filterMaxDate || undefined}
-                                disabled={!filterKiHieu}
+                                max={filterEnd || filterMaxDate || undefined}
                                 onChange={(e) => {
                                     setCurrentPage(1);
                                     setFilterStart(e.target.value);
@@ -314,14 +324,12 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
 
                         <div className="filter-group filter-group-date">
                             <label htmlFor="salinityDetailEnd">Đến ngày:</label>
-                            <input
+                            <LocalizedDateInput
                                 id="salinityDetailEnd"
-                                type="date"
                                 className="filter-input"
                                 value={filterEnd}
-                                min={filterMinDate || undefined}
+                                min={filterStart || filterMinDate || undefined}
                                 max={filterMaxDate || undefined}
-                                disabled={!filterKiHieu}
                                 onChange={(e) => {
                                     setCurrentPage(1);
                                     setFilterEnd(e.target.value);
@@ -367,17 +375,17 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
                             <thead className="table-primary">
                                 <tr>
                                     <th>#</th>
-                                    <th>Thời điểm</th>
-                                    <th>Điểm đo</th>
-                                    <th>Độ mặn (‰)</th>
-                                    <th>pH</th>
-                                    <th>EC (S/m)</th>
-                                    <th>Độ đục (NTU)</th>
+                                    <SortableHeader label="Thời điểm" sortKey="ThoiDiem" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableHeader label="Điểm đo" sortKey="KiHieu" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableHeader label="Độ mặn (‰)" sortKey="DoMan" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableHeader label="pH" sortKey="pH" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableHeader label="EC (S/m)" sortKey="DoDanDien" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableHeader label="Độ đục (NTU)" sortKey="DoDuc" sortConfig={sortConfig} onSort={handleSort} />
                                     {userInfo && <th style={{ width: 160 }}>Thao tác</th>}
                                 </tr>
                             </thead>
                             <tbody>
-                                {rows.map((row, index) => {
+                                {sortedRows.map((row, index) => {
                                     const risk = getRiskBadgeMeta(row.DoMan, row.KiHieu);
                                     const hasValue =
                                         row.DoMan !== null && row.DoMan !== undefined && !Number.isNaN(Number(row.DoMan));
@@ -497,8 +505,8 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
                                         </div>
                                         <div className="col-md-6">
                                             <label className="form-label required">Thời điểm (ngày + giờ)</label>
-                                            <input
-                                                type="datetime-local"
+                                            <LocalizedDateTimeInput
+                                                id="salinityDetailThoiDiem"
                                                 className={`form-control ${formErrors.ThoiDiem ? "is-invalid" : ""}`}
                                                 value={form.ThoiDiem}
                                                 min={formMinDateTime || undefined}

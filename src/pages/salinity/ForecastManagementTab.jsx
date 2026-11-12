@@ -7,6 +7,8 @@ import axiosInstance from "@config/axios-config";
 import { ToastCommon } from "@/components/ToastCommon";
 import { TOAST } from "@/common/constants";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
+import { useSortableRows } from "@common/useSortableRows";
+import SortableHeader from "@components/common/SortableHeader";
 
 const FORECAST_TIMEZONE = "Asia/Ho_Chi_Minh";
 const FORECAST_TZ_OFFSET = "+07:00";
@@ -434,6 +436,16 @@ const ForecastManagementTab = ({ userInfo }) => {
         }
     };
 
+    const getSortValue = useCallback((row, key) => {
+        if (key === "ThoiDiem") return new Date(row.ThoiDiem).getTime();
+        return row[key];
+    }, []);
+    const { sortedRows, sortConfig, handleSort } = useSortableRows(rows, {
+        defaultKey: "ThoiDiem",
+        defaultDirection: "desc",
+        getSortValue,
+    });
+
     return (
         <div className="forecast-management-tab">
             {dataLoading && !rows.length && <Loading />}
@@ -605,7 +617,7 @@ const ForecastManagementTab = ({ userInfo }) => {
                                         </th>
                                     )}
                                     <th>#</th>
-                                    <th>Thời điểm</th>
+                                    <SortableHeader label="Thời điểm" sortKey="ThoiDiem" sortConfig={sortConfig} onSort={handleSort} />
                                     {showRunColumn && <th>Lượt dự báo</th>}
                                     {stations.map((s) => (
                                         <th
@@ -619,7 +631,7 @@ const ForecastManagementTab = ({ userInfo }) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {rows.map((row, index) => {
+                                {sortedRows.map((row, index) => {
                                     const rowKey = getRowKey(row);
                                     return (
                                         <tr key={rowKey}>
