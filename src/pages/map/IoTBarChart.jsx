@@ -173,10 +173,9 @@ const IoTCustomTooltip = ({ active, payload, label }) => {
             {trendMeta && (
                 <p className="mb-0" style={{ color: trendMeta.color }}>
                     {trendMeta.icon} Xu thế độ mặn: {trendMeta.label}{" "}
-                    {formatNumberVi(Math.abs(trend.difference), 2)}‰ so với mốc trước
-                    {Number.isFinite(trend.ratePerHour)
-                        ? ` (tốc độ ${trend.ratePerHour >= 0 ? "+" : ""}${formatNumberVi(trend.ratePerHour, 3)}‰/giờ)`
-                        : ""}
+                    {trend.direction !== "stable" && (
+                        <> {formatNumberVi(Math.abs(trend.difference), 2)}‰</>
+                    )}
                 </p>
             )}
         </div>
