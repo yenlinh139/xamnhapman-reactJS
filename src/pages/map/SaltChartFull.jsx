@@ -16,6 +16,7 @@ import {
     getVNHourNumber,
 } from "@common/vnDateTime";
 import { fetchSalinityDataDetail } from "@components/map/mapDataServices";
+import { DATE_RANGE_PRESETS, getPresetRange, findActivePresetKey } from "@common/dateRangePresets";
 import "@styles/components/_hydrometChart.scss";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
 
@@ -507,31 +508,39 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
             });
     }, [mainTab, hasForecast, kiHieu, forecastState.loaded, forecastState.loading]);
 
-    const handleDateRangeChange = (e) => {
-        const { name, value } = e.target;
-        setExportRange((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
+    // Lọc lại data/detailData theo đúng 1 khoảng ngày (dùng chung cho gõ tay lẫn chọn nhanh preset)
+    const applyActualDateRange = (nextStartDate, nextEndDate) => {
+        setExportRange({ startDate: nextStartDate, endDate: nextEndDate });
+
+        if (!nextStartDate || !nextEndDate || nextStartDate > nextEndDate) return;
 
         // So sánh bằng chuỗi "YYYY-MM-DD" (dùng toLocalDateKey, KHÔNG cắt chuỗi ISO trực tiếp -
         // xem giải thích ở toLocalDateKey phía trên)
+        const filtered = data.filter((item) => {
+            const dayKey = toLocalDateKey(item.date);
+            return dayKey >= nextStartDate && dayKey <= nextEndDate;
+        });
+        setFilteredData(filtered);
+
+        const filteredDetail = detailData.filter((item) => {
+            const dayKey = toLocalDateKey(item.thoiDiem);
+            return dayKey >= nextStartDate && dayKey <= nextEndDate;
+        });
+        setFilteredDetailData(filteredDetail);
+    };
+
+    const handleDateRangeChange = (e) => {
+        const { name, value } = e.target;
         const nextStartDate = name === "startDate" ? value : exportRange.startDate;
         const nextEndDate = name === "endDate" ? value : exportRange.endDate;
+        applyActualDateRange(nextStartDate, nextEndDate);
+    };
 
-        if (nextStartDate && nextEndDate && nextStartDate <= nextEndDate) {
-            const filtered = data.filter((item) => {
-                const dayKey = toLocalDateKey(item.date);
-                return dayKey >= nextStartDate && dayKey <= nextEndDate;
-            });
-            setFilteredData(filtered);
-
-            const filteredDetail = detailData.filter((item) => {
-                const dayKey = toLocalDateKey(item.thoiDiem);
-                return dayKey >= nextStartDate && dayKey <= nextEndDate;
-            });
-            setFilteredDetailData(filteredDetail);
-        }
+    const applyActualPreset = (presetKey) => {
+        const preset = DATE_RANGE_PRESETS.find((item) => item.key === presetKey);
+        const range = getPresetRange(preset, { startDate: actualBounds.min, endDate: actualBounds.max });
+        if (!range) return;
+        applyActualDateRange(range.startDate, range.endDate);
     };
 
     const handleExportExcel = async () => {
@@ -796,6 +805,25 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                             max={actualBounds.max}
                                             style={{ width: 145, minWidth: 145 }}
                                         />
+                                        <select
+                                            className="form-select form-select-sm"
+                                            style={{ width: 100, minWidth: 100 }}
+                                            value={findActivePresetKey(
+                                                exportRange.startDate,
+                                                exportRange.endDate,
+                                                { startDate: actualBounds.min, endDate: actualBounds.max },
+                                            )}
+                                            onChange={(e) => applyActualPreset(e.target.value)}
+                                        >
+                                            <option value="" disabled>
+                                                Chọn nhanh...
+                                            </option>
+                                            {DATE_RANGE_PRESETS.map((preset) => (
+                                                <option key={preset.key} value={preset.key}>
+                                                    {preset.label}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
                                 )}
 
