@@ -171,11 +171,11 @@ const IoTQueryControls = ({ queryOptions, onChange, onPresetSelect, minDate, max
 
     return (
         <div
-            className={`d-flex flex-wrap align-items-center gap-2 ${compact ? "mb-0" : "mb-2"}`}
-            style={{ flexShrink: 0, rowGap: 6 }}
+            className={`d-flex flex-nowrap align-items-center gap-1 ${compact ? "mb-0" : "mb-2"}`}
+            style={{ flexShrink: 0 }}
         >
             {/* Tần số - đưa lên trước */}
-            <div className="d-flex align-items-center gap-2">
+            <div className="d-flex align-items-center gap-1 flex-shrink-0">
                 <label className="form-label fw-semibold small mb-0 text-nowrap">Tần suất:</label>
 
                 <select
@@ -183,7 +183,7 @@ const IoTQueryControls = ({ queryOptions, onChange, onPresetSelect, minDate, max
                     name="groupBy"
                     value={queryOptions.groupBy}
                     onChange={onChange}
-                    style={{ minWidth: 112 }}
+                    style={{ width: 84 }}
                 >
                     <option value="none">5 phút</option>
                     <option value="date">Ngày</option>
@@ -191,8 +191,8 @@ const IoTQueryControls = ({ queryOptions, onChange, onPresetSelect, minDate, max
                 </select>
             </div>
 
-            {/* Giai đoạn: <Từ> - <Đến> <dropdown chọn nhanh> cùng 1 hàng */}
-            <div className="d-flex align-items-center gap-2 flex-wrap">
+            {/* Giai đoạn: <Từ> - <Đến> <dropdown chọn nhanh> cùng 1 hàng, không xuống dòng */}
+            <div className="d-flex flex-nowrap align-items-center gap-1 flex-shrink-0">
                 <label className="form-label fw-semibold small mb-0 text-nowrap">Giai đoạn:</label>
 
                 <LocalizedDateInput
@@ -202,7 +202,7 @@ const IoTQueryControls = ({ queryOptions, onChange, onPresetSelect, minDate, max
                     onChange={onChange}
                     min={minDate || undefined}
                     max={maxDate || undefined}
-                    style={{ minWidth: 148 }}
+                    style={{ width: 110 }}
                 />
 
                 <span className="text-muted">-</span>
@@ -214,12 +214,12 @@ const IoTQueryControls = ({ queryOptions, onChange, onPresetSelect, minDate, max
                     onChange={onChange}
                     min={queryOptions.startDate || minDate || undefined}
                     max={maxDate || undefined}
-                    style={{ minWidth: 148 }}
+                    style={{ width: 110 }}
                 />
 
                 <select
                     className="form-select form-select-sm"
-                    style={{ minWidth: 130 }}
+                    style={{ width: 100 }}
                     value={
                         IOT_RANGE_PRESETS.find((preset) => {
                             const presetRange = getPresetRange(preset, bounds);
