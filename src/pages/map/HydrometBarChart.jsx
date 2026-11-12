@@ -412,6 +412,12 @@ const HydrometBarChart = ({ data, height = 600 }) => {
     const niceMinTemp = Math.floor(minTemp / tempStep) * tempStep;
     const niceMaxTemp = Math.ceil(maxTemp / tempStep) * tempStep;
 
+    // Lượng mưa trước đây nhân thêm 1.2 lần max rồi ceil ra số lẻ (vd max thật 318mm -> trần trục
+    // 382mm), nhìn khó hiểu vì không bám sát giá trị thật đang hiển thị. Làm tròn lên bước "đẹp"
+    // giống trục nhiệt độ/mực nước ở trên, không nhân thêm hệ số phụ.
+    const rainfallStep = getNiceStep(maxRainfall || 1);
+    const niceMaxRainfall = Math.max(Math.ceil((maxRainfall || 1) / rainfallStep) * rainfallStep, rainfallStep);
+
     return (
         <>
             {isLoading ? (
@@ -455,7 +461,9 @@ const HydrometBarChart = ({ data, height = 600 }) => {
                             <YAxis
                                 yAxisId="rainfall"
                                 orientation="left"
-                                domain={[0, Math.ceil(maxRainfall * 1.2)]}
+                                domain={[0, niceMaxRainfall]}
+                                tickCount={6}
+                                allowDecimals={false}
                                 tickFormatter={(value) => `${value}mm`}
                                 tick={{ fontSize: height < 300 ? 10 : 16, fill: "#0d6efd" }}
                                 width={height < 300 ? 50 : 90}
