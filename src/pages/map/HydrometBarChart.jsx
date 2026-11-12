@@ -369,15 +369,18 @@ const HydrometBarChart = ({ data, height = 600 }) => {
     // Chuỗi số liệu ngắn (vd chỉ vài tháng trong cùng 1 năm) chỉ có 1 năm duy nhất -> ticksByYear
     // chỉ ra 1 mốc, trục X trông như "thiếu ngày". Khi đó chuyển sang chọn N mốc rải đều theo chỉ
     // số thay vì theo năm.
+    // Chuỗi ngắn (<= MAX_FULL_TICKS điểm, vd giai đoạn 7 ngày) ghi nhãn đủ mọi ngày - rải đều N mốc
+    // với N < số điểm sẽ làm rơi ngẫu nhiên 1 ngày ở giữa (vd 7 điểm/6 mốc -> mất ngày thứ 4).
     const MIN_TICK_COUNT = 4;
+    const MAX_FULL_TICKS = 15;
     const xAxisTicks =
         ticksByYear.length >= MIN_TICK_COUNT
             ? ticksByYear
             : (() => {
-                  const tickCount = Math.min(6, formattedData.length);
-                  if (formattedData.length <= tickCount) {
+                  if (formattedData.length <= MAX_FULL_TICKS) {
                       return formattedData.map((d) => d.dateValue);
                   }
+                  const tickCount = 8;
                   const step = (formattedData.length - 1) / (tickCount - 1);
                   const indices = new Set();
                   for (let i = 0; i < tickCount; i += 1) {

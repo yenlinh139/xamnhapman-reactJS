@@ -15,6 +15,7 @@ import { getRiskBadgeMeta, getSingleStationClassification } from "@common/salini
 import { IOT_STATION_FORECAST_MAP } from "@components/map/IoTMarkers";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
 import { toVNDateKey, formatVNDate, formatVNTickDateTime } from "@common/vnDateTime";
+import { DATE_RANGE_PRESETS, getPresetRange } from "@common/dateRangePresets";
 import "@styles/components/_hydrometChart.scss";
 
 const EMPTY_DATA = [];
@@ -106,37 +107,8 @@ const getRangeFromRows = (rows) => {
     };
 };
 
-// Giai đoạn chọn sẵn cho Quan trắc IoT - mặc định 7 ngày (gần mốc dữ liệu mới nhất, không phải
-// "hôm nay", vì trạm có thể đã ngừng gửi dữ liệu trước đó - xem dateBounds bên dưới).
-const IOT_RANGE_PRESETS = [
-    { key: "7d", label: "7 ngày", days: 7 },
-    { key: "30d", label: "30 ngày", days: 30 },
-    { key: "90d", label: "90 ngày", days: 90 },
-    { key: "all", label: "Toàn bộ", days: null },
-];
-
-const addDaysToIsoDate = (isoDate, days) => {
-    const [y, m, d] = isoDate.split("-").map(Number);
-    const date = new Date(y, m - 1, d);
-    date.setDate(date.getDate() + days);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-};
-
-// bounds = { startDate, endDate } (ISO, từ dateBounds) - "neo" theo endDate thật của chuỗi số
-// liệu, không phải ngày hệ thống hôm nay.
-const getPresetRange = (preset, bounds) => {
-    if (!preset || !bounds?.endDate) return null;
-    if (preset.days === null) {
-        return { startDate: bounds.startDate || "", endDate: bounds.endDate };
-    }
-
-    const computedStart = addDaysToIsoDate(bounds.endDate, -(preset.days - 1));
-    const startDate = bounds.startDate && computedStart < bounds.startDate ? bounds.startDate : computedStart;
-    return { startDate, endDate: bounds.endDate };
-};
+// Giai đoạn chọn sẵn cho Quan trắc IoT - dùng chung với các modal khác (xem @common/dateRangePresets).
+const IOT_RANGE_PRESETS = DATE_RANGE_PRESETS;
 
 const filterRowsByDateRange = (rows, startDate, endDate) => {
     if (!startDate && !endDate) return rows;

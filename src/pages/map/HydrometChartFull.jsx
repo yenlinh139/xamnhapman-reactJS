@@ -5,6 +5,8 @@ import html2canvas from "html2canvas";
 import { getDisplayStationName, getFilenameSafeStationName } from "@common/stationMapping";
 import "@styles/components/_hydrometChart.scss";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
+import RangePresetSelect from "@components/common/RangePresetSelect";
+import { DEFAULT_DATE_RANGE_PRESET, getPresetRange, getPresetRangeByKey } from "@common/dateRangePresets";
 
 const parseNumber = (value) => {
     if (value === null || value === undefined || value === "" || value === "NULL") {
@@ -227,7 +229,6 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
         endDate: "",
     });
     const [filteredData, setFilteredData] = useState([]);
-    const [presetRange, setPresetRange] = useState("all");
     const [activeTab, setActiveTab] = useState("chart");
 
     // Helper function to convert date format to ISO (handle both DD/MM/YYYY and MM/DD/YYYY)
@@ -260,6 +261,12 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
         return dateStr.includes("T") ? dateStr.split("T")[0] : dateStr;
     };
 
+    const toIsoDate = (dateValue) => {
+        if (!dateValue) return "";
+        const str = String(dateValue);
+        return str.includes("/") ? convertVietnameseDateToISO(str) : str.split("T")[0];
+    };
+
     useEffect(() => {
         if (show && hydrometData) {
             // Filter out invalid data
@@ -285,26 +292,23 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
             });
 
             setData(sortedData);
-            setFilteredChartData(sortedData);
-            setFilteredData(sortedData);
 
             if (sortedData.length > 0) {
-                // Get actual first (earliest) and last (latest) dates
-                const firstDate = sortedData[0].date || sortedData[0].Ngày;
-                const lastDate =
-                    sortedData[sortedData.length - 1].date || sortedData[sortedData.length - 1].Ngày;
+                // Mặc định mở lên hiển thị 7 ngày gần nhất (tính từ mốc dữ liệu mới nhất).
+                const bounds = {
+                    startDate: toIsoDate(sortedData[0].date || sortedData[0].Ngày),
+                    endDate: toIsoDate(
+                        sortedData[sortedData.length - 1].date || sortedData[sortedData.length - 1].Ngày,
+                    ),
+                };
+                const defaultRange = getPresetRange(DEFAULT_DATE_RANGE_PRESET, bounds) || bounds;
 
-                const startDateISO = firstDate.includes("/")
-                    ? convertVietnameseDateToISO(firstDate)
-                    : firstDate.split("T")[0];
-                const endDateISO = lastDate.includes("/")
-                    ? convertVietnameseDateToISO(lastDate)
-                    : lastDate.split("T")[0];
-
-                setChartDateRange({
-                    startDate: startDateISO,
-                    endDate: endDateISO,
-                });
+                setChartDateRange(defaultRange);
+                filterChartData(defaultRange.startDate, defaultRange.endDate, sortedData);
+            } else {
+                setFilteredChartData([]);
+                setFilteredData([]);
+                setChartDateRange({ startDate: "", endDate: "" });
             }
         } else {
             setData([]);
@@ -322,30 +326,18 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
         }
     }, [show]);
 
-    // Function to filter chart data based on date range
-    const filterChartData = (startDate, endDate) => {
-        if (!startDate || !endDate || !data.length) {
-            setFilteredChartData(data);
-            setFilteredData(data);
+    // Lọc theo khoảng ngày - so sánh chuỗi ISO (yyyy-mm-dd) dùng cùng hàm chuẩn hóa với min/max
+    // của input để kết quả lọc nhất quán với phạm vi hiển thị.
+    const filterChartData = (startDate, endDate, sourceData = data) => {
+        if (!startDate || !endDate || !sourceData.length) {
+            setFilteredChartData(sourceData);
+            setFilteredData(sourceData);
             return;
         }
 
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-
-        const filtered = data.filter((item) => {
-            const dateValue = item.date || item.Ngày;
-            let itemDate;
-
-            // Handle Vietnamese date format (dd/MM/yyyy)
-            if (typeof dateValue === "string" && dateValue.includes("/")) {
-                const [day, month, year] = dateValue.split("/");
-                itemDate = new Date(year, month - 1, day);
-            } else {
-                itemDate = new Date(dateValue);
-            }
-
-            return itemDate >= start && itemDate <= end;
+        const filtered = sourceData.filter((item) => {
+            const iso = toIsoDate(item.date || item.Ngày);
+            return iso >= startDate && iso <= endDate;
         });
 
         setFilteredChartData(filtered);
@@ -360,85 +352,25 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
             [name]: value,
         };
         setChartDateRange(newRange);
-        setPresetRange("custom");
 
         if (newRange.startDate && newRange.endDate) {
             filterChartData(newRange.startDate, newRange.endDate);
         }
     };
 
-    // Handle preset range selection
-    const handlePresetRange = (preset) => {
-        setPresetRange(preset);
-
+    // Chọn nhanh giai đoạn (7/30/90 ngày, Toàn bộ) - neo theo mốc dữ liệu mới nhất của trạm.
+    const handlePresetRange = (presetKey) => {
         if (!data.length) return;
 
-        // Get the last date from actual data instead of today
-        const getLastDataDate = () => {
-            const lastItem = data[data.length - 1];
-            const dateValue = lastItem.date || lastItem.Ngày;
-
-            // Handle date format (including MM/DD/YYYY from API)
-            if (typeof dateValue === "string" && dateValue.includes("/")) {
-                const parts = dateValue.split("/");
-                const [first, second, year] = parts;
-
-                let month, day;
-                if (parseInt(first) <= 12 && parseInt(second) <= 31) {
-                    // MM/DD/YYYY format (common from API)
-                    month = parseInt(first) - 1; // JS months are 0-based
-                    day = parseInt(second);
-                } else {
-                    // DD/MM/YYYY format
-                    day = parseInt(first);
-                    month = parseInt(second) - 1;
-                }
-
-                return new Date(parseInt(year), month, day);
-            } else {
-                return new Date(dateValue);
-            }
+        const bounds = {
+            startDate: toIsoDate(data[0].date || data[0].Ngày),
+            endDate: toIsoDate(data[data.length - 1].date || data[data.length - 1].Ngày),
         };
+        const range = getPresetRangeByKey(presetKey, bounds);
+        if (!range) return;
 
-        const lastDataDate = getLastDataDate();
-        let startDate, endDate;
-
-        switch (preset) {
-            case "1year":
-                endDate = new Date(lastDataDate);
-                startDate = new Date(lastDataDate);
-                startDate.setFullYear(lastDataDate.getFullYear() - 1);
-                break;
-            case "all":
-            default:
-                setFilteredChartData(data);
-                setFilteredData(data);
-                // Reset to full data range
-                const firstItem = data[0];
-                const firstDateValue = firstItem.date || firstItem.Ngày;
-                const lastItem = data[data.length - 1];
-                const lastDateValue = lastItem.date || lastItem.Ngày;
-
-                setChartDateRange({
-                    startDate: firstDateValue.includes("/")
-                        ? convertVietnameseDateToISO(firstDateValue)
-                        : firstDateValue.split("T")[0],
-                    endDate: lastDateValue.includes("/")
-                        ? convertVietnameseDateToISO(lastDateValue)
-                        : lastDateValue.split("T")[0],
-                });
-                return;
-        }
-
-        const startDateStr = startDate.toISOString().split("T")[0];
-        const endDateStr = endDate.toISOString().split("T")[0];
-
-        setChartDateRange({
-            startDate: startDateStr,
-            endDate: endDateStr,
-        });
-
-        filterChartData(startDateStr, endDateStr);
+        setChartDateRange(range);
+        filterChartData(range.startDate, range.endDate);
     };
 
     const downloadCSV = () => {
@@ -449,7 +381,8 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
 
         if (!data.length) return;
 
-        const dataToExport = filteredData.length > 0 ? filteredData : data;
+        const dataToExport = filteredData;
+        if (!dataToExport.length) return;
 
         // Get all parameters for CSV headers
         const sampleRow = dataToExport[0];
@@ -591,16 +524,9 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
     const categoryTitle = CATEGORY_TITLE_MAP[dataCategory] || CATEGORY_TITLE_MAP.meteo;
 
     // Khống chế input ngày trong phạm vi chuỗi số liệu thực tế của trạm (data đã sort tăng dần).
-    const normalizeToIso = (dateValue) =>
-        typeof dateValue === "string" && dateValue.includes("/")
-            ? convertVietnameseDateToISO(dateValue)
-            : dateValue.split("T")[0];
-
-    const dataMinISO = data.length > 0 ? normalizeToIso(data[0].date || data[0].Ngày) : undefined;
+    const dataMinISO = data.length > 0 ? toIsoDate(data[0].date || data[0].Ngày) : undefined;
     const dataMaxISO =
-        data.length > 0
-            ? normalizeToIso(data[data.length - 1].date || data[data.length - 1].Ngày)
-            : undefined;
+        data.length > 0 ? toIsoDate(data[data.length - 1].date || data[data.length - 1].Ngày) : undefined;
 
     // Dòng phụ "Từ ... đến ..." phải là khoảng thời gian CỐ ĐỊNH của cả chuỗi số liệu trạm (dùng
     // `data` đầy đủ, KHÔNG dùng `filteredChartData`) - không được đổi theo Giai đoạn đang lọc.
@@ -691,6 +617,13 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                         />
                                     </label>
                                 </div>
+                                <RangePresetSelect
+                                    startDate={chartDateRange.startDate}
+                                    endDate={chartDateRange.endDate}
+                                    minDate={dataMinISO}
+                                    maxDate={dataMaxISO}
+                                    onSelect={handlePresetRange}
+                                />
                             </div>
                         </div>
 
@@ -745,7 +678,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                     <div className="h-100 d-flex flex-column" style={{ minHeight: 0 }}>
                                         <div style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
                                             <ExportPreviewTable
-                                                data={filteredData.length > 0 ? filteredData : data}
+                                                data={filteredData}
                                             />
                                         </div>
 
@@ -753,7 +686,7 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                             <div className="text-muted small">
                                                 Hiển thị{" "}
                                                 <strong>
-                                                    {(filteredData.length > 0 ? filteredData : data).length}
+                                                    {filteredData.length}
                                                 </strong>{" "}
                                                 bản ghi
                                             </div>

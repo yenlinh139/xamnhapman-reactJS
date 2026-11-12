@@ -4,6 +4,8 @@ import html2canvas from "html2canvas";
 import * as XLSX from "xlsx";
 import "@styles/components/_hydrometChart.scss";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
+import RangePresetSelect from "@components/common/RangePresetSelect";
+import { DEFAULT_DATE_RANGE_PRESET, getPresetRange, getPresetRangeByKey } from "@common/dateRangePresets";
 
 const formatNumberVi = (value, fractionDigits = 2) => {
     const parsed = Number(value);
@@ -122,8 +124,12 @@ const ReservoirChartFull = ({
         const end = toIsoDateOnly(overview?.end_time) || toIsoDateOnly(rows[rows.length - 1]?.rawDate) || "";
 
         setStationRange({ start, end });
-        setStartDate(start);
-        setEndDate(end);
+
+        // Mặc định mở lên hiển thị 7 ngày gần nhất - dữ liệu ban đầu đã tải đầy đủ nên chỉ lọc
+        // phía client (filteredRows), không cần gọi lại server.
+        const defaultRange = getPresetRange(DEFAULT_DATE_RANGE_PRESET, { startDate: start, endDate: end });
+        setStartDate(defaultRange?.startDate ?? start);
+        setEndDate(defaultRange?.endDate ?? end);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [show, reservoirCode]);
 
@@ -208,6 +214,18 @@ const ReservoirChartFull = ({
         const value = e.target.value;
         setEndDate(value);
         applyRange(startDate, value);
+    };
+
+    const handlePresetSelect = (presetKey) => {
+        const range = getPresetRangeByKey(presetKey, {
+            startDate: stationRange.start,
+            endDate: stationRange.end,
+        });
+        if (!range) return;
+
+        setStartDate(range.startDate);
+        setEndDate(range.endDate);
+        applyRange(range.startDate, range.endDate);
     };
 
     const downloadChart = async () => {
@@ -351,6 +369,14 @@ const ReservoirChartFull = ({
                                     onChange={handleEndDateChange}
                                     min={stationRange.start}
                                     max={stationRange.end}
+                                />
+                                <RangePresetSelect
+                                    startDate={startDate}
+                                    endDate={endDate}
+                                    minDate={stationRange.start}
+                                    maxDate={stationRange.end}
+                                    onSelect={handlePresetSelect}
+                                    disabled={isApplyingRange}
                                 />
                                 {isApplyingRange && <span className="small text-muted">Đang lọc...</span>}
                             </div>
