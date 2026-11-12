@@ -54,6 +54,12 @@ const MapboxMap = forwardRef(
         const [showIoTChart, setShowIoTChart] = useState(false);
         const [showReservoirChart, setShowReservoirChart] = useState(false);
         const [salinityData, setSalinityData] = useState([]);
+        // Theo dõi salinityData hiện đang thuộc về trạm nào - KHÔNG được suy ra từ
+        // selectedPoint.kiHieu vì marker.on("click") trong SalinityMarkers.jsx đã set
+        // selectedPoint.kiHieu = trạm vừa bấm NGAY LẬP TỨC khi click marker (trước khi nút "Xem
+        // biểu đồ" gọi openChartDetails), khiến phép so sánh isCurrentPoint luôn đúng và bỏ qua
+        // fetch - gây hiện tượng mở biểu đồ trạm mới nhưng hiển thị lại data của trạm mở trước đó.
+        const loadedSalinityKiHieuRef = useRef(null);
         const [selectedStation, setSelectedStation] = useState(null);
         const [hydrometData, setHydrometData] = useState([]);
         const [internalIotData, setInternalIotData] = useState(null);
@@ -233,12 +239,10 @@ const MapboxMap = forwardRef(
                 if (!kiHieu) return;
 
                 try {
-                    const isCurrentPoint = selectedPoint?.kiHieu === kiHieu;
-                    const hasCurrentData = Array.isArray(salinityData) && salinityData.length > 0;
-
-                    if (!isCurrentPoint || !hasCurrentData) {
+                    if (loadedSalinityKiHieuRef.current !== kiHieu) {
                         const fetchedData = await fetchSalinityData(kiHieu);
                         setSalinityData(Array.isArray(fetchedData) ? fetchedData : []);
+                        loadedSalinityKiHieuRef.current = kiHieu;
                     }
 
                     setSelectedPoint((prev) => ({
@@ -355,7 +359,7 @@ const MapboxMap = forwardRef(
                     delete window.openReservoirDetails;
                 }
             };
-        }, [selectedPoint, salinityData, hydrometData]);
+        }, [hydrometData]);
 
         // Initialize map
         useEffect(() => {
@@ -450,6 +454,7 @@ const MapboxMap = forwardRef(
             setShowFullChart(false);
             setShowReservoirChart(false);
             setSalinityData([]);
+            loadedSalinityKiHieuRef.current = null;
             setHydrometData([]);
             setReservoirData([]);
             setReservoirOverview(null);
