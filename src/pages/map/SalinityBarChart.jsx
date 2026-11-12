@@ -2,6 +2,7 @@ import React from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { getSingleStationClassification } from "../../common/salinityClassification";
 import { RISK_COLOR_MAP } from "@pages/map/SalinityRiskLegend";
+import { formatVNDate } from "@common/vnDateTime";
 
 const formatNumberVi = (value, fractionDigits = 2) => {
     const parsed = Number(value);
@@ -26,7 +27,7 @@ const calculateTrend = (current, previous) => {
 const CustomTooltip = ({ active, payload }) => {
     if (active && payload?.length) {
         const currentValue = payload[0].payload;
-        const formattedDate = new Date(currentValue.date).toLocaleDateString("vi-VN");
+        const formattedDate = formatVNDate(currentValue.date);
         const trend = currentValue.trend;
 
         return (

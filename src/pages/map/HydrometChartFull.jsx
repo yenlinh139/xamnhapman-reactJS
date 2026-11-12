@@ -602,25 +602,12 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
             ? normalizeToIso(data[data.length - 1].date || data[data.length - 1].Ngày)
             : undefined;
 
-    // Helper function to format date for display
-    const formatDateForDisplay = (dateValue) => {
-        if (typeof dateValue === "string" && dateValue.includes("/")) {
-            return dateValue; // Already in Vietnamese format
-        }
-        return new Date(dateValue).toLocaleDateString("vi-VN");
-    };
-
-    const startDate =
-        filteredChartData?.length > 0
-            ? formatDateForDisplay(filteredChartData[0].date || filteredChartData[0].Ngày)
-            : null;
-    const endDate =
-        filteredChartData?.length > 0
-            ? formatDateForDisplay(
-                  filteredChartData[filteredChartData.length - 1].date ||
-                      filteredChartData[filteredChartData.length - 1].Ngày,
-              )
-            : null;
+    // Dòng phụ "Từ ... đến ..." phải là khoảng thời gian CỐ ĐỊNH của cả chuỗi số liệu trạm (dùng
+    // `data` đầy đủ, KHÔNG dùng `filteredChartData`) - không được đổi theo Giai đoạn đang lọc.
+    // formatDateDMY (từ HydrometBarChart) tự nhận diện đúng M/D/YYYY lẫn D/M/YYYY từ API thay vì
+    // trả nguyên chuỗi thô như trước (gây hiển thị kiểu "9/23/2024" thay vì "23/09/2024").
+    const startDate = data.length > 0 ? formatDateDMY(data[0].date || data[0].Ngày) : null;
+    const endDate = data.length > 0 ? formatDateDMY(data[data.length - 1].date || data[data.length - 1].Ngày) : null;
 
     return (
         <div

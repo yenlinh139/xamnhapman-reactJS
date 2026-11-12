@@ -325,8 +325,8 @@ const MapboxMap = forwardRef(
 
                 try {
                     const [overview, tableRows] = await Promise.all([
-                        fetchReservoirOverview(reservoirCode, { limit: 50 }),
-                        fetchReservoirData(reservoirCode),
+                        fetchReservoirOverview(reservoirCode, { limit: 1000 }),
+                        fetchReservoirData(reservoirCode, { limit: 1000 }),
                     ]);
 
                     setSelectedReservoir({

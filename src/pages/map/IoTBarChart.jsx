@@ -11,6 +11,7 @@ import {
     ResponsiveContainer,
 } from "recharts";
 import { getSingleStationClassification } from "@common/salinityClassification";
+import { formatVNDate, formatVNTickDateTime } from "@common/vnDateTime";
 
 const SENSOR_MAP = {
     distance: { key: "distance", name: "Mực nước (cm)", color: "#FFD600", unit: "cm" },
@@ -54,21 +55,14 @@ const normalizeHeight = (height) => {
     return height || "300px";
 };
 
+// Dùng formatVN* (giờ VN tường minh, không phụ thuộc múi giờ máy đang xem) thay vì
+// toLocaleDateString()/getHours() mặc định, và luôn kèm năm để không bị nhầm giữa các năm.
 const formatChartDateTime = (rawTime, groupBy = "none") => {
-    const timestamp = new Date(rawTime).getTime();
-    if (Number.isNaN(timestamp)) {
+    if (Number.isNaN(new Date(rawTime).getTime())) {
         return String(rawTime || "");
     }
 
-    const parsed = new Date(timestamp);
-    if (groupBy === "date") {
-        return parsed.toLocaleDateString("vi-VN");
-    }
-
-    const hours = String(parsed.getHours()).padStart(2, "0");
-    const minutes = String(parsed.getMinutes()).padStart(2, "0");
-    const dateLabel = parsed.toLocaleDateString("vi-VN");
-    return `${hours}:${minutes} ${dateLabel}`;
+    return groupBy === "date" ? formatVNDate(rawTime) : formatVNTickDateTime(rawTime);
 };
 
 function normalizeChartData(data, groupBy = "none") {
@@ -122,11 +116,13 @@ function normalizeChartData(data, groupBy = "none") {
 const IoTBarChart = ({ data, height = 300, isCompact = false, groupBy = "none", stationCode = "" }) => {
     const chartHeight = normalizeHeight(height);
     const safeData = Array.isArray(data) ? data : [];
+    // Mặc định chỉ hiện Độ mặn - 3 biến còn lại (mưa/nhiệt độ/mực nước) tắt sẵn để biểu đồ tải
+    // nhanh hơn (toàn bộ vẫn render data, chỉ ẩn series), người dùng tự bật thêm khi cần so sánh.
     const [visibleSeries, setVisibleSeries] = useState({
         salt: true,
-        rainfall: true,
-        temp: true,
-        distance: true,
+        rainfall: false,
+        temp: false,
+        distance: false,
     });
 
     const normalizedStationCode = String(stationCode || "")

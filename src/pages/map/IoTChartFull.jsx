@@ -14,6 +14,7 @@ import {
 import { getRiskBadgeMeta, getSingleStationClassification } from "@common/salinityClassification";
 import { IOT_STATION_FORECAST_MAP } from "@components/map/IoTMarkers";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
+import { toVNDateKey, formatVNDate, formatVNTickDateTime } from "@common/vnDateTime";
 import "@styles/components/_hydrometChart.scss";
 
 const EMPTY_DATA = [];
@@ -78,32 +79,16 @@ const toInputDateValue = (rawValue) => {
         return raw.slice(0, 10);
     }
 
-    const parsed = new Date(raw);
-    if (Number.isNaN(parsed.getTime())) {
-        return "";
-    }
-
-    const year = parsed.getFullYear();
-    const month = String(parsed.getMonth() + 1).padStart(2, "0");
-    const day = String(parsed.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
+    return toVNDateKey(raw);
 };
 
 const toDisplayDateTime = (rawValue, groupBy = "none") => {
     if (!rawValue) return "-";
-    const parsed = new Date(rawValue);
-    if (Number.isNaN(parsed.getTime())) {
+    if (Number.isNaN(new Date(rawValue).getTime())) {
         return String(rawValue);
     }
 
-    if (groupBy === "date") {
-        return parsed.toLocaleDateString("vi-VN");
-    }
-
-    const hours = String(parsed.getHours()).padStart(2, "0");
-    const minutes = String(parsed.getMinutes()).padStart(2, "0");
-    const dateLabel = parsed.toLocaleDateString("vi-VN");
-    return `${hours}:${minutes} ${dateLabel}`;
+    return groupBy === "date" ? formatVNDate(rawValue) : formatVNTickDateTime(rawValue);
 };
 
 const getRangeFromRows = (rows) => {
@@ -544,12 +529,10 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
         forecastFrequency === "ngay" ? dailyAggregatedPoints.length : biHourlyBarPoints.length;
 
     const forecastStartDateLabel =
-        forecastState.points.length > 0
-            ? new Date(forecastState.points[0].time).toLocaleDateString("vi-VN")
-            : null;
+        forecastState.points.length > 0 ? formatVNDate(forecastState.points[0].time) : null;
     const forecastEndDateLabel =
         forecastState.points.length > 0
-            ? new Date(forecastState.points[forecastState.points.length - 1].time).toLocaleDateString("vi-VN")
+            ? formatVNDate(forecastState.points[forecastState.points.length - 1].time)
             : null;
 
     useEffect(() => {
@@ -945,10 +928,11 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
 
     const data = displayData;
 
-    // Quan trắc IoT là dữ liệu theo giờ/phút nên hiển thị cả giờ:phút, không chỉ ngày (khác với
-    // quan trắc độ mặn thủ công vốn chỉ có 1 mẫu/ngày).
-    const startDate = data?.length > 0 ? toDisplayDateTime(getIoTRowTime(data[0]), "none") : null;
-    const endDate = data?.length > 0 ? toDisplayDateTime(getIoTRowTime(data[data.length - 1]), "none") : null;
+    // Dòng phụ "Quan trắc từ ... đến ..." phải là khoảng thời gian CỐ ĐỊNH của cả chuỗi số liệu
+    // trạm (dateBounds - lấy từ stationStartDateFromApi + dữ liệu payload ban đầu), KHÔNG được đổi
+    // theo Giai đoạn đang lọc (data/displayData sẽ bị thu hẹp lại mỗi khi người dùng đổi Giai đoạn).
+    const startDate = dateBounds.startDate ? formatVNDate(dateBounds.startDate) : null;
+    const endDate = dateBounds.endDate ? formatVNDate(dateBounds.endDate) : null;
 
     return (
         <div

@@ -140,6 +140,43 @@ const ReservoirChartFull = ({
         );
     }, [normalizedRows, startDate, endDate]);
 
+    // Sort bảng "Dữ liệu" - mặc định mới nhất trước (Ngày, desc), người dùng có thể đổi cột/chiều sort.
+    const [sortConfig, setSortConfig] = useState({ key: "rawTime", direction: "desc" });
+
+    const sortedRows = useMemo(() => {
+        const { key, direction } = sortConfig;
+        const sign = direction === "asc" ? 1 : -1;
+
+        return [...filteredRows].sort((a, b) => {
+            const aValue = key === "rawTime" ? a.rawTime : a.TongLuongXa;
+            const bValue = key === "rawTime" ? b.rawTime : b.TongLuongXa;
+
+            if (aValue === null || aValue === undefined || Number.isNaN(aValue)) return 1;
+            if (bValue === null || bValue === undefined || Number.isNaN(bValue)) return -1;
+            if (aValue < bValue) return -1 * sign;
+            if (aValue > bValue) return 1 * sign;
+            return 0;
+        });
+    }, [filteredRows, sortConfig]);
+
+    const handleSort = (key) => {
+        setSortConfig((prev) => ({
+            key,
+            direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
+        }));
+    };
+
+    const getSortIcon = (columnKey) => {
+        if (sortConfig.key !== columnKey) {
+            return <i className="fa-solid fa-sort text-muted ms-1" style={{ fontSize: "0.75rem" }}></i>;
+        }
+        return sortConfig.direction === "asc" ? (
+            <i className="fa-solid fa-sort-up text-primary ms-1" style={{ fontSize: "0.75rem" }}></i>
+        ) : (
+            <i className="fa-solid fa-sort-down text-primary ms-1" style={{ fontSize: "0.75rem" }}></i>
+        );
+    };
+
     const chartId = "reservoir-chart";
 
     // Lọc tự động ngay khi người dùng đổi ngày (không cần nút Áp dụng) - im lặng bỏ qua khi ngày
@@ -229,7 +266,7 @@ const ReservoirChartFull = ({
         }
 
         try {
-            const exportRows = filteredRows.map((row, index) => ({
+            const exportRows = sortedRows.map((row, index) => ({
                 STT: index + 1,
                 Ngay: row.dateLabel,
                 TongLuongXa_m3: row.TongLuongXa !== null ? Number(row.TongLuongXa.toFixed(3)) : null,
@@ -387,12 +424,28 @@ const ReservoirChartFull = ({
                                         <thead className="table-light sticky-top">
                                             <tr>
                                                 <th style={{ width: 60 }}>#</th>
-                                                <th>Ngày</th>
-                                                <th>Tổng lượng xả (m³/s)</th>
+                                                <th
+                                                    style={{ cursor: "pointer", userSelect: "none" }}
+                                                    onClick={() => handleSort("rawTime")}
+                                                >
+                                                    <div className="d-flex align-items-center justify-content-between">
+                                                        <span>Ngày</span>
+                                                        {getSortIcon("rawTime")}
+                                                    </div>
+                                                </th>
+                                                <th
+                                                    style={{ cursor: "pointer", userSelect: "none" }}
+                                                    onClick={() => handleSort("TongLuongXa")}
+                                                >
+                                                    <div className="d-flex align-items-center justify-content-between">
+                                                        <span>Tổng lượng xả (m³/s)</span>
+                                                        {getSortIcon("TongLuongXa")}
+                                                    </div>
+                                                </th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {filteredRows.map((row, idx) => (
+                                            {sortedRows.map((row, idx) => (
                                                 <tr key={`${row.rawDate}-${idx}`}>
                                                     <td>{idx + 1}</td>
                                                     <td>{row.dateLabel}</td>

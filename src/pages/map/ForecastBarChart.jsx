@@ -2,6 +2,7 @@ import React from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { getSingleStationClassification } from "@common/salinityClassification";
 import { RISK_COLOR_MAP } from "@pages/map/SalinityRiskLegend";
+import { formatVNDate, formatVNDateTime, formatVNTickDateTime } from "@common/vnDateTime";
 
 const formatNumberVi = (value, fractionDigits = 2) => {
     const parsed = Number(value);
@@ -13,34 +14,11 @@ const formatNumberVi = (value, fractionDigits = 2) => {
     });
 };
 
-const formatDateVi = (isoString) => {
-    const date = new Date(isoString);
-    if (Number.isNaN(date.getTime())) return "";
-    return date.toLocaleDateString("vi-VN");
-};
-
-const formatDateTimeVi = (isoString) => {
-    const date = new Date(isoString);
-    if (Number.isNaN(date.getTime())) return "";
-    return date.toLocaleString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-    });
-};
-
-const formatDateTimeFullVi = (isoString) => {
-    const date = new Date(isoString);
-    if (Number.isNaN(date.getTime())) return "";
-    return date.toLocaleString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-    });
-};
+// Dùng chung bộ định dạng giờ VN (Asia/Ho_Chi_Minh) - không phụ thuộc múi giờ máy đang xem, và
+// luôn có đủ năm (fix lỗi thiếu "yyyy" trên trục X khi chuỗi số liệu dài nhiều năm).
+const formatDateVi = formatVNDate;
+const formatDateTimeVi = formatVNTickDateTime;
+const formatDateTimeFullVi = formatVNDateTime;
 
 const calculateTrend = (current, previous) => {
     if (previous === null || previous === undefined || !Number.isFinite(Number(previous))) return null;

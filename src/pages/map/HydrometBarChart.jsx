@@ -366,6 +366,26 @@ const HydrometBarChart = ({ data, height = 600 }) => {
         })
         .filter(Boolean);
 
+    // Chuỗi số liệu ngắn (vd chỉ vài tháng trong cùng 1 năm) chỉ có 1 năm duy nhất -> ticksByYear
+    // chỉ ra 1 mốc, trục X trông như "thiếu ngày". Khi đó chuyển sang chọn N mốc rải đều theo chỉ
+    // số thay vì theo năm.
+    const MIN_TICK_COUNT = 4;
+    const xAxisTicks =
+        ticksByYear.length >= MIN_TICK_COUNT
+            ? ticksByYear
+            : (() => {
+                  const tickCount = Math.min(6, formattedData.length);
+                  if (formattedData.length <= tickCount) {
+                      return formattedData.map((d) => d.dateValue);
+                  }
+                  const step = (formattedData.length - 1) / (tickCount - 1);
+                  const indices = new Set();
+                  for (let i = 0; i < tickCount; i += 1) {
+                      indices.add(Math.round(i * step));
+                  }
+                  return [...indices].sort((a, b) => a - b).map((idx) => formattedData[idx].dateValue);
+              })();
+
     // Calculate Y-axis domains
     const rainfallValues = formattedData.map((d) => d.rainfall || 0).filter((v) => v > 0);
     const tempValues = formattedData.flatMap((d) =>
@@ -375,6 +395,22 @@ const HydrometBarChart = ({ data, height = 600 }) => {
     const maxRainfall = rainfallValues.length > 0 ? Math.max(...rainfallValues) : 100;
     const minTemp = tempValues.length > 0 ? Math.min(...tempValues) : 15;
     const maxTemp = tempValues.length > 0 ? Math.max(...tempValues) : 40;
+
+    // Mực nước có biên độ lớn hơn nhiều so với nhiệt độ (vd -200..170cm) - padding cố định ±2 cho
+    // ra domain lệch khỏi số tròn, khiến trục hiện các mốc xấu kiểu "172cm/-2cm/-92cm". Làm tròn
+    // domain theo 1 bước "đẹp" tỉ lệ với biên độ dữ liệu để luôn ra mốc tròn, dễ đọc hơn.
+    const getNiceStep = (range) => {
+        if (range <= 10) return 1;
+        if (range <= 50) return 5;
+        if (range <= 100) return 10;
+        if (range <= 500) return 50;
+        if (range <= 1000) return 100;
+        return 200;
+    };
+    const tempRange = maxTemp - minTemp;
+    const tempStep = getNiceStep(tempRange || 1);
+    const niceMinTemp = Math.floor(minTemp / tempStep) * tempStep;
+    const niceMaxTemp = Math.ceil(maxTemp / tempStep) * tempStep;
 
     return (
         <>
@@ -410,7 +446,7 @@ const HydrometBarChart = ({ data, height = 600 }) => {
                         <XAxis
                             dataKey="dateValue"
                             tickFormatter={formatDateDMY}
-                            ticks={ticksByYear}
+                            ticks={xAxisTicks}
                             tick={{ fontSize: height < 300 ? 11 : 14 }}
                             height={height < 300 ? 40 : 60}
                         />
@@ -447,7 +483,9 @@ const HydrometBarChart = ({ data, height = 600 }) => {
                             <YAxis
                                 yAxisId="temperature"
                                 orientation={isHydrologyOnlyChart ? "left" : "right"}
-                                domain={[Math.floor(minTemp - 2), Math.ceil(maxTemp + 2)]}
+                                domain={[niceMinTemp, niceMaxTemp]}
+                                tickCount={6}
+                                allowDecimals={false}
                                 tickFormatter={(value) => `${value}${hasWaterSeries ? "cm" : "°C"}`}
                                 tick={{ fontSize: height < 300 ? 10 : 16, fill: "#dc3545" }}
                                 width={height < 300 ? 50 : 90}

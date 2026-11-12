@@ -8,6 +8,7 @@ import { downloadChartImage } from "@common/downloadChartImage";
 import * as XLSX from "xlsx";
 import { getDisplayStationName, getFilenameSafeStationName } from "@common/stationMapping";
 import { getSingleStationClassification, getRiskBadgeMeta } from "@common/salinityClassification";
+import { toVNDateKey, formatVNDate } from "@common/vnDateTime";
 import "@styles/components/_hydrometChart.scss";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
 
@@ -42,17 +43,10 @@ const formatNumberVi = (value, fractionDigits = 2) => {
 
 // Dữ liệu quan trắc (hochiminh."DoMan") là cột DATE thuần (không giờ), nhưng khi driver
 // Postgres/JSON hoá lại serialize thành chuỗi UTC (vd ngày 2/10/2026 -> "2026-10-01T17:00:00.000Z",
-// vì server chạy giờ VN +07 nên nửa đêm VN = 17h hôm trước theo UTC). Lấy trực tiếp 10 ký tự đầu
-// của chuỗi này ("2026-10-01") sẽ RA SAI 1 NGÀY. Phải dựng lại Date rồi đọc theo giờ LOCAL của
-// trình duyệt (trùng giờ VN) mới ra đúng ngày thật, giống cách subtitle vẫn hiển thị xưa nay.
-const toLocalDateKey = (value) => {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "";
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-};
+// vì nửa đêm giờ VN (+07) = 17h hôm trước theo UTC). Lấy trực tiếp 10 ký tự đầu của chuỗi này
+// ("2026-10-01") sẽ RA SAI 1 NGÀY. toVNDateKey quy đổi tường minh về giờ Asia/Ho_Chi_Minh (không
+// phụ thuộc múi giờ của máy/trình duyệt đang xem) nên luôn ra đúng ngày thật dù mở từ đâu.
+const toLocalDateKey = toVNDateKey;
 
 const ExportPreviewTable = ({ data, kiHieu }) => {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
@@ -552,18 +546,18 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
         }
     };
 
-    // Dữ liệu đã được lọc bỏ các giá trị NULL từ useEffect
-    const startDate = data?.length > 0 ? new Date(data[0].date).toLocaleDateString("vi-VN") : null;
-    const endDate =
-        data?.length > 0 ? new Date(data[data.length - 1].date).toLocaleDateString("vi-VN") : null;
+    // Dữ liệu đã được lọc bỏ các giá trị NULL từ useEffect. Dùng formatVNDate (không phải
+    // .toLocaleDateString() mặc định) để luôn ra đúng ngày giờ VN bất kể múi giờ máy đang xem,
+    // và khớp chính xác với giá trị min/max của input Giai đoạn (actualBounds/forecastBounds ở
+    // trên cũng dùng chung logic quy đổi giờ VN này) - tránh lệch 1 ngày giữa tiêu đề và Giai đoạn.
+    const startDate = data?.length > 0 ? formatVNDate(data[0].date) : null;
+    const endDate = data?.length > 0 ? formatVNDate(data[data.length - 1].date) : null;
 
     const forecastStartDate =
-        forecastState.points.length > 0
-            ? new Date(forecastState.points[0].time).toLocaleDateString("vi-VN")
-            : null;
+        forecastState.points.length > 0 ? formatVNDate(forecastState.points[0].time) : null;
     const forecastEndDate =
         forecastState.points.length > 0
-            ? new Date(forecastState.points[forecastState.points.length - 1].time).toLocaleDateString("vi-VN")
+            ? formatVNDate(forecastState.points[forecastState.points.length - 1].time)
             : null;
 
     return (
