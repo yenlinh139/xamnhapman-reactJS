@@ -279,7 +279,10 @@ const IoTManagementTab = ({ userInfo }) => {
         if (!ioTMinDate && !ioTMaxDate) return;
         setCurrentPage(1);
         setFilters((prev) => ({ ...prev, startDate: ioTMinDate, endDate: ioTMaxDate }));
-        setInputDateFilter({ startDate: formatDateDisplay(ioTMinDate), endDate: formatDateDisplay(ioTMaxDate) });
+        setInputDateFilter({
+            startDate: formatDateDisplay(ioTMinDate),
+            endDate: formatDateDisplay(ioTMaxDate),
+        });
     }, [ioTMinDate, ioTMaxDate]);
 
     const loadStationOptions = useCallback(async () => {
@@ -548,10 +551,12 @@ const IoTManagementTab = ({ userInfo }) => {
     const getSortValue = useCallback((row, key) => {
         if (key === "date_time") return new Date(row.date_time || row.Date || row.timestamp).getTime();
         if (key === "station_name") return row.station_name || row.stationName || "";
-        if (key === "serial_number") return row.serial_number || row.serialNumber || row.DeviceSerialNumber || "";
+        if (key === "serial_number")
+            return row.serial_number || row.serialNumber || row.DeviceSerialNumber || "";
         if (key === "salt_value") return Number(row.salt_value ?? row.salt_value_avg);
         if (key === "distance_value") return Number(row.distance_value ?? row.distance_value_avg);
-        if (key === "daily_rainfall_value") return Number(row.daily_rainfall_value ?? row.daily_rainfall_value_sum);
+        if (key === "daily_rainfall_value")
+            return Number(row.daily_rainfall_value ?? row.daily_rainfall_value_sum);
         if (key === "temp_value") return Number(row.temp_value ?? row.temp_value_avg);
         return row[key];
     }, []);
@@ -592,7 +597,9 @@ const IoTManagementTab = ({ userInfo }) => {
                                 className="filter-input"
                                 value={parseDisplayDateToIso(inputDateFilter.startDate) || ""}
                                 min={ioTMinDate || undefined}
-                                max={parseDisplayDateToIso(inputDateFilter.endDate) || ioTMaxDate || undefined}
+                                max={
+                                    parseDisplayDateToIso(inputDateFilter.endDate) || ioTMaxDate || undefined
+                                }
                                 onChange={(e) =>
                                     setInputDateFilter((prev) => ({
                                         ...prev,
@@ -608,7 +615,11 @@ const IoTManagementTab = ({ userInfo }) => {
                                 id="iotEndDate"
                                 className="filter-input"
                                 value={parseDisplayDateToIso(inputDateFilter.endDate) || ""}
-                                min={parseDisplayDateToIso(inputDateFilter.startDate) || ioTMinDate || undefined}
+                                min={
+                                    parseDisplayDateToIso(inputDateFilter.startDate) ||
+                                    ioTMinDate ||
+                                    undefined
+                                }
                                 max={ioTMaxDate || undefined}
                                 onChange={(e) =>
                                     setInputDateFilter((prev) => ({
@@ -673,13 +684,48 @@ const IoTManagementTab = ({ userInfo }) => {
                             <thead className="table-primary">
                                 <tr>
                                     <th>#</th>
-                                    <SortableHeader label="Thời gian" sortKey="date_time" sortConfig={sortConfig} onSort={handleSort} />
-                                    <SortableHeader label="Tên trạm" sortKey="station_name" sortConfig={sortConfig} onSort={handleSort} />
-                                    <SortableHeader label="Serial" sortKey="serial_number" sortConfig={sortConfig} onSort={handleSort} />
-                                    <SortableHeader label="Độ mặn (‰)" sortKey="salt_value" sortConfig={sortConfig} onSort={handleSort} />
-                                    <SortableHeader label="Mực nước (cm)" sortKey="distance_value" sortConfig={sortConfig} onSort={handleSort} />
-                                    <SortableHeader label="Lượng mưa (mm)" sortKey="daily_rainfall_value" sortConfig={sortConfig} onSort={handleSort} />
-                                    <SortableHeader label="Nhiệt độ (°C)" sortKey="temp_value" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableHeader
+                                        label="Thời gian"
+                                        sortKey="date_time"
+                                        sortConfig={sortConfig}
+                                        onSort={handleSort}
+                                    />
+                                    <SortableHeader
+                                        label="Tên trạm"
+                                        sortKey="station_name"
+                                        sortConfig={sortConfig}
+                                        onSort={handleSort}
+                                    />
+                                    <SortableHeader
+                                        label="Serial"
+                                        sortKey="serial_number"
+                                        sortConfig={sortConfig}
+                                        onSort={handleSort}
+                                    />
+                                    <SortableHeader
+                                        label="Độ mặn (‰)"
+                                        sortKey="salt_value"
+                                        sortConfig={sortConfig}
+                                        onSort={handleSort}
+                                    />
+                                    <SortableHeader
+                                        label="Mực nước (cm)"
+                                        sortKey="distance_value"
+                                        sortConfig={sortConfig}
+                                        onSort={handleSort}
+                                    />
+                                    <SortableHeader
+                                        label="Lượng mưa (mm)"
+                                        sortKey="daily_rainfall_value"
+                                        sortConfig={sortConfig}
+                                        onSort={handleSort}
+                                    />
+                                    <SortableHeader
+                                        label="Nhiệt độ (°C)"
+                                        sortKey="temp_value"
+                                        sortConfig={sortConfig}
+                                        onSort={handleSort}
+                                    />
                                     {userInfo && <th style={{ width: 160 }}>Thao tác</th>}
                                 </tr>
                             </thead>

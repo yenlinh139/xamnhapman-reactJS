@@ -21,12 +21,13 @@ import {
     formatDecimalDisplay,
 } from "@components/map/SalinityMarkers";
 
-// Trạm IoT nào có mã trạm độ mặn tương ứng (manualCode) thì dùng chung API dự báo
-// (/forecast-latest) của điểm đo mặn đó - sau này nhóm AI sẽ có API dự báo IoT riêng, nhưng thuộc
-// tính/giá trị trả về vẫn theo đúng quy tắc này nên map lại là dùng được ngay.
+// Trạm IoT có dự báo RIÊNG từ API dự báo (/forecast-latest?group=iot): station_code -> mã chuỗi dự
+// báo (manualCode trong payload, trùng station_code). Trước 13/11/2026 phải mượn dự báo của điểm
+// đo mặn gần đó; nay 3 trạm đều có chuỗi riêng.
 export const IOT_STATION_FORECAST_MAP = {
-    CAH_IoT: "KXAH",
-    CKC_IoT: "CKC",
+    CAH_IoT: "CAH_IoT",
+    CKC_IoT: "CKC_IoT",
+    CVT_IoT: "CVT_IoT",
 };
 
 const ensureStationPanes = (mapInstance) => {
@@ -560,7 +561,7 @@ export const renderIoTStations = async (mapInstance, setIotData) => {
 
         const [stationsResponse, forecastPayload] = await Promise.all([
             fetchIoTStations(),
-            fetchForecastLatest(),
+            fetchForecastLatest("iot"),
         ]);
 
         if (!stationsResponse.success || !stationsResponse.data) {

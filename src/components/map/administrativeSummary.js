@@ -1,5 +1,6 @@
 import axiosInstance from "@config/axios-config";
 import { formatVNDate, formatVNHour } from "@common/vnDateTime";
+import { createLayerPopupContent } from "@components/map/wmsPopupTemplates";
 
 export const ADMIN_LAYER_LEVELS = {
     DiaPhanHuyen: "huyen",
@@ -55,7 +56,8 @@ const TREND_META = {
 const renderTrend = (trend, unit) => {
     if (!trend) return "";
     const meta = TREND_META[trend.direction] || TREND_META.flat;
-    const amount = trend.direction === "flat" ? "" : ` ${formatNumber(Math.abs(trend.delta))} ${escapeHtml(unit)}`;
+    const amount =
+        trend.direction === "flat" ? "" : ` ${formatNumber(Math.abs(trend.delta))} ${escapeHtml(unit)}`;
     return `<span style="color: ${meta.color}; white-space: nowrap;"> | ${meta.symbol} ${meta.label}${amount}</span>`;
 };
 
@@ -95,6 +97,37 @@ export const ADMIN_SUMMARY_LOADING_HTML = `
 export const ADMIN_SUMMARY_ERROR_HTML = `
     <div style="${MUTED_STYLE} padding: 12px 2px 2px;">Không tải được số liệu quan trắc trong địa bàn.</div>
 `;
+
+const ADMIN_LEVEL_LAYERS = { huyen: "DiaPhanHuyen", xa: "DiaPhanXa" };
+
+// Nội dung popup huyện/xã khi không có thuộc tính từ WMS (chọn từ "Chọn vùng quan tâm"):
+// thông tin cơ bản + số liệu tóm tắt, lấy từ API summary. onUpdate được gọi khi nội dung đổi kích thước.
+export const createAdministrativeSummaryPopupContent = (level, code, fallbackName, onUpdate) => {
+    const layerName = ADMIN_LEVEL_LAYERS[level];
+    const container = document.createElement("div");
+    const render = (props, summaryHtml) => {
+        container.innerHTML = `${createLayerPopupContent(layerName, props)}<div style="padding: 0 14px 12px;">${summaryHtml}</div>`;
+    };
+
+    render(
+        level === "huyen" ? { tenHuyen: fallbackName, maHuyen: code } : { tenXa: fallbackName, maXa: code },
+        ADMIN_SUMMARY_LOADING_HTML,
+    );
+
+    fetchAdministrativeSummary(level, code)
+        .then((summary) => {
+            const { unit } = summary;
+            render({ ...unit, dienTichTuNhien: unit.areaKm2 }, buildAdministrativeSummaryHtml(summary));
+        })
+        .catch((error) => {
+            console.error("Lỗi tải số liệu tóm tắt đơn vị hành chính:", error);
+            const summaryBox = container.lastElementChild;
+            if (summaryBox) summaryBox.innerHTML = ADMIN_SUMMARY_ERROR_HTML;
+        })
+        .finally(() => onUpdate?.());
+
+    return container;
+};
 
 export const buildAdministrativeSummaryHtml = (summary) => {
     const { stations, level, unit } = summary;

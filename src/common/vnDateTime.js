@@ -12,7 +12,9 @@ const toDate = (value) => {
 };
 
 const getParts = (date, options) => {
-    const parts = new Intl.DateTimeFormat("en-GB", { timeZone: VN_TIME_ZONE, ...options }).formatToParts(date);
+    const parts = new Intl.DateTimeFormat("en-GB", { timeZone: VN_TIME_ZONE, ...options }).formatToParts(
+        date,
+    );
     return Object.fromEntries(parts.map((p) => [p.type, p.value]));
 };
 

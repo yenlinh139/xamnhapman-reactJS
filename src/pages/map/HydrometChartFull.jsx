@@ -533,7 +533,8 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
     // formatDateDMY (từ HydrometBarChart) tự nhận diện đúng M/D/YYYY lẫn D/M/YYYY từ API thay vì
     // trả nguyên chuỗi thô như trước (gây hiển thị kiểu "9/23/2024" thay vì "23/09/2024").
     const startDate = data.length > 0 ? formatDateDMY(data[0].date || data[0].Ngày) : null;
-    const endDate = data.length > 0 ? formatDateDMY(data[data.length - 1].date || data[data.length - 1].Ngày) : null;
+    const endDate =
+        data.length > 0 ? formatDateDMY(data[data.length - 1].date || data[data.length - 1].Ngày) : null;
 
     return (
         <div
@@ -677,18 +678,12 @@ const HydrometChartFull = ({ show, kiHieu, TenTam, hydrometData, onClose }) => {
                                 {data.length > 0 ? (
                                     <div className="h-100 d-flex flex-column" style={{ minHeight: 0 }}>
                                         <div style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-                                            <ExportPreviewTable
-                                                data={filteredData}
-                                            />
+                                            <ExportPreviewTable data={filteredData} />
                                         </div>
 
                                         <div className="d-flex justify-content-between align-items-center">
                                             <div className="text-muted small">
-                                                Hiển thị{" "}
-                                                <strong>
-                                                    {filteredData.length}
-                                                </strong>{" "}
-                                                bản ghi
+                                                Hiển thị <strong>{filteredData.length}</strong> bản ghi
                                             </div>
                                             <button
                                                 className={`btn btn-sm ${isLoggedIn ? "btn-outline-success" : "btn-outline-secondary"}`}

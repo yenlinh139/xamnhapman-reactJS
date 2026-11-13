@@ -28,7 +28,10 @@ const App = () => {
                     <Route path={ROUTES.forgotPassword} element={<ForgotPassword />} />
                     <Route path={ROUTES.resetPassword} element={<ResetPassword />} />
                     <Route path={ROUTES.map} element={<Map />} />
-                    <Route path={ROUTES.salinityReport} element={<Navigate to={ROUTES.bulletins} replace />} />
+                    <Route
+                        path={ROUTES.salinityReport}
+                        element={<Navigate to={ROUTES.bulletins} replace />}
+                    />
                     <Route element={<ProtectedRoute />}>
                         <Route path={ROUTES.feedback} element={<Feedback />} />
                         <Route path={ROUTES.bulletins} element={<Bulletins />} />

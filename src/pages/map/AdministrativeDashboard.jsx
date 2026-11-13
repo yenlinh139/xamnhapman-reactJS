@@ -1,13 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-} from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { fetchAdministrativeSummary } from "@components/map/administrativeSummary";
 import { IOT_STATION_FORECAST_MAP } from "@components/map/IoTMarkers";
 import {
@@ -30,7 +22,16 @@ import { downloadChartImage } from "@common/downloadChartImage";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
 import "@styles/components/_hydrometChart.scss";
 
-const SERIES_COLORS = ["#1f77b4", "#d62728", "#2ca02c", "#9467bd", "#ff7f0e", "#8c564b", "#17becf", "#e377c2"];
+const SERIES_COLORS = [
+    "#1f77b4",
+    "#d62728",
+    "#2ca02c",
+    "#9467bd",
+    "#ff7f0e",
+    "#8c564b",
+    "#17becf",
+    "#e377c2",
+];
 const SERIES_SHAPES = ["circle", "square", "cross", "triangle", "diamond", "star"];
 const MAX_POINTS_WITH_MARKERS = 150;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -132,12 +133,14 @@ const loadManualSalinity = async (stations) => {
     return { default: { series, rows: mergeSeriesPoints(series, points) } };
 };
 
-const loadForecastSalinity = async (stations) => {
-    const forecast = await fetchForecastLatest();
+const loadForecastSalinity = (group) => async (stations) => {
+    const forecast = await fetchForecastLatest(group);
     const timeGrid = forecast?.timeGrid || [];
     const forecastByCode = new Map((forecast?.stations || []).map((item) => [item.manualCode, item]));
-    // Trạm IoT dùng dự báo của điểm đo mặn tương ứng (forecastCode), điểm đo mặn dùng chính mã của nó
-    const forecastStations = stations.filter((station) => forecastByCode.has(station.forecastCode || station.code));
+    // Trạm IoT tra theo forecastCode (station_code), điểm đo mặn tra theo chính mã của nó
+    const forecastStations = stations.filter((station) =>
+        forecastByCode.has(station.forecastCode || station.code),
+    );
     const series = buildSeries(forecastStations);
     const forecastOf = (index) =>
         forecastByCode.get(forecastStations[index].forecastCode || forecastStations[index].code);
@@ -343,9 +346,14 @@ const downloadCsv = ({ series, rows, unit, mode, showRisk, filename }) => {
         series.forEach((item) => {
             const value = row[item.key];
             const trend = row[`${item.key}__trend`];
-            cells.push(value === undefined ? "" : value, trend === undefined ? "" : Math.round(trend * 1000) / 1000);
+            cells.push(
+                value === undefined ? "" : value,
+                trend === undefined ? "" : Math.round(trend * 1000) / 1000,
+            );
             if (showRisk) {
-                cells.push(value === undefined ? "" : getSingleStationClassification(value, item.code).shortText);
+                cells.push(
+                    value === undefined ? "" : getSingleStationClassification(value, item.code).shortText,
+                );
             }
         });
         return cells;
@@ -354,7 +362,9 @@ const downloadCsv = ({ series, rows, unit, mode, showRisk, filename }) => {
     const csv = [header, ...lines]
         .map((cells) => cells.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
         .join("\r\n");
-    const url = URL.createObjectURL(new Blob([String.fromCharCode(0xfeff) + csv], { type: "text/csv;charset=utf-8" }));
+    const url = URL.createObjectURL(
+        new Blob([String.fromCharCode(0xfeff) + csv], { type: "text/csv;charset=utf-8" }),
+    );
     const link = document.createElement("a");
     link.href = url;
     link.download = filename;
@@ -479,7 +489,9 @@ const SeriesChartPanel = ({
                                             dot={
                                                 showMarkers
                                                     ? ({ cx, cy, value, index }) =>
-                                                          value === undefined || value === null || cx == null ? (
+                                                          value === undefined ||
+                                                          value === null ||
+                                                          cx == null ? (
                                                               <g key={`${item.key}-${index}`} />
                                                           ) : (
                                                               <ShapeIcon
@@ -686,7 +698,11 @@ const StationSeriesPanel = ({
                 selected.rows.length > 0 && (
                     <>
                         {frequencyOptions && (
-                            <FrequencySelect options={frequencyOptions} value={frequency} onChange={setFrequency} />
+                            <FrequencySelect
+                                options={frequencyOptions}
+                                value={frequency}
+                                onChange={setFrequency}
+                            />
                         )}
                         <RangeControls
                             range={range}
@@ -710,7 +726,17 @@ const clampIotRange = (range, frequency) => {
 };
 
 // Trạm IoT: tải lại từ máy chủ theo tần suất + giai đoạn đang chọn
-const IotSeriesPanel = ({ chartId, title, unitName, stations, field, unitField, unit, showRisk, fileBase }) => {
+const IotSeriesPanel = ({
+    chartId,
+    title,
+    unitName,
+    stations,
+    field,
+    unitField,
+    unit,
+    showRisk,
+    fileBase,
+}) => {
     const today = toVNDateKey(new Date());
     const bounds = useMemo(() => ({ startDate: "", endDate: today }), [today]);
     const [frequency, setFrequency] = useState("hour");
@@ -738,7 +764,10 @@ const IotSeriesPanel = ({ chartId, title, unitName, stations, field, unitField, 
                     normalizeIoTDataRows(response?.data).map((row) => {
                         if (unitField && !detectedUnit && row[unitField]) detectedUnit = row[unitField];
                         return {
-                            t: frequency === "day" ? vnDayToMs(toVNDateKey(row.Date)) : parseVnTimestamp(row.Date),
+                            t:
+                                frequency === "day"
+                                    ? vnDayToMs(toVNDateKey(row.Date))
+                                    : parseVnTimestamp(row.Date),
                             value: toNumber(row[field]),
                         };
                     }),
@@ -754,7 +783,13 @@ const IotSeriesPanel = ({ chartId, title, unitName, stations, field, unitField, 
             .catch((error) => {
                 console.error(`Lỗi tải dữ liệu IoT "${title}":`, error);
                 if (!cancelled) {
-                    setState({ loading: false, error: "Không tải được dữ liệu IoT.", series: [], rows: [], unit });
+                    setState({
+                        loading: false,
+                        error: "Không tải được dữ liệu IoT.",
+                        series: [],
+                        rows: [],
+                        unit,
+                    });
                 }
             });
 
@@ -803,6 +838,8 @@ const IotSeriesPanel = ({ chartId, title, unitName, stations, field, unitField, 
 
 const EmptyTab = ({ text }) => <p className="text-muted text-center py-5 mb-0">{text}</p>;
 
+const loadPointForecast = loadForecastSalinity();
+const loadIotForecast = loadForecastSalinity("iot");
 const loadRainSeries = loadHydromet("rain");
 const loadWaterSeries = loadHydromet("water");
 
@@ -837,12 +874,15 @@ const AdministrativeDashboard = ({ show, level, code, onClose }) => {
         [stations],
     );
 
-    // Dự báo IoT lấy theo điểm đo mặn tương ứng, cùng mapping với trang chi tiết trạm IoT
+    // Dự báo IoT là chuỗi riêng của từng trạm, cùng mapping với trang chi tiết trạm IoT
     const iotForecastStations = useMemo(
         () =>
             (stations?.iot || [])
                 .filter((station) => IOT_STATION_FORECAST_MAP[station.stationCode])
-                .map((station) => ({ ...station, forecastCode: IOT_STATION_FORECAST_MAP[station.stationCode] })),
+                .map((station) => ({
+                    ...station,
+                    forecastCode: IOT_STATION_FORECAST_MAP[station.stationCode],
+                })),
         [stations],
     );
 
@@ -920,7 +960,7 @@ const AdministrativeDashboard = ({ show, level, code, onClose }) => {
                                 chartId="admin-salinity-forecast-points"
                                 title="Độ mặn dự báo - các điểm đo mặn"
                                 stations={stations.salinity}
-                                load={loadForecastSalinity}
+                                load={loadPointForecast}
                                 frequencyOptions={FORECAST_FREQUENCIES}
                                 defaultPresetKey="all"
                                 unit="‰"
@@ -935,7 +975,7 @@ const AdministrativeDashboard = ({ show, level, code, onClose }) => {
                                 chartId="admin-salinity-forecast-iot"
                                 title="Độ mặn dự báo - các trạm IoT"
                                 stations={iotForecastStations}
-                                load={loadForecastSalinity}
+                                load={loadIotForecast}
                                 frequencyOptions={FORECAST_FREQUENCIES}
                                 defaultPresetKey="all"
                                 unit="‰"
@@ -1045,9 +1085,9 @@ const AdministrativeDashboard = ({ show, level, code, onClose }) => {
                             {stations && (
                                 <div className="text-muted small">
                                     {stations.total} trạm đo trong địa bàn: {stations.salinity.length} điểm đo
-                                    mặn, {stations.rain.length} điểm đo mưa, {stations.meteorology.length} trạm
-                                    khí tượng, {stations.hydrology.length} trạm thủy văn, {stations.iot.length}{" "}
-                                    trạm IoT
+                                    mặn, {stations.rain.length} điểm đo mưa, {stations.meteorology.length}{" "}
+                                    trạm khí tượng, {stations.hydrology.length} trạm thủy văn,{" "}
+                                    {stations.iot.length} trạm IoT
                                 </div>
                             )}
                         </div>

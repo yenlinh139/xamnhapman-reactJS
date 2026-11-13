@@ -3,7 +3,10 @@ import { useMemo, useState } from "react";
 // Sort client-side (chỉ trang dữ liệu hiện đang tải, không gọi lại server) cho các bảng quản trị
 // dùng chung 1 cách: bấm vào tiêu đề cột để sort tăng/giảm, bấm lại để đổi chiều.
 // `getSortValue(row, key)` trả về giá trị đã chuẩn hoá để so sánh (number/Date.getTime()/string).
-export const useSortableRows = (rows, { defaultKey = null, defaultDirection = "desc", getSortValue } = {}) => {
+export const useSortableRows = (
+    rows,
+    { defaultKey = null, defaultDirection = "desc", getSortValue } = {},
+) => {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
     const effective = sortConfig.key ? sortConfig : { key: defaultKey, direction: defaultDirection };
 

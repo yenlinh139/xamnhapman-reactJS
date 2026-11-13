@@ -86,24 +86,19 @@ const parseGeoJsonValue = (rawValue) => {
 };
 
 const normalizeAdministrativeItem = (item, type) => {
+    // Chi tiết xã có kèm maHuyen/tenHuyen nên phải ưu tiên trường theo đúng cấp
+    const districtCode = item?.maHuyen ?? item?.mahuyen ?? item?.MaHuyen;
+    const communeCode = item?.maXa ?? item?.maxa ?? item?.MaXa;
+    const districtName = item?.tenHuyen || item?.tenhuyen || item?.TenHuyen;
+    const communeName = item?.tenXa || item?.tenxa || item?.TenXa;
+    const isCommune = type === "commune";
+
     const code = String(
-        item?.maHuyen ??
-            item?.mahuyen ??
-            item?.MaHuyen ??
-            item?.maXa ??
-            item?.maxa ??
-            item?.MaXa ??
-            item?.id ??
-            "",
+        (isCommune ? (communeCode ?? districtCode) : (districtCode ?? communeCode)) ?? item?.id ?? "",
     );
 
     const name =
-        item?.tenHuyen ||
-        item?.tenhuyen ||
-        item?.TenHuyen ||
-        item?.tenXa ||
-        item?.tenxa ||
-        item?.TenXa ||
+        (isCommune ? communeName || districtName : districtName || communeName) ||
         item?.name ||
         code ||
         (type === "district" ? "Huyện" : "Xã");
@@ -152,6 +147,9 @@ function AreaInterestSelector({ setSelectedLocation, setHighlightedFeature }) {
                     properties: { ...(feature?.properties || {}), name: areaName },
                     id: areaId,
                     name: areaName,
+                    adminSummary: areaId
+                        ? { level: item.type === "commune" ? "xa" : "huyen", code: String(areaId) }
+                        : null,
                 });
                 return;
             } catch (error) {

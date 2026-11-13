@@ -72,7 +72,9 @@ const BulletinSubscribeModal = ({ show, onClose, onSaved }) => {
             <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
                 <form className="modal-content" onSubmit={handleSubmit}>
                     <div className="modal-header">
-                        <h5 className="modal-title fw-bold">Đăng kí nhận bản tin dự báo, cảnh báo xâm nhập mặn</h5>
+                        <h5 className="modal-title fw-bold">
+                            Đăng kí nhận bản tin dự báo, cảnh báo xâm nhập mặn
+                        </h5>
                         <button type="button" className="btn-close" onClick={onClose}></button>
                     </div>
                     <div className="modal-body">
@@ -85,8 +87,8 @@ const BulletinSubscribeModal = ({ show, onClose, onSaved }) => {
                         ) : (
                             <>
                                 <p className="text-muted small">
-                                    Chọn các khu vực muốn nhận bản tin. Đăng kí theo huyện sẽ nhận bản tin của mọi
-                                    điểm đo mặn, trạm IoT nằm trong huyện đó.
+                                    Chọn các khu vực muốn nhận bản tin. Đăng kí theo huyện sẽ nhận bản tin của
+                                    mọi điểm đo mặn, trạm IoT nằm trong huyện đó.
                                 </p>
                                 {GROUPS.map((group) => (
                                     <fieldset key={group.key} className="mb-3">
@@ -100,16 +102,26 @@ const BulletinSubscribeModal = ({ show, onClose, onSaved }) => {
                                             {options[group.key].map((option) => {
                                                 const inputId = `bulletin-${group.key}-${option.code}`;
                                                 return (
-                                                    <div className="col-12 col-sm-6 col-lg-4" key={option.code}>
+                                                    <div
+                                                        className="col-12 col-sm-6 col-lg-4"
+                                                        key={option.code}
+                                                    >
                                                         <div className="form-check">
                                                             <input
                                                                 id={inputId}
                                                                 type="checkbox"
                                                                 className="form-check-input"
-                                                                checked={selected[group.key].includes(option.code)}
-                                                                onChange={() => toggle(group.key, option.code)}
+                                                                checked={selected[group.key].includes(
+                                                                    option.code,
+                                                                )}
+                                                                onChange={() =>
+                                                                    toggle(group.key, option.code)
+                                                                }
                                                             />
-                                                            <label className="form-check-label" htmlFor={inputId}>
+                                                            <label
+                                                                className="form-check-label"
+                                                                htmlFor={inputId}
+                                                            >
                                                                 {option.name}
                                                             </label>
                                                         </div>
@@ -127,7 +139,11 @@ const BulletinSubscribeModal = ({ show, onClose, onSaved }) => {
                         <button type="button" className="btn btn-outline-secondary" onClick={onClose}>
                             Đóng
                         </button>
-                        <button type="submit" className="btn btn-primary" disabled={loading || saving || !options}>
+                        <button
+                            type="submit"
+                            className="btn btn-primary"
+                            disabled={loading || saving || !options}
+                        >
                             {saving ? "Đang gửi..." : "Gửi"}
                         </button>
                     </div>

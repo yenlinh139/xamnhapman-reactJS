@@ -52,7 +52,10 @@ const formatMetric = (value, digits = 2) => {
     const numericValue = toNullableNumber(value);
     return numericValue === null
         ? "-"
-        : numericValue.toLocaleString("vi-VN", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+        : numericValue.toLocaleString("vi-VN", {
+              minimumFractionDigits: digits,
+              maximumFractionDigits: digits,
+          });
 };
 
 // "YYYY-MM-DDTHH:mm" theo giờ VN - value cho <input type="datetime-local">.
@@ -137,7 +140,9 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
             console.error("Error loading salinity detail:", loadError);
             setRows([]);
             setError(
-                loadError?.response?.data?.message || loadError?.message || "Không tải được dữ liệu quan trắc.",
+                loadError?.response?.data?.message ||
+                    loadError?.message ||
+                    "Không tải được dữ liệu quan trắc.",
             );
         } finally {
             setLoading(false);
@@ -200,7 +205,8 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
             const minKey = formRange.minTime ? toDateTimeLocalValue(formRange.minTime) : null;
             const maxKey = formRange.maxTime ? toDateTimeLocalValue(formRange.maxTime) : null;
             // Khi sửa, cho phép giữ nguyên mốc hiện tại của chính dòng đang sửa dù nó là min/max.
-            const isOwnBoundary = modalMode === "edit" && (form.ThoiDiem === minKey || form.ThoiDiem === maxKey);
+            const isOwnBoundary =
+                modalMode === "edit" && (form.ThoiDiem === minKey || form.ThoiDiem === maxKey);
             if (!isOwnBoundary) {
                 if (minKey && form.ThoiDiem < minKey) {
                     nextErrors.ThoiDiem = `Chỉ được nhập trong khoảng dữ liệu hiện có của trạm (từ ${formatVNDateTime(formRange.minTime)})`;
@@ -380,12 +386,42 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
                             <thead className="table-primary">
                                 <tr>
                                     <th>#</th>
-                                    <SortableHeader label="Thời điểm" sortKey="ThoiDiem" sortConfig={sortConfig} onSort={handleSort} />
-                                    <SortableHeader label="Điểm đo" sortKey="KiHieu" sortConfig={sortConfig} onSort={handleSort} />
-                                    <SortableHeader label="Độ mặn (‰)" sortKey="DoMan" sortConfig={sortConfig} onSort={handleSort} />
-                                    <SortableHeader label="pH" sortKey="pH" sortConfig={sortConfig} onSort={handleSort} />
-                                    <SortableHeader label="EC (S/m)" sortKey="DoDanDien" sortConfig={sortConfig} onSort={handleSort} />
-                                    <SortableHeader label="Độ đục (NTU)" sortKey="DoDuc" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableHeader
+                                        label="Thời điểm"
+                                        sortKey="ThoiDiem"
+                                        sortConfig={sortConfig}
+                                        onSort={handleSort}
+                                    />
+                                    <SortableHeader
+                                        label="Điểm đo"
+                                        sortKey="KiHieu"
+                                        sortConfig={sortConfig}
+                                        onSort={handleSort}
+                                    />
+                                    <SortableHeader
+                                        label="Độ mặn (‰)"
+                                        sortKey="DoMan"
+                                        sortConfig={sortConfig}
+                                        onSort={handleSort}
+                                    />
+                                    <SortableHeader
+                                        label="pH"
+                                        sortKey="pH"
+                                        sortConfig={sortConfig}
+                                        onSort={handleSort}
+                                    />
+                                    <SortableHeader
+                                        label="EC (S/m)"
+                                        sortKey="DoDanDien"
+                                        sortConfig={sortConfig}
+                                        onSort={handleSort}
+                                    />
+                                    <SortableHeader
+                                        label="Độ đục (NTU)"
+                                        sortKey="DoDuc"
+                                        sortConfig={sortConfig}
+                                        onSort={handleSort}
+                                    />
                                     {userInfo && <th style={{ width: 160 }}>Thao tác</th>}
                                 </tr>
                             </thead>
@@ -393,7 +429,9 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
                                 {sortedRows.map((row, index) => {
                                     const risk = getRiskBadgeMeta(row.DoMan, row.KiHieu);
                                     const hasValue =
-                                        row.DoMan !== null && row.DoMan !== undefined && !Number.isNaN(Number(row.DoMan));
+                                        row.DoMan !== null &&
+                                        row.DoMan !== undefined &&
+                                        !Number.isNaN(Number(row.DoMan));
 
                                     return (
                                         <tr key={row.id}>
@@ -469,13 +507,19 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
             )}
 
             {showModal && (
-                <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+                <div
+                    className="modal fade show d-block"
+                    tabIndex="-1"
+                    style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+                >
                     <div className="modal-dialog modal-lg modal-dialog-centered">
                         <div className="modal-content">
                             <form onSubmit={handleSave}>
                                 <div className="modal-header">
                                     <h5 className="modal-title">
-                                        {modalMode === "create" ? "Thêm dữ liệu quan trắc" : "Cập nhật dữ liệu quan trắc"}
+                                        {modalMode === "create"
+                                            ? "Thêm dữ liệu quan trắc"
+                                            : "Cập nhật dữ liệu quan trắc"}
                                     </h5>
                                     <button
                                         type="button"
@@ -509,7 +553,9 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
                                             )}
                                         </div>
                                         <div className="col-md-6">
-                                            <label className="form-label required">Thời điểm (ngày + giờ)</label>
+                                            <label className="form-label required">
+                                                Thời điểm (ngày + giờ)
+                                            </label>
                                             <LocalizedDateTimeInput
                                                 id="salinityDetailThoiDiem"
                                                 className={`form-control ${formErrors.ThoiDiem ? "is-invalid" : ""}`}
@@ -518,15 +564,23 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
                                                 max={formMaxDateTime || undefined}
                                                 disabled={!form.KiHieu}
                                                 onChange={(e) => {
-                                                    setForm((prev) => ({ ...prev, ThoiDiem: e.target.value }));
+                                                    setForm((prev) => ({
+                                                        ...prev,
+                                                        ThoiDiem: e.target.value,
+                                                    }));
                                                     setFormErrors((prev) => ({ ...prev, ThoiDiem: "" }));
                                                 }}
                                             />
                                             {form.KiHieu && (formMinDateTime || formMaxDateTime) && (
                                                 <div className="form-text">
                                                     Chỉ nhập trong khoảng dữ liệu hiện có của trạm
-                                                    {formRange.minTime ? ` từ ${formatVNDateTime(formRange.minTime)}` : ""}
-                                                    {formRange.maxTime ? ` đến ${formatVNDateTime(formRange.maxTime)}` : ""}.
+                                                    {formRange.minTime
+                                                        ? ` từ ${formatVNDateTime(formRange.minTime)}`
+                                                        : ""}
+                                                    {formRange.maxTime
+                                                        ? ` đến ${formatVNDateTime(formRange.maxTime)}`
+                                                        : ""}
+                                                    .
                                                 </div>
                                             )}
                                             {formErrors.ThoiDiem && (
@@ -552,7 +606,9 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
                                                 className="form-control"
                                                 value={form.pH}
                                                 inputMode="decimal"
-                                                onChange={(e) => setForm((prev) => ({ ...prev, pH: e.target.value }))}
+                                                onChange={(e) =>
+                                                    setForm((prev) => ({ ...prev, pH: e.target.value }))
+                                                }
                                             />
                                         </div>
                                         <div className="col-md-6">
@@ -563,7 +619,10 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
                                                 value={form.DoDanDien}
                                                 inputMode="decimal"
                                                 onChange={(e) =>
-                                                    setForm((prev) => ({ ...prev, DoDanDien: e.target.value }))
+                                                    setForm((prev) => ({
+                                                        ...prev,
+                                                        DoDanDien: e.target.value,
+                                                    }))
                                                 }
                                             />
                                         </div>

@@ -1,5 +1,6 @@
 import L from "leaflet";
 import { convertDMSToDecimal } from "@components/convertDMSToDecimal";
+import { createAdministrativeSummaryPopupContent } from "@components/map/administrativeSummary";
 
 export const handleLocationChange = (map, selectedLocation) => {
     if (!map || !selectedLocation) return;
@@ -148,10 +149,28 @@ export const handleFeatureHighlight = (
                     }),
                 });
 
+                const adminSummary = highlightedFeature?.adminSummary;
+                const hasAdminSummary = Boolean(adminSummary?.level && adminSummary?.code);
+
                 if (popupHtml) {
                     centerMarker.bindPopup(popupHtml, {
                         maxWidth: 360,
                         className: "custom-popup search-highlight-popup",
+                    });
+                } else if (hasAdminSummary) {
+                    // Huyện/xã chọn từ "Chọn vùng quan tâm": popup thống kê giống khi click lớp địa phận
+                    const content = createAdministrativeSummaryPopupContent(
+                        adminSummary.level,
+                        adminSummary.code,
+                        name,
+                        () => {
+                            const popup = centerMarker.getPopup();
+                            if (popup && map.hasLayer(popup)) popup.update();
+                        },
+                    );
+                    centerMarker.bindPopup(content, {
+                        maxWidth: 460,
+                        maxHeight: Math.max(260, map.getSize().y - 140),
                     });
                 }
 
@@ -162,7 +181,7 @@ export const handleFeatureHighlight = (
 
                 // Open popup sau khi animation xong
                 setTimeout(() => {
-                    if (centerMarker && popupHtml) {
+                    if ((popupHtml || hasAdminSummary) && highlightedMarkerRef.current === centerMarker) {
                         centerMarker.openPopup();
                     }
                 }, 1000);

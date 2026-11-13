@@ -25,6 +25,12 @@ const FALLBACK_STATIONS = [
     { manualCode: "CRT", displayName: "Cầu Rạch Tra" },
 ];
 
+const FALLBACK_IOT_STATIONS = [
+    { manualCode: "CKC_IoT", displayName: "Cống Kênh C" },
+    { manualCode: "CAH_IoT", displayName: "Cống An Hạ" },
+    { manualCode: "CVT_IoT", displayName: "Cống Vườn Thơm" },
+];
+
 const DEFAULT_FILTERS = {
     runId: "",
     startDate: "",
@@ -101,8 +107,16 @@ const buildEmptyForm = (stations) => ({
     ...Object.fromEntries(stations.map((s) => [`${s.manualCode}_Daily`, ""])),
 });
 
-const ForecastManagementTab = ({ userInfo }) => {
-    const [stations, setStations] = useState(FALLBACK_STATIONS);
+// group: "iot" -> dự báo của trạm IoT; mặc định là dự báo của điểm đo mặn. Hai nhóm nằm chung 1 lượt
+// dự báo nhưng có lưới thời gian riêng, nên mỗi nhóm chỉ thấy các trạm và các mốc của mình.
+const ForecastManagementTab = ({ userInfo, group }) => {
+    const groupParams = useMemo(() => (group ? { group } : {}), [group]);
+    const fallbackStations = group === "iot" ? FALLBACK_IOT_STATIONS : FALLBACK_STATIONS;
+    // Trạm IoT hiển thị tên tiếng Việt (mã CKC_IoT... chỉ là mã nội bộ); điểm đo mặn giữ mã quen dùng
+    const columnLabel = (station) => (group === "iot" ? station.displayName : station.manualCode);
+    const fullLabel = (station) =>
+        group === "iot" ? station.displayName : `${station.displayName} (${station.manualCode})`;
+    const [stations, setStations] = useState(fallbackStations);
     const [runs, setRuns] = useState([]);
     const [rows, setRows] = useState([]);
     const [dataLoading, setDataLoading] = useState(false);
@@ -117,7 +131,7 @@ const ForecastManagementTab = ({ userInfo }) => {
 
     const [showDataModal, setShowDataModal] = useState(false);
     const [dataModalMode, setDataModalMode] = useState("create");
-    const [dataForm, setDataForm] = useState(() => buildEmptyForm(FALLBACK_STATIONS));
+    const [dataForm, setDataForm] = useState(() => buildEmptyForm(fallbackStations));
     const [dataFormErrors, setDataFormErrors] = useState({});
 
     // { type: "rows" | "run", target }
@@ -145,7 +159,8 @@ const ForecastManagementTab = ({ userInfo }) => {
         runs.forEach((run) => {
             const start = run.current_time ?? run.forecast_start_at;
             if (start && (!minDate || start < minDate)) minDate = start;
-            if (run.forecast_end_at && (!maxDate || run.forecast_end_at > maxDate)) maxDate = run.forecast_end_at;
+            if (run.forecast_end_at && (!maxDate || run.forecast_end_at > maxDate))
+                maxDate = run.forecast_end_at;
         });
         return { minDate, maxDate };
     }, [selectedRun, runs]);
@@ -154,17 +169,17 @@ const ForecastManagementTab = ({ userInfo }) => {
 
     const loadStations = useCallback(async () => {
         try {
-            const response = await axiosInstance.get("/forecast-stations");
+            const response = await axiosInstance.get("/forecast-stations", { params: groupParams });
             const list = Array.isArray(response?.data) ? response.data.filter((s) => s.hasForecast) : [];
             if (list.length > 0) setStations(list);
         } catch (stationError) {
             console.error("Error loading forecast stations:", stationError);
         }
-    }, []);
+    }, [groupParams]);
 
     const loadRuns = useCallback(async () => {
         try {
-            const response = await axiosInstance.get("/forecast-runs");
+            const response = await axiosInstance.get("/forecast-runs", { params: groupParams });
             const list = Array.isArray(response?.data?.data) ? response.data.data : [];
             setRuns(list);
             // Mặc định chọn lượt dự báo mới nhất; nếu lượt đang chọn bị xóa thì quay về mới nhất
@@ -177,7 +192,7 @@ const ForecastManagementTab = ({ userInfo }) => {
             console.error("Error loading forecast runs:", runError);
             setFilters((prev) => (prev.runId ? prev : { ...prev, runId: ALL_RUNS }));
         }
-    }, []);
+    }, [groupParams]);
 
     useEffect(() => {
         loadStations();
@@ -205,13 +220,13 @@ const ForecastManagementTab = ({ userInfo }) => {
 
     const buildQueryParams = useCallback(
         (page, pageLimit) => {
-            const params = { page, limit: pageLimit };
+            const params = { ...groupParams, page, limit: pageLimit };
             if (selectedRunId) params.runId = selectedRunId;
             if (filters.startDate) params.startDate = filters.startDate;
             if (filters.endDate) params.endDate = filters.endDate;
             return params;
         },
-        [filters.endDate, filters.startDate, selectedRunId],
+        [filters.endDate, filters.startDate, selectedRunId, groupParams],
     );
 
     const loadForecastData = useCallback(async () => {
@@ -428,14 +443,11 @@ const ForecastManagementTab = ({ userInfo }) => {
                 "Lượt dự báo": row.run_id,
                 "Thời điểm": toDisplayDateTime(row.ThoiDiem),
                 ...Object.fromEntries(
-                    stations.map((s) => [
-                        `${s.displayName} (${s.manualCode}) - 2h`,
-                        toNullableNumber(row[s.manualCode]) ?? "",
-                    ]),
+                    stations.map((s) => [`${fullLabel(s)} - 2h`, toNullableNumber(row[s.manualCode]) ?? ""]),
                 ),
                 ...Object.fromEntries(
                     stations.map((s) => [
-                        `${s.displayName} (${s.manualCode}) - ngày`,
+                        `${fullLabel(s)} - ngày`,
                         toNullableNumber(row[`${s.manualCode}_Daily`]) ?? "",
                     ]),
                 ),
@@ -623,14 +635,19 @@ const ForecastManagementTab = ({ userInfo }) => {
                                         </th>
                                     )}
                                     <th>#</th>
-                                    <SortableHeader label="Thời điểm" sortKey="ThoiDiem" sortConfig={sortConfig} onSort={handleSort} />
+                                    <SortableHeader
+                                        label="Thời điểm"
+                                        sortKey="ThoiDiem"
+                                        sortConfig={sortConfig}
+                                        onSort={handleSort}
+                                    />
                                     {showRunColumn && <th>Lượt dự báo</th>}
                                     {stations.map((s) => (
                                         <th
                                             key={s.manualCode}
                                             title={`${s.displayName} - trên: theo 2h (do_man), dưới: theo ngày (DailyForecast)`}
                                         >
-                                            {s.manualCode} (‰)
+                                            {columnLabel(s)} (‰)
                                         </th>
                                     ))}
                                     {userInfo && <th style={{ width: 160 }}>Thao tác</th>}
@@ -780,7 +797,7 @@ const ForecastManagementTab = ({ userInfo }) => {
                                             <React.Fragment key={s.manualCode}>
                                                 <div className="col-md-3">
                                                     <label className="form-label">
-                                                        {s.displayName} ({s.manualCode}) - theo 2h
+                                                        {fullLabel(s)} - theo 2h
                                                     </label>
                                                     <input
                                                         type="number"
@@ -797,7 +814,7 @@ const ForecastManagementTab = ({ userInfo }) => {
                                                 </div>
                                                 <div className="col-md-3">
                                                     <label className="form-label">
-                                                        {s.manualCode} - theo ngày
+                                                        {columnLabel(s)} - theo ngày
                                                     </label>
                                                     <input
                                                         type="number"

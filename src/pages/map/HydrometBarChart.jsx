@@ -419,7 +419,10 @@ const HydrometBarChart = ({ data, height = 600 }) => {
     // 382mm), nhìn khó hiểu vì không bám sát giá trị thật đang hiển thị. Làm tròn lên bước "đẹp"
     // giống trục nhiệt độ/mực nước ở trên, không nhân thêm hệ số phụ.
     const rainfallStep = getNiceStep(maxRainfall || 1);
-    const niceMaxRainfall = Math.max(Math.ceil((maxRainfall || 1) / rainfallStep) * rainfallStep, rainfallStep);
+    const niceMaxRainfall = Math.max(
+        Math.ceil((maxRainfall || 1) / rainfallStep) * rainfallStep,
+        rainfallStep,
+    );
 
     return (
         <>

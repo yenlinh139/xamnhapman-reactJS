@@ -1332,7 +1332,7 @@ const MapboxMap = forwardRef(
                                                     "điểm cần chú ý",
                                                 ),
                                                 renderTile(
-                                                    "Cao nhất",
+                                                    "Lớn nhất",
                                                     salinityTop
                                                         ? `${formatDecimalDisplay(salinityTop.numericValue, 2)} ‰`
                                                         : "--",

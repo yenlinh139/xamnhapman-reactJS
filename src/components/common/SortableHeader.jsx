@@ -14,7 +14,10 @@ const SortableHeader = ({ label, sortKey, sortConfig, onSort, style }) => {
                 ) : sortConfig.direction === "asc" ? (
                     <i className="fa-solid fa-sort-up text-primary ms-1" style={{ fontSize: "0.75rem" }}></i>
                 ) : (
-                    <i className="fa-solid fa-sort-down text-primary ms-1" style={{ fontSize: "0.75rem" }}></i>
+                    <i
+                        className="fa-solid fa-sort-down text-primary ms-1"
+                        style={{ fontSize: "0.75rem" }}
+                    ></i>
                 )}
             </div>
         </th>

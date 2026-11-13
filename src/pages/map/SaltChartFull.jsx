@@ -1018,7 +1018,10 @@ const SaltChartFull = ({ show, kiHieu, tenDiem, salinityData, onClose }) => {
                                                 className="map-data-scroll"
                                                 style={{ flex: 1, minHeight: 0 }}
                                             >
-                                                <ExportPreviewTable data={filteredDetailData} kiHieu={kiHieu} />
+                                                <ExportPreviewTable
+                                                    data={filteredDetailData}
+                                                    kiHieu={kiHieu}
+                                                />
                                             </div>
 
                                             <div className="d-flex gap-2 justify-content-between align-items-center">

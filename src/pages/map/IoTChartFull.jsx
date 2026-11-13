@@ -465,8 +465,8 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [show, serialNumber]);
 
-    // Chỉ fetch dữ liệu dự báo khi tab "Dự báo" đang mở và trạm có mã tương ứng (dùng chung API
-    // dự báo của điểm đo mặn - xem IOT_STATION_FORECAST_MAP)
+    // Chỉ fetch dữ liệu dự báo khi tab "Dự báo" đang mở và trạm có chuỗi dự báo riêng (xem
+    // IOT_STATION_FORECAST_MAP)
     useEffect(() => {
         if (
             !show ||
@@ -480,7 +480,7 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
 
         setForecastState((prev) => ({ ...prev, loading: true, error: null }));
 
-        fetchForecastLatest()
+        fetchForecastLatest("iot")
             .then((res) => {
                 if (!res) throw new Error("no data");
                 const { timeGrid, stations, issuedAt, isSynthetic, intervalHours, horizonDays } = res;
@@ -673,11 +673,13 @@ const IoTChartFull = ({ show, iotData, onClose }) => {
         // Mặc định mở lên chỉ hiện 7 ngày gần nhất (preset đầu tiên) thay vì toàn bộ payload ban
         // đầu - lọc ngay trên dataPoints đã có sẵn trong bộ nhớ nên không cần gọi API thêm; các
         // preset rộng hơn (30/90 ngày, Toàn bộ) mới cần fetch nếu vượt quá payload ban đầu.
-        const defaultRange =
-            getPresetRange(IOT_RANGE_PRESETS[0], { startDate: clampedStartDate, endDate: clampedEndDate }) || {
-                startDate: clampedStartDate,
-                endDate: clampedEndDate,
-            };
+        const defaultRange = getPresetRange(IOT_RANGE_PRESETS[0], {
+            startDate: clampedStartDate,
+            endDate: clampedEndDate,
+        }) || {
+            startDate: clampedStartDate,
+            endDate: clampedEndDate,
+        };
 
         setActiveTab("chart");
         setDisplayData(filterRowsByDateRange(dataPoints, defaultRange.startDate, defaultRange.endDate));

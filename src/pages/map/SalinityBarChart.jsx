@@ -51,7 +51,7 @@ const CustomTooltip = ({ active, payload }) => {
                             ? "Tăng"
                             : trend.direction === "decrease"
                               ? "Giảm"
-                                : "Không đổi"}{" "}
+                              : "Không đổi"}{" "}
                         {trend.direction !== "stable" && (
                             <> {formatNumberVi(Math.abs(trend.difference), 2)}‰</>
                         )}

@@ -117,9 +117,13 @@ export const fetchSalinityPoints = async () => {
     }
 };
 
-export const fetchForecastLatest = async () => {
+// group: "iot" -> dự báo riêng của trạm IoT (manualCode = station_code); mặc định là 7 điểm đo mặn.
+// Hai nhóm có lưới thời gian dự báo khác nhau nên luôn lấy riêng từng nhóm.
+export const fetchForecastLatest = async (group) => {
     try {
-        const response = await axiosInstance.get("/forecast-latest");
+        const response = await axiosInstance.get("/forecast-latest", {
+            params: group ? { group } : undefined,
+        });
         return response.data;
     } catch (error) {
         console.error("Error fetching forecast latest:", error);
