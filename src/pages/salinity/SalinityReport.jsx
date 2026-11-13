@@ -128,14 +128,14 @@ const STATION_LOCATIONS = [
     },
 ];
 
-const DEFAULT_REPORT_DATE = "2025-05-25";
-
-const SalinityReport = () => {
+// embedded: hiển thị bên trong trang Bản tin (không kèm Header/Footer riêng)
+const SalinityReport = ({ embedded = false }) => {
     const { userInfo } = useSelector((state) => state.authStore);
     const [loading, setLoading] = useState(false);
     const [reportData, setReportData] = useState(null);
-    const [selectedDate, setSelectedDate] = useState(DEFAULT_REPORT_DATE);
-    const [dateInputValue, setDateInputValue] = useState("25/05/2025");
+    const [selectedDate, setSelectedDate] = useState("");
+    // Các ngày có số liệu quan trắc (ISO, mới -> cũ) cho dropdown chọn ngày báo cáo
+    const [availableDates, setAvailableDates] = useState([]);
     const [generatingPDF, setGeneratingPDF] = useState(false);
     const [generatingFrontendPDF, setGeneratingFrontendPDF] = useState(false);
     const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
@@ -172,27 +172,6 @@ const SalinityReport = () => {
             console.error("Error formatting date:", error);
             return "";
         }
-    };
-
-    const normalizeDateInput = (value) => {
-        const digits = String(value || "")
-            .replace(/\D/g, "")
-            .slice(0, 8);
-
-        if (digits.length <= 2) return digits;
-        if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-        return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-    };
-
-    const parseDisplayDateToIso = (value) => {
-        if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return null;
-
-        const [day, month, year] = value.split("/");
-        const isoDate = `${year}-${month}-${day}`;
-        const parsedDate = new Date(isoDate);
-
-        if (Number.isNaN(parsedDate.getTime())) return null;
-        return isoDate;
     };
 
     // Load report data
@@ -365,23 +344,9 @@ const SalinityReport = () => {
 
     // Handle date change
     const handleDateChange = (e) => {
-        const formattedValue = normalizeDateInput(e.target.value);
-        setDateInputValue(formattedValue);
-
-        const isoDate = parseDisplayDateToIso(formattedValue);
-        if (isoDate) {
-            setSelectedDate(isoDate);
-            loadReportData(isoDate);
-        }
-    };
-
-    const handleDateBlur = () => {
-        if (!dateInputValue) return;
-
-        const isoDate = parseDisplayDateToIso(dateInputValue);
-        if (!isoDate && selectedDate) {
-            setDateInputValue(formatDateVietnamese(selectedDate));
-        }
+        const isoDate = e.target.value;
+        setSelectedDate(isoDate);
+        if (isoDate) loadReportData(isoDate);
     };
 
     // Handle sorting
@@ -712,19 +677,27 @@ const SalinityReport = () => {
         return stationLocation ? stationLocation.location : stationName;
     };
 
+    // Mặc định mở báo cáo của ngày có số liệu mới nhất
     useEffect(() => {
-        setDateInputValue(formatDateVietnamese(selectedDate));
-    }, [selectedDate]);
-
-    useEffect(() => {
-        if (selectedDate) {
-            loadReportData(selectedDate);
-        }
+        axiosInstance
+            .get("/salinity-report-dates")
+            .then(({ data }) => {
+                const dates = Array.isArray(data) ? data : [];
+                setAvailableDates(dates);
+                if (dates.length > 0) {
+                    setSelectedDate(dates[0]);
+                    loadReportData(dates[0]);
+                }
+            })
+            .catch((error) => {
+                console.error("Error loading report dates:", error);
+                ToastCommon(TOAST.ERROR, "Không tải được danh sách ngày có số liệu");
+            });
     }, []);
 
     return (
         <div className="salinity-report">
-            <Header />
+            {!embedded && <Header />}
             <main className="main-content">
                 <div className="container">
                     <div className="row mb-4">
@@ -733,17 +706,20 @@ const SalinityReport = () => {
                                 <label htmlFor="reportDate" className="form-label">
                                     Chọn ngày báo cáo:
                                 </label>
-                                <input
-                                    type="text"
+                                <select
                                     id="reportDate"
-                                    className="form-control"
-                                    placeholder="dd/mm/yyyy"
-                                    inputMode="numeric"
-                                    maxLength={10}
-                                    value={dateInputValue}
+                                    className="form-select"
+                                    value={selectedDate}
                                     onChange={handleDateChange}
-                                    onBlur={handleDateBlur}
-                                />
+                                    disabled={availableDates.length === 0}
+                                >
+                                    {availableDates.length === 0 && <option value="">Đang tải...</option>}
+                                    {availableDates.map((isoDate) => (
+                                        <option key={isoDate} value={isoDate}>
+                                            {formatDateVietnamese(isoDate)}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
                         <div className="col-md-6">
@@ -1537,7 +1513,7 @@ const SalinityReport = () => {
                     )}
                 </div>
             </main>
-            <Footer />
+            {!embedded && <Footer />}
         </div>
     );
 };

@@ -6,10 +6,13 @@ import axiosInstance from "@config/axios-config";
 import { formatSummaryTime } from "@components/map/administrativeSummary";
 import { RISK_COLOR_MAP } from "@pages/map/SalinityRiskLegend";
 import BulletinSubscribeModal from "@pages/bulletin/BulletinSubscribeModal";
+import SalinityReport from "@pages/salinity/SalinityReport";
 
+// "observed" là báo cáo quan trắc độ mặn theo ngày (trang Báo cáo độ mặn trước đây)
 const TYPES = [
-    { key: "forecast", label: "Bản tin dự báo" },
-    { key: "warning", label: "Bản tin cảnh báo" },
+    { key: "observed", label: "Quan trắc" },
+    { key: "warning", label: "Cảnh báo" },
+    { key: "forecast", label: "Dự báo" },
 ];
 
 const TARGET_GROUPS = [
@@ -18,7 +21,12 @@ const TARGET_GROUPS = [
     { key: "huyen", label: "Đơn vị hành chính" },
 ];
 
-const RISK_COLORS = [RISK_COLOR_MAP.normal, RISK_COLOR_MAP.warning, RISK_COLOR_MAP["high-warning"], RISK_COLOR_MAP.critical];
+const RISK_COLORS = [
+    RISK_COLOR_MAP.normal,
+    RISK_COLOR_MAP.warning,
+    RISK_COLOR_MAP["high-warning"],
+    RISK_COLOR_MAP.critical,
+];
 
 const formatNumber = (value) =>
     Number(value).toLocaleString("vi-VN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -35,7 +43,8 @@ const hydrologyLines = (bulletin) =>
                   `${item.name}: trung bình ${formatNumber(item.mean)} ${item.unit}, lớn nhất ${formatNumber(item.max)} ${item.unit}, nhỏ nhất ${formatNumber(item.min)} ${item.unit}`,
           );
 
-const peakText = (peak) => (peak ? `${formatNumber(peak.value)} ‰ (${timeText(peak.time)})` : "Chưa có số liệu");
+const peakText = (peak) =>
+    peak ? `${formatNumber(peak.value)} ‰ (${timeText(peak.time)})` : "Chưa có số liệu";
 
 const stationLabel = (bulletin) =>
     `${bulletin.stationType === "iot" ? "Trạm IoT" : "Điểm đo mặn"} ${bulletin.stationName}`;
@@ -47,8 +56,14 @@ const buildColumns = (type) => [
     { label: "Hiện trạng thủy văn (7 ngày qua)", text: (bulletin) => hydrologyLines(bulletin).join("; ") },
     ...(type === "forecast"
         ? [
-              { label: "Hiện trạng XNM (7 ngày qua)", text: (bulletin) => `Cao nhất ${peakText(bulletin.current)}` },
-              { label: "Dự báo XNM (10 ngày tới)", text: (bulletin) => `Cao nhất ${peakText(bulletin.forecast)}` },
+              {
+                  label: "Hiện trạng XNM (7 ngày qua)",
+                  text: (bulletin) => `Cao nhất ${peakText(bulletin.current)}`,
+              },
+              {
+                  label: "Dự báo XNM (10 ngày tới)",
+                  text: (bulletin) => `Cao nhất ${peakText(bulletin.forecast)}`,
+              },
           ]
         : [{ label: "Độ mặn quan trắc", text: (bulletin) => peakText(bulletin.observed) }]),
     { label: "Cảnh báo cấp độ rủi ro thiên tai do XNM", text: (bulletin) => bulletin.risk.label },
@@ -67,7 +82,8 @@ const printHtml = (title, bodyHtml) => {
         alert("Trình duyệt đang chặn cửa sổ in, vui lòng cho phép pop-up.");
         return;
     }
-    printWindow.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
+    printWindow.document
+        .write(`<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
         <style>
             body { font-family: "Segoe UI", Arial, sans-serif; margin: 24px; color: #1f2937; }
             h1 { font-size: 20px; } h2 { font-size: 15px; margin: 16px 0 4px; }
@@ -106,7 +122,10 @@ const bulletinSections = (bulletin) => [
 const RiskBadge = ({ risk }) => (
     <span
         className="badge"
-        style={{ backgroundColor: RISK_COLORS[risk.level] || RISK_COLOR_MAP["no-data"], color: risk.level === 1 ? "#212529" : "#fff" }}
+        style={{
+            backgroundColor: RISK_COLORS[risk.level] || RISK_COLOR_MAP["no-data"],
+            color: risk.level === 1 ? "#212529" : "#fff",
+        }}
     >
         {risk.label}
     </span>
@@ -166,7 +185,7 @@ const BulletinDetailModal = ({ bulletin, onClose }) => {
 };
 
 const Bulletins = () => {
-    const [type, setType] = useState("forecast");
+    const [type, setType] = useState("observed");
     const [target, setTarget] = useState("");
     const [options, setOptions] = useState(null);
     const [subscriptions, setSubscriptions] = useState(null);
@@ -184,11 +203,14 @@ const Bulletins = () => {
     }, []);
 
     const loadBulletins = useCallback(() => {
+        if (type === "observed") return;
         const [targetType, targetCode] = target ? target.split("|") : [];
         setState((current) => ({ ...current, loading: true, error: "" }));
         axiosInstance
             .get("/bulletins", { params: { type, targetType, targetCode } })
-            .then(({ data }) => setState({ loading: false, error: "", bulletins: data.bulletins, total: data.total }))
+            .then(({ data }) =>
+                setState({ loading: false, error: "", bulletins: data.bulletins, total: data.total }),
+            )
             .catch((error) => {
                 console.error("Lỗi tải bản tin:", error);
                 setState({ loading: false, error: "Không tải được bản tin.", bulletins: [], total: 0 });
@@ -200,8 +222,9 @@ const Bulletins = () => {
     }, [loadBulletins, subscriptions]);
 
     const columns = useMemo(() => buildColumns(type), [type]);
-    const typeLabel = TYPES.find((item) => item.key === type).label;
-    const hasSubscriptions = subscriptions && TARGET_GROUPS.some((group) => subscriptions[group.key]?.length > 0);
+    const typeLabel = `Bản tin ${TYPES.find((item) => item.key === type).label.toLowerCase()}`;
+    const hasSubscriptions =
+        subscriptions && TARGET_GROUPS.some((group) => subscriptions[group.key]?.length > 0);
 
     const subscribedTargets = useMemo(() => {
         if (!options || !subscriptions) return [];
@@ -212,9 +235,16 @@ const Bulletins = () => {
     }, [options, subscriptions]);
 
     const handleDownloadCsv = () => {
-        const rows = [columns.map((column) => column.label), ...state.bulletins.map((bulletin) => columns.map((column) => column.text(bulletin)))];
-        const csv = rows.map((cells) => cells.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\r\n");
-        const url = URL.createObjectURL(new Blob([String.fromCharCode(0xfeff) + csv], { type: "text/csv;charset=utf-8" }));
+        const rows = [
+            columns.map((column) => column.label),
+            ...state.bulletins.map((bulletin) => columns.map((column) => column.text(bulletin))),
+        ];
+        const csv = rows
+            .map((cells) => cells.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+            .join("\r\n");
+        const url = URL.createObjectURL(
+            new Blob([String.fromCharCode(0xfeff) + csv], { type: "text/csv;charset=utf-8" }),
+        );
         const link = document.createElement("a");
         link.href = url;
         link.download = `ban_tin_${type === "forecast" ? "du_bao" : "canh_bao"}_xnm_${Date.now()}.csv`;
@@ -244,7 +274,7 @@ const Bulletins = () => {
             </Helmet>
             <Header />
 
-            <main className="container-fluid flex-grow-1 py-4 px-3 px-lg-5" style={{ marginTop: 80 }}>
+            <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-5">
                 <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
                     <h1 className="h4 fw-bold mb-0 me-auto">Bản tin dự báo, cảnh báo xâm nhập mặn</h1>
                     <button type="button" className="btn btn-primary" onClick={() => setShowSubscribe(true)}>
@@ -267,46 +297,52 @@ const Bulletins = () => {
                         ))}
                     </ul>
 
-                    <select
-                        className="form-select ms-lg-3"
-                        style={{ width: 300, maxWidth: "100%" }}
-                        value={target}
-                        onChange={(event) => setTarget(event.target.value)}
-                        aria-label="Lọc theo khu vực đã đăng kí"
-                    >
-                        <option value="">Tất cả khu vực đã đăng kí</option>
-                        {subscribedTargets.map((group) => (
-                            <optgroup key={group.key} label={group.label}>
-                                {group.items.map((item) => (
-                                    <option key={item.code} value={`${group.key}|${item.code}`}>
-                                        {item.name}
-                                    </option>
+                    {type !== "observed" && (
+                        <>
+                            <select
+                                className="form-select ms-lg-3"
+                                style={{ width: 300, maxWidth: "100%" }}
+                                value={target}
+                                onChange={(event) => setTarget(event.target.value)}
+                                aria-label="Lọc theo khu vực đã đăng kí"
+                            >
+                                <option value="">Tất cả khu vực đã đăng kí</option>
+                                {subscribedTargets.map((group) => (
+                                    <optgroup key={group.key} label={group.label}>
+                                        {group.items.map((item) => (
+                                            <option key={item.code} value={`${group.key}|${item.code}`}>
+                                                {item.name}
+                                            </option>
+                                        ))}
+                                    </optgroup>
                                 ))}
-                            </optgroup>
-                        ))}
-                    </select>
+                            </select>
 
-                    <div className="ms-auto d-flex gap-2">
-                        <button
-                            type="button"
-                            className="btn btn-outline-success"
-                            onClick={handleDownloadCsv}
-                            disabled={state.bulletins.length === 0}
-                        >
-                            Tải CSV
-                        </button>
-                        <button
-                            type="button"
-                            className="btn btn-outline-primary"
-                            onClick={handlePrintList}
-                            disabled={state.bulletins.length === 0}
-                        >
-                            In danh sách
-                        </button>
-                    </div>
+                            <div className="ms-auto d-flex gap-2">
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-success"
+                                    onClick={handleDownloadCsv}
+                                    disabled={state.bulletins.length === 0}
+                                >
+                                    Tải CSV
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-primary"
+                                    onClick={handlePrintList}
+                                    disabled={state.bulletins.length === 0}
+                                >
+                                    In danh sách
+                                </button>
+                            </div>
+                        </>
+                    )}
                 </div>
 
-                {state.loading ? (
+                {type === "observed" ? (
+                    <SalinityReport embedded />
+                ) : state.loading ? (
                     <div className="text-center py-5">
                         <div className="spinner-border text-primary" role="status">
                             <span className="visually-hidden">Đang tải...</span>
@@ -316,16 +352,16 @@ const Bulletins = () => {
                     <p className="text-muted text-center py-5">{state.error}</p>
                 ) : subscriptions && !hasSubscriptions ? (
                     <p className="text-muted text-center py-5">
-                        Bạn chưa đăng kí khu vực nào. Nhấn &quot;Đăng kí nhận bản tin&quot; để chọn điểm đo mặn, trạm IoT
-                        hoặc huyện muốn theo dõi.
+                        Bạn chưa đăng kí khu vực nào. Nhấn &quot;Đăng kí nhận bản tin&quot; để chọn điểm đo
+                        mặn, trạm IoT hoặc huyện muốn theo dõi.
                     </p>
                 ) : state.bulletins.length === 0 ? (
                     <p className="text-muted text-center py-5">Chưa có bản tin nào cho khu vực đã chọn.</p>
                 ) : (
                     <>
                         <div className="text-muted small mb-2">
-                            Hiển thị {state.bulletins.length}/{state.total} bản tin, mới nhất trước. Nhấn vào một dòng
-                            để xem bản tin.
+                            Hiển thị {state.bulletins.length}/{state.total} bản tin, mới nhất trước. Nhấn vào
+                            một dòng để xem bản tin.
                         </div>
                         <div className="table-responsive">
                             <table className="table table-bordered table-hover table-sm align-middle bg-white">
