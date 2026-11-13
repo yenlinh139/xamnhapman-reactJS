@@ -1,5 +1,6 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import BulletinSubscribeModal from "@pages/bulletin/BulletinSubscribeModal";
 import { Helmet } from "react-helmet-async";
 import Header from "@pages/themes/headers/Header";
 import Footer from "@pages/themes/footer/Footer";
@@ -42,6 +43,18 @@ const userRoles = [
 ];
 
 const Home = () => {
+    const navigate = useNavigate();
+    const [showSubscribe, setShowSubscribe] = useState(false);
+
+    // Đăng kí bản tin gắn với tài khoản nên cần đăng nhập trước
+    const handleSubscribeClick = () => {
+        if (localStorage.getItem("access_token")) {
+            setShowSubscribe(true);
+        } else {
+            navigate(ROUTES.login);
+        }
+    };
+
     return (
         <div className="home-container">
             <Helmet>
@@ -62,6 +75,19 @@ const Home = () => {
                     }
                 />
             </section>
+
+            <section className="container py-4">
+                <div className="d-flex flex-wrap justify-content-center gap-3">
+                    <button type="button" className="btn btn-primary btn-lg" onClick={handleSubscribeClick}>
+                        Đăng kí nhận bản tin
+                    </button>
+                    <Link to={ROUTES.bulletins} className="btn btn-outline-primary btn-lg">
+                        Bản tin dự báo, cảnh báo xâm nhập mặn
+                    </Link>
+                </div>
+            </section>
+            <BulletinSubscribeModal show={showSubscribe} onClose={() => setShowSubscribe(false)} />
+
             {/* System Overview */}
             <section className="system-overview-section">
                 <div className="container">

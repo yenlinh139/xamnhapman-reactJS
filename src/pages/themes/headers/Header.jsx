@@ -86,7 +86,7 @@ function Header() {
                             ) : (
                                 <>
                                     <li className="text-center">
-                                        <NavLink to={ROUTES.salinityReport}>Bản tin xâm nhập mặn</NavLink>
+                                        <NavLink to={ROUTES.bulletins}>Bản tin xâm nhập mặn</NavLink>
                                     </li>
                                     <li className="text-center">
                                         <NavLink to={ROUTES.feedback}>Liên hệ</NavLink>

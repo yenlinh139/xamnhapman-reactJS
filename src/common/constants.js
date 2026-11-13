@@ -15,6 +15,7 @@ export const ROUTES = {
     setting: "/cai-dat",
     feedback: "/gop-y-danh-gia",
     map: "/ban-do",
+    bulletins: "/ban-tin",
     about: "/gioi-thieu",
     verify_email: "/verify-email/:userId",
 };

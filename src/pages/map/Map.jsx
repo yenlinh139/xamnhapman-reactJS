@@ -473,7 +473,7 @@ const Map = () => {
                             {isLoggedIn ? (
                                 <>
                                     <NavLink
-                                        to={ROUTES.salinityReport}
+                                        to={ROUTES.bulletins}
                                         className={({ isActive }) =>
                                             isActive ? "nav-link active" : "nav-link"
                                         }
@@ -589,7 +589,7 @@ const Map = () => {
                                 <span>Bản đồ</span>
                             </NavLink>
                             <NavLink
-                                to={ROUTES.salinityReport}
+                                to={ROUTES.bulletins}
                                 className={({ isActive }) =>
                                     isActive ? "mobile-link active" : "mobile-link"
                                 }
