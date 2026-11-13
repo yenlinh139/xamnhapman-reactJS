@@ -473,24 +473,6 @@ const ForecastManagementTab = ({ userInfo }) => {
             <div className="filter-section">
                 <div className="filter-row">
                     <div className="filter-left">
-                        <div className="filter-group">
-                            <label htmlFor="forecastRunFilter">Lượt dự báo:</label>
-                            <select
-                                id="forecastRunFilter"
-                                value={filters.runId}
-                                onChange={(e) => handleFilterChange("runId", e.target.value)}
-                                className="filter-input"
-                            >
-                                <option value={ALL_RUNS}>Tất cả lượt</option>
-                                {runs.map((run, index) => (
-                                    <option key={run.run_id} value={run.run_id}>
-                                        {toDisplayDateTime(run.forecast_start_at)}
-                                        {index === 0 ? " (mới nhất)" : ""}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
                         <div className="filter-group filter-group-date">
                             <label htmlFor="forecastStartDate">Từ ngày:</label>
                             <LocalizedDateInput

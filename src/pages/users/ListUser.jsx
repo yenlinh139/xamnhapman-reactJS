@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import ElementUser from "@pages/users/ElementUser";
 import PaginationUser from "@pages/users/PaginationUser";
 import ModalConfirm from "@components/ModalConfirm";
-import { changeRole, deleteUser } from "@stores/actions/userActions";
+import { changeRole, deleteUser, verifyUserEmail } from "@stores/actions/userActions";
 import Loading from "@components/Loading";
 
 const ListUser = ({ setUserEdit }) => {
@@ -154,6 +154,8 @@ const ListUser = ({ setUserEdit }) => {
                         toast.success("Đã xóa người dùng thành công");
                     }),
                 );
+            } else if (actionType === "verifyEmail") {
+                dispatch(verifyUserEmail(actionPayload));
             }
         } catch (error) {
             toast.error("Đã xảy ra lỗi. Vui lòng thử lại.");

@@ -15,6 +15,8 @@ export const CREATE = {
 
 export const CHANGEROLE = "Thay đổi vai trò của tài khoản này?";
 
+export const VERIFY_EMAIL = "Kích hoạt (xác thực) tài khoản này?";
+
 export const FORM_ERRORS = {
     name: "Tên chưa được điền!",
     payment: "Thanh toán chưa được điền!",

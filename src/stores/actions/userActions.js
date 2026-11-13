@@ -57,6 +57,20 @@ export const createUser = (params) => {
     };
 };
 
+export const verifyUserEmail = (params) => {
+    return async (dispatch, getState) => {
+        try {
+            const resp = await axiosInstance.put("/user/verify-email", params);
+            if (resp) {
+                dispatch(getListUser());
+                ToastCommon(TOAST.SUCCESS, resp.data?.message || "Kích hoạt tài khoản thành công");
+            }
+        } catch (error) {
+            ToastCommon(TOAST.ERROR, error.response?.data?.message || error.message);
+        }
+    };
+};
+
 export const deleteUser = (params, onSuccess) => {
     return async (dispatch, getState) => {
         try {

@@ -1,6 +1,16 @@
 import { useNavigate } from "react-router-dom";
-import { CHANGEROLE, DELETE } from "@common/messageConfirm";
+import { CHANGEROLE, DELETE, VERIFY_EMAIL } from "@common/messageConfirm";
 import { memo } from "react";
+
+// Vai ban ghi cu bi luu nham chuoi van ban "null"/"undefined" (thay vi SQL NULL that) - coi cac
+// gia tri nay la rong luon, khong hien thi nguyen van ra bang.
+const displayPhone = (phone) => {
+    const normalized = String(phone ?? "").trim();
+    if (!normalized || normalized.toLowerCase() === "null" || normalized.toLowerCase() === "undefined") {
+        return "";
+    }
+    return normalized;
+};
 
 function ElementUser({ user, handleEditUser, handleShowModal }) {
     const navigate = useNavigate();
@@ -11,6 +21,10 @@ function ElementUser({ user, handleEditUser, handleShowModal }) {
 
     const handleDeleteUser = (id) => {
         handleShowModal(DELETE.user, "deleteUser", { id });
+    };
+
+    const handleVerifyEmail = (id) => {
+        handleShowModal(VERIFY_EMAIL, "verifyEmail", { id });
     };
 
     return (
@@ -28,12 +42,23 @@ function ElementUser({ user, handleEditUser, handleShowModal }) {
                     <span className="my-truncate text-truncate">{user.email}</span>
                 </td>
                 <td>
-                    <span className={`badge ${user.email_verified ? "bg-success" : "bg-warning"}`}>
-                        {user.email_verified ? "Đã xác thực" : "Chưa xác thực"}
-                    </span>
+                    <div className="d-flex align-items-center gap-2">
+                        <span className={`badge ${user.email_verified ? "bg-success" : "bg-warning"}`}>
+                            {user.email_verified ? "Đã xác thực" : "Chưa xác thực"}
+                        </span>
+                        {!user.email_verified && (
+                            <button
+                                className="btn btn-outline-success btn-sm"
+                                onClick={() => handleVerifyEmail(user.id)}
+                                title="Admin kích hoạt tài khoản này (bỏ qua bước xác thực qua email)"
+                            >
+                                Kích hoạt
+                            </button>
+                        )}
+                    </div>
                 </td>
                 <td>
-                    <span className="my-truncate text-truncate">{user.phone || "--"}</span>
+                    <span className="my-truncate text-truncate">{displayPhone(user.phone)}</span>
                 </td>
                 <td>
                     <select
