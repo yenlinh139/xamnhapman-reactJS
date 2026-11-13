@@ -1,4 +1,11 @@
 import { createLayerPopupContent, WMS_POPUP_TITLES } from "@components/map/wmsPopupTemplates";
+import {
+    ADMIN_LAYER_LEVELS,
+    ADMIN_SUMMARY_ERROR_HTML,
+    ADMIN_SUMMARY_LOADING_HTML,
+    buildAdministrativeSummaryHtml,
+    fetchAdministrativeSummary,
+} from "@components/map/administrativeSummary";
 
 L.TileLayer.BetterWMS = L.TileLayer.WMS.extend({
     isDiemDoCaoLayer: function (layerName) {
@@ -139,10 +146,54 @@ L.TileLayer.BetterWMS = L.TileLayer.WMS.extend({
 
             const popupContent = createLayerPopupContent(layerName, props);
 
+            const adminLevel = ADMIN_LAYER_LEVELS[layerName];
+            const adminCode = adminLevel === "huyen" ? props.maHuyen : props.maXa;
+            if (adminLevel && adminCode) {
+                this.showAdministrativePopup(latlng, popupContent, feature, adminLevel, adminCode);
+                return;
+            }
+
             L.popup().setLatLng(latlng).setContent(popupContent).openOn(this._map);
         } catch (e) {
             console.log("Lỗi khi xử lý dữ liệu JSON:", e);
         }
+    },
+
+    // Popup huyện/xã: thông tin cơ bản + số liệu tóm tắt các trạm trong địa bàn, kèm khoanh vùng ranh giới
+    showAdministrativePopup: function (latlng, baseContent, feature, level, code) {
+        const map = this._map;
+        const container = document.createElement("div");
+        container.innerHTML = `${baseContent}<div data-admin-summary style="padding: 0 14px 12px;">${ADMIN_SUMMARY_LOADING_HTML}</div>`;
+        const summaryBox = container.querySelector("[data-admin-summary]");
+
+        const popup = L.popup({ maxWidth: 460, maxHeight: Math.max(260, map.getSize().y - 140) })
+            .setLatLng(latlng)
+            .setContent(container)
+            .openOn(map);
+
+        const firstCoordinate = feature?.geometry?.coordinates?.flat?.(Infinity)?.[0];
+        const highlight =
+            Number.isFinite(firstCoordinate) && Math.abs(firstCoordinate) <= 180
+                ? L.geoJSON(feature, {
+                      interactive: false,
+                      style: { color: "#ff6b00", weight: 3, fillColor: "#ff6b00", fillOpacity: 0.08 },
+                  }).addTo(map)
+                : null;
+        if (highlight) {
+            popup.on("remove", () => map.removeLayer(highlight));
+        }
+
+        fetchAdministrativeSummary(level, code)
+            .then((summary) => {
+                summaryBox.innerHTML = buildAdministrativeSummaryHtml(summary);
+            })
+            .catch((error) => {
+                console.error("Lỗi tải số liệu tóm tắt đơn vị hành chính:", error);
+                summaryBox.innerHTML = ADMIN_SUMMARY_ERROR_HTML;
+            })
+            .finally(() => {
+                if (map.hasLayer(popup)) popup.update();
+            });
     },
 
     extractXmlErrorMessage: function (xmlText) {

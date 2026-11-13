@@ -14,6 +14,7 @@ import SaltChartFull from "@pages/map/SaltChartFull";
 import HydrometChartFull from "@pages/map/HydrometChartFull";
 import IoTChartFull from "@pages/map/IoTChartFull";
 import ReservoirChartFull from "@pages/map/ReservoirChartFull";
+import AdministrativeDashboard from "@pages/map/AdministrativeDashboard";
 import { initializeMap } from "@components/map/mapInitialization";
 import { getSalinityTooltipClass, renderSalinityPoints } from "@components/map/SalinityMarkers";
 import { renderHydrometStations } from "@components/map/HydrometMarkers";
@@ -67,6 +68,7 @@ const MapboxMap = forwardRef(
         const [reservoirData, setReservoirData] = useState([]);
         const [selectedReservoir, setSelectedReservoir] = useState(null);
         const [reservoirInitialTab, setReservoirInitialTab] = useState("chart");
+        const [adminDashboard, setAdminDashboard] = useState(null);
         const highlightedLayerRef = useRef(null);
         const highlightedMarkerRef = useRef(null);
         const baseMapsRef = useRef({});
@@ -230,6 +232,16 @@ const MapboxMap = forwardRef(
                 if (window.onOpenIoTChart) {
                     delete window.onOpenIoTChart;
                 }
+            };
+        }, []);
+
+        useEffect(() => {
+            window.openAdministrativeDashboard = (level, code) => {
+                if (level && code) setAdminDashboard({ level, code });
+            };
+
+            return () => {
+                delete window.openAdministrativeDashboard;
             };
         }, []);
 
@@ -1933,6 +1945,16 @@ const MapboxMap = forwardRef(
                     onApplyRange={applyReservoirDateRange}
                     onClose={() => setShowReservoirChart(false)}
                 />
+
+                {adminDashboard && (
+                    <AdministrativeDashboard
+                        key={`${adminDashboard.level}:${adminDashboard.code}`}
+                        show
+                        level={adminDashboard.level}
+                        code={adminDashboard.code}
+                        onClose={() => setAdminDashboard(null)}
+                    />
+                )}
             </>
         );
     },
