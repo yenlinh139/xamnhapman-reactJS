@@ -58,11 +58,11 @@ const buildColumns = (type) => [
         ? [
               {
                   label: "Hiện trạng XNM (7 ngày qua)",
-                  text: (bulletin) => `Cao nhất ${peakText(bulletin.current)}`,
+                  text: (bulletin) => `Lớn nhất ${peakText(bulletin.current)}`,
               },
               {
                   label: "Dự báo XNM (10 ngày tới)",
-                  text: (bulletin) => `Cao nhất ${peakText(bulletin.forecast)}`,
+                  text: (bulletin) => `Lớn nhất ${peakText(bulletin.forecast)}`,
               },
           ]
         : [{ label: "Độ mặn quan trắc", text: (bulletin) => peakText(bulletin.observed) }]),
@@ -102,18 +102,18 @@ const bulletinSections = (bulletin) => [
         ? [
               {
                   title: "Hiện trạng xâm nhập mặn (7 ngày qua)",
-                  lines: [`Độ mặn cao nhất: ${peakText(bulletin.current)}`],
+                  lines: [`Độ mặn lớn nhất: ${peakText(bulletin.current)}`],
               },
               {
                   title: "Dự báo xâm nhập mặn (10 ngày tới)",
-                  lines: [`Độ mặn cao nhất: ${peakText(bulletin.forecast)}`],
+                  lines: [`Độ mặn lớn nhất: ${peakText(bulletin.forecast)}`],
               },
           ]
         : [{ title: "Độ mặn quan trắc", lines: [peakText(bulletin.observed)] }]),
     {
         title: "Cảnh báo cấp độ rủi ro thiên tai do xâm nhập mặn",
         lines: [
-            `${bulletin.risk.label} (dựa trên ${bulletin.type === "forecast" ? "độ mặn dự báo cao nhất trong 10 ngày tới" : "độ mặn quan trắc"})`,
+            `${bulletin.risk.label} (dựa trên ${bulletin.type === "forecast" ? "độ mặn dự báo lớn nhất trong 10 ngày tới" : "độ mặn quan trắc"})`,
         ],
     },
     { title: "Thời gian ban hành bản tin", lines: [issuedText(bulletin)] },
