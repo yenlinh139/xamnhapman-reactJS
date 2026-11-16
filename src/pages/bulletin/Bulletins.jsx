@@ -7,10 +7,17 @@ import { formatSummaryTime } from "@components/map/administrativeSummary";
 import { RISK_COLOR_MAP } from "@pages/map/SalinityRiskLegend";
 import BulletinSubscribeModal from "@pages/bulletin/BulletinSubscribeModal";
 import SalinityReport from "@pages/salinity/SalinityReport";
+import SortableHeader from "@components/common/SortableHeader";
+import { useSortableRows } from "@common/useSortableRows";
 
-// "observed" là báo cáo quan trắc độ mặn theo ngày (trang Báo cáo độ mặn trước đây)
-const TYPES = [
+// Tab chính: "observed" là báo cáo quan trắc độ mặn theo ngày (trang Báo cáo độ mặn trước đây),
+// "alerts" gộp chung Cảnh báo + Dự báo, chọn tiếp bằng thanh chuyển đổi con (ALERT_TYPES).
+const PRIMARY_TABS = [
     { key: "observed", label: "Quan trắc" },
+    { key: "alerts", label: "Cảnh báo, dự báo" },
+];
+
+const ALERT_TYPES = [
     { key: "warning", label: "Cảnh báo" },
     { key: "forecast", label: "Dự báo" },
 ];
@@ -49,25 +56,46 @@ const peakText = (peak) =>
 const stationLabel = (bulletin) =>
     `${bulletin.stationType === "iot" ? "Trạm IoT" : "Điểm đo mặn"} ${bulletin.stationName}`;
 
-// Các cột của danh sách theo mẫu; dùng chung cho bảng, CSV và bản in
+// Các cột của danh sách theo mẫu; dùng chung cho bảng, CSV và bản in.
+// `sortValue` trả về giá trị đã chuẩn hoá (số/ngày) để sort đúng, khác với `text` (chuỗi hiển thị).
 const buildColumns = (type) => [
-    { label: "Vị trí", text: stationLabel },
-    { label: "Khu vực", text: (bulletin) => bulletin.tenHuyen || "-" },
-    { label: "Hiện trạng thủy văn (7 ngày qua)", text: (bulletin) => hydrologyLines(bulletin).join("; ") },
+    { label: "Vị trí", text: stationLabel, sortValue: stationLabel },
+    {
+        label: "Khu vực",
+        text: (bulletin) => bulletin.tenHuyen || "-",
+        sortValue: (bulletin) => bulletin.tenHuyen || "",
+    },
+    {
+        label: "Hiện trạng thủy văn (7 ngày qua)",
+        text: (bulletin) => hydrologyLines(bulletin).join("; "),
+        sortValue: (bulletin) => bulletin.hydrology[0]?.mean ?? null,
+    },
     ...(type === "forecast"
         ? [
               {
                   label: "Hiện trạng XNM (7 ngày qua)",
                   text: (bulletin) => `Lớn nhất ${peakText(bulletin.current)}`,
+                  sortValue: (bulletin) => bulletin.current?.value ?? null,
               },
               {
                   label: "Dự báo XNM (10 ngày tới)",
                   text: (bulletin) => `Lớn nhất ${peakText(bulletin.forecast)}`,
+                  sortValue: (bulletin) => bulletin.forecast?.value ?? null,
               },
           ]
-        : [{ label: "Độ mặn quan trắc", text: (bulletin) => peakText(bulletin.observed) }]),
-    { label: "Cảnh báo cấp độ rủi ro thiên tai do XNM", text: (bulletin) => bulletin.risk.label },
-    { label: "Thời gian ban hành", text: issuedText },
+        : [
+              {
+                  label: "Độ mặn quan trắc",
+                  text: (bulletin) => peakText(bulletin.observed),
+                  sortValue: (bulletin) => bulletin.observed?.value ?? null,
+              },
+          ]),
+    {
+        label: "Cảnh báo cấp độ rủi ro thiên tai do XNM",
+        text: (bulletin) => bulletin.risk.label,
+        sortValue: (bulletin) => bulletin.risk.level,
+    },
+    { label: "Thời gian ban hành", text: issuedText, sortValue: (bulletin) => bulletin.issuedAt },
 ];
 
 const escapeHtml = (value) =>
@@ -185,7 +213,9 @@ const BulletinDetailModal = ({ bulletin, onClose }) => {
 };
 
 const Bulletins = () => {
-    const [type, setType] = useState("observed");
+    const [primaryTab, setPrimaryTab] = useState("observed");
+    const [alertType, setAlertType] = useState("warning");
+    const type = primaryTab === "observed" ? "observed" : alertType;
     const [target, setTarget] = useState("");
     const [options, setOptions] = useState(null);
     const [subscriptions, setSubscriptions] = useState(null);
@@ -222,7 +252,20 @@ const Bulletins = () => {
     }, [loadBulletins, subscriptions]);
 
     const columns = useMemo(() => buildColumns(type), [type]);
-    const typeLabel = `Bản tin ${TYPES.find((item) => item.key === type).label.toLowerCase()}`;
+    const getSortValue = useCallback(
+        (bulletin, key) => columns.find((column) => column.label === key)?.sortValue(bulletin) ?? null,
+        [columns],
+    );
+    const {
+        sortedRows: sortedBulletins,
+        sortConfig,
+        handleSort,
+    } = useSortableRows(state.bulletins, {
+        defaultKey: "Thời gian ban hành",
+        defaultDirection: "desc",
+        getSortValue,
+    });
+    const typeLabel = `Bản tin ${ALERT_TYPES.find((item) => item.key === type)?.label.toLowerCase() || "quan trắc"}`;
     const hasSubscriptions =
         subscriptions && TARGET_GROUPS.some((group) => subscriptions[group.key]?.length > 0);
 
@@ -237,7 +280,7 @@ const Bulletins = () => {
     const handleDownloadCsv = () => {
         const rows = [
             columns.map((column) => column.label),
-            ...state.bulletins.map((bulletin) => columns.map((column) => column.text(bulletin))),
+            ...sortedBulletins.map((bulletin) => columns.map((column) => column.text(bulletin))),
         ];
         const csv = rows
             .map((cells) => cells.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
@@ -259,7 +302,7 @@ const Bulletins = () => {
             `${typeLabel} xâm nhập mặn`,
             `<h1>${escapeHtml(typeLabel)} xâm nhập mặn</h1><table><thead><tr>${columns
                 .map((column) => `<th>${escapeHtml(column.label)}</th>`)
-                .join("")}</tr></thead><tbody>${state.bulletins
+                .join("")}</tr></thead><tbody>${sortedBulletins
                 .map(
                     (bulletin) =>
                         `<tr>${columns.map((column) => `<td>${escapeHtml(column.text(bulletin))}</td>`).join("")}</tr>`,
@@ -275,70 +318,94 @@ const Bulletins = () => {
             <Header />
 
             <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-5">
-                <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
-                    <h1 className="h4 fw-bold mb-0 me-auto">Bản tin dự báo, cảnh báo xâm nhập mặn</h1>
-                    <button type="button" className="btn btn-primary" onClick={() => setShowSubscribe(true)}>
-                        Đăng kí nhận bản tin
-                    </button>
-                </div>
-
-                <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
-                    <ul className="nav nav-pills mb-0">
-                        {TYPES.map((item) => (
+                <div className="bulletin-primary-tabs-row">
+                    <ul className="nav bulletin-primary-tabs mb-0">
+                        {PRIMARY_TABS.map((item) => (
                             <li className="nav-item" key={item.key}>
                                 <button
                                     type="button"
-                                    className={`nav-link ${type === item.key ? "active" : ""}`}
-                                    onClick={() => setType(item.key)}
+                                    className={`nav-link ${primaryTab === item.key ? "active" : ""}`}
+                                    onClick={() => setPrimaryTab(item.key)}
                                 >
                                     {item.label}
                                 </button>
                             </li>
                         ))}
                     </ul>
-
-                    {type !== "observed" && (
-                        <>
-                            <select
-                                className="form-select ms-lg-3"
-                                style={{ width: 300, maxWidth: "100%" }}
-                                value={target}
-                                onChange={(event) => setTarget(event.target.value)}
-                                aria-label="Lọc theo khu vực đã đăng kí"
-                            >
-                                <option value="">Tất cả khu vực đã đăng kí</option>
-                                {subscribedTargets.map((group) => (
-                                    <optgroup key={group.key} label={group.label}>
-                                        {group.items.map((item) => (
-                                            <option key={item.code} value={`${group.key}|${item.code}`}>
-                                                {item.name}
-                                            </option>
-                                        ))}
-                                    </optgroup>
-                                ))}
-                            </select>
-
-                            <div className="ms-auto d-flex gap-2">
-                                <button
-                                    type="button"
-                                    className="btn btn-outline-success"
-                                    onClick={handleDownloadCsv}
-                                    disabled={state.bulletins.length === 0}
-                                >
-                                    Tải CSV
-                                </button>
-                                <button
-                                    type="button"
-                                    className="btn btn-outline-primary"
-                                    onClick={handlePrintList}
-                                    disabled={state.bulletins.length === 0}
-                                >
-                                    In danh sách
-                                </button>
-                            </div>
-                        </>
-                    )}
                 </div>
+
+                <div className="bulletin-toolbar-row">
+                    {primaryTab === "alerts" ? (
+                        <div
+                            className="bulletin-alert-toggle btn-group"
+                            role="group"
+                            aria-label="Loại bản tin"
+                        >
+                            {ALERT_TYPES.map((item) => (
+                                <button
+                                    key={item.key}
+                                    type="button"
+                                    className={`btn ${alertType === item.key ? "active" : ""}`}
+                                    onClick={() => setAlertType(item.key)}
+                                >
+                                    {item.label}
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
+                        <span />
+                    )}
+
+                    <button
+                        type="button"
+                        className="btn btn-primary bulletin-subscribe-btn"
+                        onClick={() => setShowSubscribe(true)}
+                    >
+                        Đăng kí nhận bản tin
+                    </button>
+                </div>
+
+                {primaryTab === "alerts" && (
+                    <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
+                        <select
+                            className="form-select"
+                            style={{ width: 300, maxWidth: "100%" }}
+                            value={target}
+                            onChange={(event) => setTarget(event.target.value)}
+                            aria-label="Lọc theo khu vực đã đăng kí"
+                        >
+                            <option value="">Tất cả khu vực đã đăng kí</option>
+                            {subscribedTargets.map((group) => (
+                                <optgroup key={group.key} label={group.label}>
+                                    {group.items.map((item) => (
+                                        <option key={item.code} value={`${group.key}|${item.code}`}>
+                                            {item.name}
+                                        </option>
+                                    ))}
+                                </optgroup>
+                            ))}
+                        </select>
+
+                        <div className="ms-auto d-flex gap-2">
+                            <button
+                                type="button"
+                                className="btn btn-outline-success"
+                                onClick={handleDownloadCsv}
+                                disabled={state.bulletins.length === 0}
+                            >
+                                Tải CSV
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-outline-primary"
+                                onClick={handlePrintList}
+                                disabled={state.bulletins.length === 0}
+                            >
+                                In danh sách
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {type === "observed" ? (
                     <SalinityReport embedded />
@@ -368,12 +435,18 @@ const Bulletins = () => {
                                 <thead className="table-light">
                                     <tr>
                                         {columns.map((column) => (
-                                            <th key={column.label}>{column.label}</th>
+                                            <SortableHeader
+                                                key={column.label}
+                                                label={column.label}
+                                                sortKey={column.label}
+                                                sortConfig={sortConfig}
+                                                onSort={handleSort}
+                                            />
                                         ))}
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {state.bulletins.map((bulletin) => (
+                                    {sortedBulletins.map((bulletin) => (
                                         <tr
                                             key={bulletin.id}
                                             style={{ cursor: "pointer" }}

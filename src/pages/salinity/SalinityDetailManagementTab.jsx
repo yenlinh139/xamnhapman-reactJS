@@ -18,6 +18,7 @@ import {
 import SortableHeader from "@components/common/SortableHeader";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
 import LocalizedDateTimeInput from "@components/common/LocalizedDateTimeInput";
+import StationCoordinatesTable from "@components/common/StationCoordinatesTable";
 
 const STATION_NAMES = {
     CRT: "Cầu Rạch Tra",
@@ -28,6 +29,7 @@ const STATION_NAMES = {
     MNB: "Mũi Nhà Bè",
     PCL: "Phà Cát Lái",
     KXD2: "Kênh Xáng đứng 2",
+    RBL: "Rạch Bà Lào",
 };
 const STATION_CODES = Object.keys(STATION_NAMES);
 
@@ -111,6 +113,15 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
 
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [exporting, setExporting] = useState("");
+    const [points, setPoints] = useState([]);
+
+    // Toạ độ từng điểm đo - tải 1 lần, hiển thị trong bảng tham chiếu phía trên bộ lọc.
+    useEffect(() => {
+        axiosInstance
+            .get("/salinity-points")
+            .then((res) => setPoints(asArray(res.data)))
+            .catch(() => setPoints([]));
+    }, []);
 
     // Khoảng ngày-giờ hiện có (khóa "Từ ngày"/"Đến ngày" trong khoảng này) - dùng khoảng của
     // đúng trạm đang lọc, hoặc khoảng CHUNG của tất cả trạm khi đang chọn "Tất cả điểm đo". Mặc
@@ -375,9 +386,22 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
         getSortValue,
     });
 
+    const coordinateStations = useMemo(
+        () =>
+            points.map((point) => ({
+                code: point.KiHieu,
+                name: point.TenDiem || STATION_NAMES[point.KiHieu] || point.KiHieu,
+                longitude: point.KinhDo,
+                latitude: point.ViDo,
+            })),
+        [points],
+    );
+
     return (
         <div className="salinity-detail-management-tab">
             {loading && !rows.length && <Loading />}
+
+            <StationCoordinatesTable stations={coordinateStations} title="Toạ độ điểm đo mặn" />
 
             <div className="filter-section">
                 <div className="filter-row">

@@ -1,0 +1,73 @@
+// Trang "Bản tin dự báo, cảnh báo xâm nhập mặn" (Bulletins.jsx):
+//   - bulletin-primary-tabs: 2 tab chính "Quan trắc" / "Cảnh báo, dự báo".
+//   - bulletin-toolbar-row: hàng dưới tab chính, chứa toggle con (Cảnh báo/Dự báo, chỉ hiện ở tab
+//     "Cảnh báo, dự báo") bên trái và nút "Đăng kí nhận bản tin" bên phải.
+.bulletin-primary-tabs-row {
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 12px;
+}
+
+.bulletin-primary-tabs {
+    gap: 4px;
+
+    .nav-link {
+        border: 1px solid transparent;
+        border-bottom: none;
+        border-radius: 8px 8px 0 0;
+        padding: 10px 20px;
+        font-weight: 600;
+        color: #495057;
+        background: #f1f3f5;
+        margin-bottom: -1px;
+
+        &:hover {
+            color: var(--blue, #1754ab);
+            background: #e7f0fb;
+        }
+
+        &.active {
+            color: #fff;
+            background: var(--blue, #1754ab);
+            border-color: var(--blue, #1754ab);
+        }
+    }
+}
+
+.bulletin-toolbar-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.bulletin-alert-toggle {
+    background: #eef1f4;
+    border-radius: 8px;
+    padding: 3px;
+
+    .btn {
+        border: none;
+        border-radius: 6px;
+        padding: 6px 18px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #6c757d;
+        background: transparent;
+
+        &:hover {
+            color: #1f2937;
+        }
+
+        &.active {
+            color: #1f2937;
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.18);
+        }
+    }
+}
+
+.bulletin-subscribe-btn {
+    font-weight: 600;
+}

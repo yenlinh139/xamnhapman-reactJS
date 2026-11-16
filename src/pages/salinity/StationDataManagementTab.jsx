@@ -16,6 +16,7 @@ import {
 } from "@common/dataExport";
 import SortableHeader from "@components/common/SortableHeader";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
+import StationCoordinatesTable from "@components/common/StationCoordinatesTable";
 
 // Tab quản trị dùng chung cho các lớp SỐ LIỆU NGÀY theo trạm (API /station-data/:layer):
 // Điểm đo mưa, Trạm khí tượng, Trạm thủy văn, Hồ chứa thượng lưu. Mỗi bản ghi = 1 trạm + 1 ngày
@@ -531,9 +532,22 @@ const StationDataManagementTab = ({ userInfo, layer }) => {
                 .join(", ")
           : deleteTarget.Ten || deleteTarget.KiHieu;
 
+    const coordinateStations = useMemo(
+        () =>
+            stations.map((station) => ({
+                code: station.KiHieu,
+                name: station.Ten,
+                longitude: station.KinhDo,
+                latitude: station.ViDo,
+            })),
+        [stations],
+    );
+
     return (
         <div className="salinity-detail-management-tab station-data-management-tab">
             {loading && !rows.length && <Loading />}
+
+            <StationCoordinatesTable stations={coordinateStations} title={`Toạ độ ${stationLabelLower}`} />
 
             <div className="filter-section">
                 <div className="filter-row">

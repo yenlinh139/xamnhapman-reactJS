@@ -7,6 +7,7 @@ export const WMS_POPUP_TITLES = {
     DiaPhanXa: "Địa phận xã",
     ThuyHe_line: "Thủy hệ 1 nét",
     ThuyHe_polygon: "Thủy hệ 2 nét",
+    DatSXNN_2020: "Đất sản xuất nông nghiệp 2020",
     HienTrangSDD_2020: "Hiện trạng sử dụng đất 2020",
     QuyHoachSDD_2030: "Quy hoạch sử dụng đất 2030",
     DiemDoCao: "Điểm độ cao",
@@ -201,6 +202,12 @@ const rowsForLayer = (layerName, props) => {
                 { label: "Trạng thái", value: formatValue(props.TrangThai) },
                 { label: "Rộng (m)", value: formatNumericValue(props.DoRong, 2) },
                 { label: "Sâu (m)", value: formatNumericValue(props.DoSau, 2) },
+            ];
+        case "DatSXNN_2020":
+            return [
+                { label: "Loại đất", value: formatValue(props.loaidat) },
+                { label: "Ký hiệu", value: formatValue(props.kihieu) },
+                { label: "Ký hiệu chi tiết", value: formatValue(props.kihieu1) },
             ];
         case "HienTrangSDD_2020":
             return [

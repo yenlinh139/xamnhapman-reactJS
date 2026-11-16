@@ -23,6 +23,8 @@ const DEFAULT_MONITORING_LAYERS = [
     "hydrometRainStations",
     "hydrometMeteorologyStations",
     "hydrometHydrologyStations",
+    "HoChuaThuongLuu",
+    "DatSXNN_2020",
 ];
 
 const BASE_MAP_OPTIONS = [
@@ -615,7 +617,7 @@ function LeftMenuMap({
             {
                 keys: ["distance_value", "distance_value_avg"],
                 label: "Khoảng cách hiện tại",
-                unit: latestRow?.distance_unit || "m",
+                unit: latestRow?.distance_unit || "cm",
             },
             {
                 keys: ["daily_rainfall_value", "daily_rainfall_value_sum"],

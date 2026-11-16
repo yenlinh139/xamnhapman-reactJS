@@ -23,8 +23,12 @@ export const mapLayers = {
         },
         {
             name: "Sử dụng đất",
-            layers: ["HienTrangSDD_2020", "QuyHoachSDD_2030"],
-            nameItem: ["Hiện trạng sử dụng đất 2020", "Quy hoạch sử dụng đất 2030"],
+            layers: ["DatSXNN_2020", "HienTrangSDD_2020", "QuyHoachSDD_2030"],
+            nameItem: [
+                "Đất sản xuất nông nghiệp 2020",
+                "Hiện trạng sử dụng đất 2020",
+                "Quy hoạch sử dụng đất 2030",
+            ],
         },
     ],
 };

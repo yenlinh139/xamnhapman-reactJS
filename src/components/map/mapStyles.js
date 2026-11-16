@@ -2,6 +2,27 @@ import L from "leaflet";
 import DEMLegendImage from "@assets/DEM.png";
 
 export const layerStyles = {
+    DatSXNN_2020: {
+        type: "polygon",
+        legend: `
+            <div style="margin-bottom: 8px;">
+                <p style="margin: 0; font-weight: bold; font-size: 1.2em;">Đất sản xuất nông nghiệp 2020</p>
+            </div>
+            <div style="margin-left: 10px; margin-bottom: 10px; font-size: 1em; max-height: 200px; overflow-y: auto;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3px; font-size: 0.95em;">
+                    <div><span style="display:inline-block;width:10px;height:10px;background:rgb(255,252,140);margin-right:3px;border:1px solid #ccc;"></span>Đất chuyên trồng lúa nước</div>
+                    <div><span style="display:inline-block;width:10px;height:10px;background:rgb(255,252,130);margin-right:3px;border:1px solid #ccc;"></span>Đất trồng lúa</div>
+                    <div><span style="display:inline-block;width:10px;height:10px;background:rgb(255,210,160);margin-right:3px;border:1px solid #ccc;"></span>Đất trồng cây lâu năm</div>
+                    <div><span style="display:inline-block;width:10px;height:10px;background:rgb(245,255,180);margin-right:3px;border:1px solid #ccc;"></span>Các loại đất nông nghiệp còn lại</div>
+                    <div><span style="display:inline-block;width:10px;height:10px;background:rgb(170,255,255);margin-right:3px;border:1px solid #ccc;"></span>Đất nuôi trồng thủy sản</div>
+                    <div><span style="display:inline-block;width:10px;height:10px;background:rgb(223,240,242);margin-right:3px;border:1px solid #ccc;"></span>Đất làm muối</div>
+                    <div><span style="display:inline-block;width:10px;height:10px;background:rgb(180,255,180);margin-right:3px;border:1px solid #ccc;"></span>Đất rừng sản xuất</div>
+                    <div><span style="display:inline-block;width:10px;height:10px;background:rgb(190,255,30);margin-right:3px;border:1px solid #ccc;"></span>Rừng phòng hộ</div>
+                    <div><span style="display:inline-block;width:10px;height:10px;background:rgb(110,255,100);margin-right:3px;border:1px solid #ccc;"></span>Đất rừng đặc dụng</div>
+                </div>
+            </div>
+        `,
+    },
     salinityPoints: {
         type: "point",
         color: "#003366",
@@ -198,6 +219,7 @@ export const legendNames = {
     DiaPhanXa: "Địa phận xã",
     ThuyHe_line: "Thủy hệ 1 nét",
     ThuyHe_polygon: "Thủy hệ 2 nét",
+    DatSXNN_2020: "Đất sản xuất nông nghiệp 2020",
     HienTrangSDD_2020: "Hiện trạng sử dụng đất 2020",
     QuyHoachSDD_2030: "Quy hoạch sử dụng đất 2030",
     DiemDoCao: "Điểm độ cao (m)",

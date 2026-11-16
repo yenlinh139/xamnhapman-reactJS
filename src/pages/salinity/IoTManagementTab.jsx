@@ -18,6 +18,7 @@ import {
     toPointGeometry,
 } from "@common/dataExport";
 import SortableHeader from "@components/common/SortableHeader";
+import StationCoordinatesTable from "@components/common/StationCoordinatesTable";
 
 const formatDateDisplay = (dateString) => {
     if (!dateString) return "";
@@ -545,7 +546,7 @@ const IoTManagementTab = ({ userInfo }) => {
                     "Serial Number": getSerial(row),
                     "Thời gian": toDisplayDateTime(row.date_time || row.Date || row.timestamp),
                     "Độ mặn (‰)": roundMetricValue(row.salt_value ?? row.salt_value_avg, 2) ?? "",
-                    "Mực nước (m)": roundMetricValue(row.distance_value ?? row.distance_value_avg, 2) ?? "",
+                    "Mực nước (cm)": roundMetricValue(row.distance_value ?? row.distance_value_avg, 2) ?? "",
                     "Lượng mưa ngày (mm)":
                         roundMetricValue(row.daily_rainfall_value ?? row.daily_rainfall_value_sum, 2) ?? "",
                     "Nhiệt độ (°C)": roundMetricValue(row.temp_value ?? row.temp_value_avg, 2) ?? "",
@@ -566,7 +567,7 @@ const IoTManagementTab = ({ userInfo }) => {
                         Ten: row.station_name || row.stationName || null,
                         ThoiGian: row.date_time || row.Date || row.timestamp || null,
                         DoMan_ppt: roundMetricValue(row.salt_value ?? row.salt_value_avg, 2),
-                        MucNuoc_m: roundMetricValue(row.distance_value ?? row.distance_value_avg, 2),
+                        MucNuoc_cm: roundMetricValue(row.distance_value ?? row.distance_value_avg, 2),
                         LuongMuaNgay_mm: roundMetricValue(
                             row.daily_rainfall_value ?? row.daily_rainfall_value_sum,
                             2,
@@ -612,9 +613,22 @@ const IoTManagementTab = ({ userInfo }) => {
         getSortValue,
     });
 
+    const coordinateStations = useMemo(
+        () =>
+            stationOptions.map((station) => ({
+                code: station.station_code || station.serial_number,
+                name: station.station_name || station.station_code,
+                longitude: station.longitude,
+                latitude: station.latitude,
+            })),
+        [stationOptions],
+    );
+
     return (
         <div className="iot-management-tab">
             {dataLoading && !iotDataRows.length && <Loading />}
+
+            <StationCoordinatesTable stations={coordinateStations} title="Toạ độ trạm IoT" />
 
             <div className="filter-section">
                 <div className="filter-row">

@@ -60,7 +60,7 @@ export const normalizeIoTDataRow = (row) => {
         salt_value: row?.salt_value ?? row?.salt_value_avg ?? null,
         salt_unit: row?.salt_unit || "‰",
         distance_value: row?.distance_value ?? row?.distance_value_avg ?? null,
-        distance_unit: row?.distance_unit || "m",
+        distance_unit: row?.distance_unit || "cm",
         daily_rainfall_value: row?.daily_rainfall_value ?? row?.daily_rainfall_value_sum ?? null,
         daily_rainfall_unit: row?.daily_rainfall_unit || "mm",
         temp_value: row?.temp_value ?? row?.temp_value_avg ?? null,
