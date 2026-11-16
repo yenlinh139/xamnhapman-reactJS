@@ -334,8 +334,8 @@ const Bulletins = () => {
                     </ul>
                 </div>
 
-                <div className="bulletin-toolbar-row">
-                    {primaryTab === "alerts" ? (
+                {primaryTab === "alerts" && (
+                    <div className="bulletin-toolbar-row">
                         <div
                             className="bulletin-alert-toggle btn-group"
                             role="group"
@@ -352,18 +352,16 @@ const Bulletins = () => {
                                 </button>
                             ))}
                         </div>
-                    ) : (
-                        <span />
-                    )}
 
-                    <button
-                        type="button"
-                        className="btn btn-primary bulletin-subscribe-btn"
-                        onClick={() => setShowSubscribe(true)}
-                    >
-                        Đăng kí nhận bản tin
-                    </button>
-                </div>
+                        <button
+                            type="button"
+                            className="btn btn-primary bulletin-subscribe-btn"
+                            onClick={() => setShowSubscribe(true)}
+                        >
+                            Đăng kí nhận bản tin
+                        </button>
+                    </div>
+                )}
 
                 {primaryTab === "alerts" && (
                     <div className="d-flex flex-wrap align-items-center gap-2 mb-3">

@@ -18,7 +18,6 @@ import {
 import SortableHeader from "@components/common/SortableHeader";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
 import LocalizedDateTimeInput from "@components/common/LocalizedDateTimeInput";
-import StationCoordinatesTable from "@components/common/StationCoordinatesTable";
 
 const STATION_NAMES = {
     CRT: "Cầu Rạch Tra",
@@ -113,15 +112,6 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
 
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [exporting, setExporting] = useState("");
-    const [points, setPoints] = useState([]);
-
-    // Toạ độ từng điểm đo - tải 1 lần, hiển thị trong bảng tham chiếu phía trên bộ lọc.
-    useEffect(() => {
-        axiosInstance
-            .get("/salinity-points")
-            .then((res) => setPoints(asArray(res.data)))
-            .catch(() => setPoints([]));
-    }, []);
 
     // Khoảng ngày-giờ hiện có (khóa "Từ ngày"/"Đến ngày" trong khoảng này) - dùng khoảng của
     // đúng trạm đang lọc, hoặc khoảng CHUNG của tất cả trạm khi đang chọn "Tất cả điểm đo". Mặc
@@ -331,21 +321,32 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
             } else {
                 const pointsRes = await axiosInstance.get("/salinity-points");
                 const geometryByCode = {};
+                const pointByCode = {};
                 asArray(pointsRes.data).forEach((point) => {
                     geometryByCode[point.KiHieu] = toPointGeometry(point.KinhDo, point.ViDo);
+                    pointByCode[point.KiHieu] = point;
                 });
-                const items = allRows.map((row) => ({
-                    properties: {
-                        KiHieu: row.KiHieu,
-                        Ten: STATION_NAMES[row.KiHieu] || row.KiHieu,
-                        ThoiDiem: `${toDateTimeLocalValue(row.ThoiDiem)}:00+07:00`,
-                        DoMan_ppt: toNullableNumber(row.DoMan),
-                        pH: toNullableNumber(row.pH),
-                        EC_Sm: toNullableNumber(row.DoDanDien),
-                        DoDuc_NTU: toNullableNumber(row.DoDuc),
-                    },
-                    geometry: geometryByCode[row.KiHieu] || null,
-                }));
+                const items = allRows.map((row) => {
+                    const point = pointByCode[row.KiHieu];
+                    const geometry = geometryByCode[row.KiHieu] || null;
+                    return {
+                        properties: {
+                            KiHieu: row.KiHieu,
+                            Ten: STATION_NAMES[row.KiHieu] || row.KiHieu,
+                            ThoiDiem: `${toDateTimeLocalValue(row.ThoiDiem)}:00+07:00`,
+                            DoMan_ppt: toNullableNumber(row.DoMan),
+                            pH: toNullableNumber(row.pH),
+                            EC_Sm: toNullableNumber(row.DoDanDien),
+                            DoDuc_NTU: toNullableNumber(row.DoDuc),
+                            // Kinh độ/vĩ độ của điểm đo, để thấy ngay trong bảng thuộc tính của file GeoJSON.
+                            KinhDo: point?.KinhDo ?? null,
+                            ViDo: point?.ViDo ?? null,
+                            Longitude: geometry?.coordinates?.[0] ?? null,
+                            Latitude: geometry?.coordinates?.[1] ?? null,
+                        },
+                        geometry,
+                    };
+                });
                 exportToGeoJSON(items, { name: "DiemDoMan", fileName });
             }
             ToastCommon(
@@ -386,22 +387,9 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
         getSortValue,
     });
 
-    const coordinateStations = useMemo(
-        () =>
-            points.map((point) => ({
-                code: point.KiHieu,
-                name: point.TenDiem || STATION_NAMES[point.KiHieu] || point.KiHieu,
-                longitude: point.KinhDo,
-                latitude: point.ViDo,
-            })),
-        [points],
-    );
-
     return (
         <div className="salinity-detail-management-tab">
             {loading && !rows.length && <Loading />}
-
-            <StationCoordinatesTable stations={coordinateStations} title="Toạ độ điểm đo mặn" />
 
             <div className="filter-section">
                 <div className="filter-row">

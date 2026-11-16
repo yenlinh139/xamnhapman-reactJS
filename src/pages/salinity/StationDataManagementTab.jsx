@@ -16,7 +16,6 @@ import {
 } from "@common/dataExport";
 import SortableHeader from "@components/common/SortableHeader";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
-import StationCoordinatesTable from "@components/common/StationCoordinatesTable";
 
 // Tab quản trị dùng chung cho các lớp SỐ LIỆU NGÀY theo trạm (API /station-data/:layer):
 // Điểm đo mưa, Trạm khí tượng, Trạm thủy văn, Hồ chứa thượng lưu. Mỗi bản ghi = 1 trạm + 1 ngày
@@ -476,15 +475,29 @@ const StationDataManagementTab = ({ userInfo, layer }) => {
                 exportToExcel(records, { sheetName: config.sheetName, fileName });
             } else {
                 const geometryByCode = {};
+                const stationByCodeForExport = {};
                 stations.forEach((station) => {
                     geometryByCode[station.KiHieu] = toPointGeometry(station.KinhDo, station.ViDo);
+                    stationByCodeForExport[station.KiHieu] = station;
                 });
                 const items = allRows.map((row) => {
-                    const properties = { KiHieu: row.KiHieu, Ten: row.Ten, Ngay: row.Ngay };
+                    const station = stationByCodeForExport[row.KiHieu];
+                    const geometry = geometryByCode[row.KiHieu] || null;
+                    const properties = {
+                        KiHieu: row.KiHieu,
+                        Ten: row.Ten,
+                        Ngay: row.Ngay,
+                        // Kinh độ/vĩ độ của điểm/trạm, để thấy ngay trong bảng thuộc tính của file GeoJSON
+                        // (không chỉ nằm ẩn trong geometry).
+                        KinhDo: station?.KinhDo ?? null,
+                        ViDo: station?.ViDo ?? null,
+                        Longitude: geometry?.coordinates?.[0] ?? null,
+                        Latitude: geometry?.coordinates?.[1] ?? null,
+                    };
                     config.fields.forEach((field) => {
                         properties[field.exportKey] = isBlank(row[field.key]) ? null : row[field.key];
                     });
-                    return { properties, geometry: geometryByCode[row.KiHieu] || null };
+                    return { properties, geometry };
                 });
                 exportToGeoJSON(items, { name: config.geoName, fileName });
             }
@@ -532,22 +545,9 @@ const StationDataManagementTab = ({ userInfo, layer }) => {
                 .join(", ")
           : deleteTarget.Ten || deleteTarget.KiHieu;
 
-    const coordinateStations = useMemo(
-        () =>
-            stations.map((station) => ({
-                code: station.KiHieu,
-                name: station.Ten,
-                longitude: station.KinhDo,
-                latitude: station.ViDo,
-            })),
-        [stations],
-    );
-
     return (
         <div className="salinity-detail-management-tab station-data-management-tab">
             {loading && !rows.length && <Loading />}
-
-            <StationCoordinatesTable stations={coordinateStations} title={`Toạ độ ${stationLabelLower}`} />
 
             <div className="filter-section">
                 <div className="filter-row">

@@ -18,7 +18,6 @@ import {
     toPointGeometry,
 } from "@common/dataExport";
 import SortableHeader from "@components/common/SortableHeader";
-import StationCoordinatesTable from "@components/common/StationCoordinatesTable";
 
 const formatDateDisplay = (dateString) => {
     if (!dateString) return "";
@@ -554,28 +553,38 @@ const IoTManagementTab = ({ userInfo }) => {
                 exportToExcel(records, { sheetName: "DuLieuIoT", fileName });
             } else {
                 const geometryBySerial = {};
+                const stationBySerial = {};
                 stationOptions.forEach((station) => {
-                    geometryBySerial[getSerial(station)] = toPointGeometry(
-                        station.longitude,
-                        station.latitude,
-                    );
+                    const serial = getSerial(station);
+                    geometryBySerial[serial] = toPointGeometry(station.longitude, station.latitude);
+                    stationBySerial[serial] = station;
                 });
-                const items = allRows.map((row) => ({
-                    properties: {
-                        SerialNumber: getSerial(row),
-                        MaTram: row.station_code || null,
-                        Ten: row.station_name || row.stationName || null,
-                        ThoiGian: row.date_time || row.Date || row.timestamp || null,
-                        DoMan_ppt: roundMetricValue(row.salt_value ?? row.salt_value_avg, 2),
-                        MucNuoc_cm: roundMetricValue(row.distance_value ?? row.distance_value_avg, 2),
-                        LuongMuaNgay_mm: roundMetricValue(
-                            row.daily_rainfall_value ?? row.daily_rainfall_value_sum,
-                            2,
-                        ),
-                        NhietDo_C: roundMetricValue(row.temp_value ?? row.temp_value_avg, 2),
-                    },
-                    geometry: geometryBySerial[getSerial(row)] || null,
-                }));
+                const items = allRows.map((row) => {
+                    const serial = getSerial(row);
+                    const station = stationBySerial[serial];
+                    const geometry = geometryBySerial[serial] || null;
+                    return {
+                        properties: {
+                            SerialNumber: serial,
+                            MaTram: row.station_code || null,
+                            Ten: row.station_name || row.stationName || null,
+                            ThoiGian: row.date_time || row.Date || row.timestamp || null,
+                            DoMan_ppt: roundMetricValue(row.salt_value ?? row.salt_value_avg, 2),
+                            MucNuoc_cm: roundMetricValue(row.distance_value ?? row.distance_value_avg, 2),
+                            LuongMuaNgay_mm: roundMetricValue(
+                                row.daily_rainfall_value ?? row.daily_rainfall_value_sum,
+                                2,
+                            ),
+                            NhietDo_C: roundMetricValue(row.temp_value ?? row.temp_value_avg, 2),
+                            // Kinh độ/vĩ độ của trạm, để thấy ngay trong bảng thuộc tính của file GeoJSON.
+                            KinhDo: station?.longitude ?? null,
+                            ViDo: station?.latitude ?? null,
+                            Longitude: geometry?.coordinates?.[0] ?? null,
+                            Latitude: geometry?.coordinates?.[1] ?? null,
+                        },
+                        geometry,
+                    };
+                });
                 exportToGeoJSON(items, { name: "TramIoT", fileName });
             }
             ToastCommon(
@@ -613,22 +622,9 @@ const IoTManagementTab = ({ userInfo }) => {
         getSortValue,
     });
 
-    const coordinateStations = useMemo(
-        () =>
-            stationOptions.map((station) => ({
-                code: station.station_code || station.serial_number,
-                name: station.station_name || station.station_code,
-                longitude: station.longitude,
-                latitude: station.latitude,
-            })),
-        [stationOptions],
-    );
-
     return (
         <div className="iot-management-tab">
             {dataLoading && !iotDataRows.length && <Loading />}
-
-            <StationCoordinatesTable stations={coordinateStations} title="Toạ độ trạm IoT" />
 
             <div className="filter-section">
                 <div className="filter-row">

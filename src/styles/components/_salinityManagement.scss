@@ -58,41 +58,6 @@
     }
 }
 
-/* Bảng toạ độ điểm/trạm (StationCoordinatesTable) - hiển thị trên bộ lọc, gấp lại được */
-.station-coordinates-table {
-    .station-coordinates-toggle {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 4px;
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: var(--border-radius-lg);
-        padding: 0.6rem 1rem;
-        font-weight: 600;
-        font-size: 0.9rem;
-        color: var(--text-primary, #212529);
-        cursor: pointer;
-
-        &:hover {
-            background: #eef2f7;
-        }
-    }
-
-    .table-responsive {
-        border: 1px solid var(--border-color);
-        border-top: none;
-        border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
-        max-height: 220px;
-        overflow-y: auto;
-
-        table {
-            font-size: 0.85rem;
-        }
-    }
-}
-
 /* Filter Section */
 .filter-section {
     background: var(--bg-secondary);

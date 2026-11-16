@@ -1,7 +1,7 @@
 // Trang "Bản tin dự báo, cảnh báo xâm nhập mặn" (Bulletins.jsx):
-//   - bulletin-primary-tabs: 2 tab chính "Quan trắc" / "Cảnh báo, dự báo".
-//   - bulletin-toolbar-row: hàng dưới tab chính, chứa toggle con (Cảnh báo/Dự báo, chỉ hiện ở tab
-//     "Cảnh báo, dự báo") bên trái và nút "Đăng kí nhận bản tin" bên phải.
+//   - bulletin-primary-tabs-row: 2 tab chính "Quan trắc" / "Cảnh báo, dự báo".
+//   - bulletin-toolbar-row: chỉ hiện ở tab "Cảnh báo, dự báo" - toggle con (Cảnh báo/Dự báo) bên
+//     trái, nút "Đăng kí nhận bản tin" bên phải (không hiện ở tab "Quan trắc").
 .bulletin-primary-tabs-row {
     border-bottom: 1px solid #dee2e6;
     margin-bottom: 12px;
