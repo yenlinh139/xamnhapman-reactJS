@@ -131,6 +131,32 @@ export const fetchForecastLatest = async (group) => {
     }
 };
 
+// Bảng "Thống kê dữ liệu đo mặn": mọi mốc thời gian có số liệu quan trắc (điểm đo mặn + trạm IoT theo
+// giờ), mới -> cũ, dạng "YYYY-MM-DD HH:MI" giờ VN; kèm danh mục tên điểm/trạm.
+export const fetchSalinityTimelineTimes = async () => {
+    try {
+        const response = await axiosInstance.get("/salinity-timeline/times");
+        return {
+            times: Array.isArray(response.data?.times) ? response.data.times : [],
+            stations: Array.isArray(response.data?.stations) ? response.data.stations : [],
+        };
+    } catch (error) {
+        console.error("Error fetching salinity timeline times:", error);
+        return { times: [], stations: [] };
+    }
+};
+
+// Giá trị độ mặn của từng điểm/trạm tại 1 mốc ("YYYY-MM-DD HH:MI"). Trả null nếu lỗi.
+export const fetchSalinityTimelineValues = async (time) => {
+    try {
+        const response = await axiosInstance.get("/salinity-timeline/values", { params: { time } });
+        return Array.isArray(response.data?.data) ? response.data.data : [];
+    } catch (error) {
+        console.error("Error fetching salinity timeline values:", error);
+        return null;
+    }
+};
+
 export const fetchSalinityData = async (kiHieu) => {
     try {
         const response = await axiosInstance.get(`/salinity-data/${kiHieu}`);

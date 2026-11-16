@@ -8,6 +8,13 @@ import { TOAST } from "@/common/constants";
 import { getRiskBadgeMeta } from "@common/salinityClassification";
 import { toVNDateKey, formatVNDateTime } from "@common/vnDateTime";
 import { useSortableRows } from "@common/useSortableRows";
+import {
+    buildExportFileName,
+    exportToExcel,
+    exportToGeoJSON,
+    fetchAllRows,
+    toPointGeometry,
+} from "@common/dataExport";
 import SortableHeader from "@components/common/SortableHeader";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
 import LocalizedDateTimeInput from "@components/common/LocalizedDateTimeInput";
@@ -103,6 +110,7 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
     const [formRange, setFormRange] = useState({ minTime: null, maxTime: null });
 
     const [deleteTarget, setDeleteTarget] = useState(null);
+    const [exporting, setExporting] = useState("");
 
     // Khoảng ngày-giờ hiện có (khóa "Từ ngày"/"Đến ngày" trong khoảng này) - dùng khoảng của
     // đúng trạm đang lọc, hoặc khoảng CHUNG của tất cả trạm khi đang chọn "Tất cả điểm đo". Mặc
@@ -245,6 +253,10 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
             await loadRows();
         } catch (saveError) {
             console.error("Error saving salinity detail:", saveError);
+            // 409 = điểm đo này đã có bản ghi ở đúng ngày giờ đó (ràng buộc duy nhất).
+            if (saveError?.response?.status === 409) {
+                setFormErrors({ ThoiDiem: saveError.response.data?.message || "Bản ghi đã tồn tại" });
+            }
             ToastCommon(
                 TOAST.ERROR,
                 saveError?.response?.data?.message || saveError?.message || "Không thể lưu bản ghi",
@@ -265,6 +277,80 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
                 TOAST.ERROR,
                 deleteError?.response?.data?.message || deleteError?.message || "Không thể xóa bản ghi",
             );
+        }
+    };
+
+    // Xuất TOÀN BỘ bản ghi theo bộ lọc hiện tại: Excel = thuộc tính; GeoJSON = thuộc tính + toạ độ
+    // điểm đo (lấy từ /salinity-points).
+    const handleExport = async (type) => {
+        if (exporting) return;
+        try {
+            setExporting(type);
+            const allRows = await fetchAllRows(async (page, pageSize) => {
+                const params = { page, limit: pageSize };
+                if (filterKiHieu) params.kihieu = filterKiHieu;
+                if (filterStart) params.startDate = filterStart;
+                if (filterEnd) params.endDate = filterEnd;
+                const res = await axiosInstance.get("/salinity-detail", { params });
+                return { rows: asArray(res.data), total: res.data?.pagination?.total };
+            });
+            if (allRows.length === 0) {
+                ToastCommon(TOAST.ERROR, "Không có dữ liệu để xuất theo bộ lọc hiện tại");
+                return;
+            }
+
+            const fileName = buildExportFileName(
+                "do_man",
+                { station: filterKiHieu, startDate: filterStart, endDate: filterEnd },
+                type,
+            );
+
+            if (type === "xlsx") {
+                const records = allRows.map((row, index) => ({
+                    STT: index + 1,
+                    "Thời điểm": formatVNDateTime(row.ThoiDiem),
+                    "Ký hiệu": row.KiHieu,
+                    "Điểm đo": STATION_NAMES[row.KiHieu] || row.KiHieu,
+                    "Độ mặn (‰)": toNullableNumber(row.DoMan) ?? "",
+                    pH: toNullableNumber(row.pH) ?? "",
+                    "EC (S/m)": toNullableNumber(row.DoDanDien) ?? "",
+                    "Độ đục (NTU)": toNullableNumber(row.DoDuc) ?? "",
+                }));
+                exportToExcel(records, { sheetName: "DoMan", fileName });
+            } else {
+                const pointsRes = await axiosInstance.get("/salinity-points");
+                const geometryByCode = {};
+                asArray(pointsRes.data).forEach((point) => {
+                    geometryByCode[point.KiHieu] = toPointGeometry(point.KinhDo, point.ViDo);
+                });
+                const items = allRows.map((row) => ({
+                    properties: {
+                        KiHieu: row.KiHieu,
+                        Ten: STATION_NAMES[row.KiHieu] || row.KiHieu,
+                        ThoiDiem: `${toDateTimeLocalValue(row.ThoiDiem)}:00+07:00`,
+                        DoMan_ppt: toNullableNumber(row.DoMan),
+                        pH: toNullableNumber(row.pH),
+                        EC_Sm: toNullableNumber(row.DoDanDien),
+                        DoDuc_NTU: toNullableNumber(row.DoDuc),
+                    },
+                    geometry: geometryByCode[row.KiHieu] || null,
+                }));
+                exportToGeoJSON(items, { name: "DiemDoMan", fileName });
+            }
+            ToastCommon(
+                TOAST.SUCCESS,
+                `Đã xuất ${allRows.length.toLocaleString("vi-VN")} bản ghi ra file ${type === "xlsx" ? "Excel" : "GeoJSON"}`,
+            );
+        } catch (exportError) {
+            console.error("Error exporting data:", exportError);
+            ToastCommon(
+                TOAST.ERROR,
+                exportError?.name === "ExportTooLargeError"
+                    ? exportError.message
+                    : exportError?.response?.data?.message || "Không thể xuất dữ liệu",
+            );
+        } finally {
+            setExporting("");
         }
     };
 
@@ -348,9 +434,25 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
                             />
                         </div>
 
-                        <div className="filter-actions d-flex gap-2 flex-wrap">
+                        <div className="filter-actions d-flex gap-2 flex-nowrap align-items-end">
                             <button className="btn btn-secondary" onClick={clearFilters}>
                                 Xóa bộ lọc
+                            </button>
+                            <button
+                                className="btn btn-success"
+                                onClick={() => handleExport("xlsx")}
+                                disabled={loading || Boolean(exporting)}
+                            >
+                                <i className="fas fa-file-excel me-1"></i>
+                                {exporting === "xlsx" ? "Đang xuất..." : "Xuất Excel"}
+                            </button>
+                            <button
+                                className="btn btn-geojson"
+                                onClick={() => handleExport("geojson")}
+                                disabled={loading || Boolean(exporting)}
+                            >
+                                <i className="fas fa-map-marker-alt me-1"></i>
+                                {exporting === "geojson" ? "Đang xuất..." : "Xuất GeoJSON"}
                             </button>
                         </div>
                     </div>

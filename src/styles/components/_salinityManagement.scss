@@ -9,7 +9,7 @@
     }
 
     .salinity-container {
-        max-width: 1400px;
+        width: 90%;
         margin: 0 auto;
         padding: 0 1rem;
     }
@@ -120,7 +120,10 @@
     }
 }
 
-.iot-management-tab {
+// Bộ lọc + các nút nằm gọn trên 1 hàng (cuộn ngang nếu màn hình hẹp) - dùng chung cho mọi tab
+// quản trị dữ liệu.
+.iot-management-tab,
+.salinity-detail-management-tab {
     .filter-section {
         overflow-x: auto;
 
@@ -503,6 +506,17 @@
 
         &:hover:not(:disabled) {
             background-color: #c82333;
+        }
+    }
+
+    // Nút "Xuất GeoJSON" - nút đặc cùng kiểu với "Xóa bộ lọc"/"Xuất Excel".
+    &.btn-geojson {
+        background-color: #0e7490;
+        color: white;
+
+        &:hover:not(:disabled) {
+            background-color: #0b5c73;
+            color: white;
         }
     }
 }
@@ -1063,7 +1077,8 @@
 
 /* Responsive Design */
 @media (max-width: 1200px) {
-    .salinity-container {
+    .salinity-management .salinity-container {
+        width: 100%;
         padding: 0 0.5rem;
     }
 

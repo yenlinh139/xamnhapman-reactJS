@@ -232,9 +232,8 @@ const ShapeIcon = ({ shape, cx, cy, color, size = 4.5 }) => {
 };
 
 const LegendMarker = ({ series }) => (
-    <svg width="26" height="14" aria-hidden="true">
-        <line x1="0" y1="7" x2="26" y2="7" stroke={series.color} strokeWidth="2" />
-        <ShapeIcon shape={series.shape} cx={13} cy={7} color={series.color} size={4} />
+    <svg width="14" height="14" aria-hidden="true">
+        <ShapeIcon shape={series.shape} cx={7} cy={7} color={series.color} size={4} />
     </svg>
 );
 
@@ -392,7 +391,8 @@ const SeriesChartPanel = ({
     range,
 }) => {
     const isLoggedIn = Boolean(localStorage.getItem("access_token"));
-    const showMarkers = rows.length <= MAX_POINTS_WITH_MARKERS;
+    // Biểu đồ chỉ vẽ điểm (không nối đường): chuỗi dày thì thu nhỏ điểm để đỡ chồng lấn.
+    const markerSize = rows.length <= MAX_POINTS_WITH_MARKERS ? 4.5 : 2.5;
     const hasData = rows.length > 0 && series.length > 0;
     const loginTitle = isLoggedIn ? "" : "Bạn cần đăng nhập để tải xuống";
 
@@ -483,26 +483,21 @@ const SeriesChartPanel = ({
                                             dataKey={item.key}
                                             name={item.name}
                                             stroke={item.color}
-                                            strokeWidth={1.8}
-                                            connectNulls
+                                            strokeWidth={0}
                                             isAnimationActive={false}
-                                            dot={
-                                                showMarkers
-                                                    ? ({ cx, cy, value, index }) =>
-                                                          value === undefined ||
-                                                          value === null ||
-                                                          cx == null ? (
-                                                              <g key={`${item.key}-${index}`} />
-                                                          ) : (
-                                                              <ShapeIcon
-                                                                  key={`${item.key}-${index}`}
-                                                                  shape={item.shape}
-                                                                  cx={cx}
-                                                                  cy={cy}
-                                                                  color={item.color}
-                                                              />
-                                                          )
-                                                    : false
+                                            dot={({ cx, cy, value, index }) =>
+                                                value === undefined || value === null || cx == null ? (
+                                                    <g key={`${item.key}-${index}`} />
+                                                ) : (
+                                                    <ShapeIcon
+                                                        key={`${item.key}-${index}`}
+                                                        shape={item.shape}
+                                                        cx={cx}
+                                                        cy={cy}
+                                                        color={item.color}
+                                                        size={markerSize}
+                                                    />
+                                                )
                                             }
                                             activeDot={({ cx, cy, index }) => (
                                                 <ShapeIcon

@@ -177,87 +177,36 @@ const setMeasurementInteractionMode = (mapInstance, isActive) => {
     });
 };
 
-const formatIsoDateForDisplay = (isoDate) => {
-    if (!isoDate) return "";
-    const [year, month, day] = String(isoDate).split("-");
-    if (!year || !month || !day) return "";
-    return `${day}/${month}/${year}`;
-};
+const createStatsBlockMarkup = ({ selectLabel, selectId, listTitle, listId }) => `
+          <div class="stats-block">
+            <div class="legend-search">
+              <div class="search-header">
+                <i class="search-icon fas fa-calendar-alt"></i>
+                <span>${selectLabel}</span>
+              </div>
+              <select id="${selectId}" class="legend-date-input legend-time-select" aria-label="${selectLabel}" disabled>
+                <option value="">Đang tải...</option>
+              </select>
+            </div>
 
-const parseDisplayDateToIso = (text) => {
-    const raw = String(text || "").trim();
-    const matched = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (!matched) return "";
+            <div class="legend-section">
+              <h6 class="legend-section-title">
+                ${listTitle}
+                <span class="stats-on-map-tag" title="Bản đồ đang hiển thị các điểm/trạm có số liệu ở mốc thời gian này">
+                  <i class="fas fa-map-marker-alt"></i> đang hiển thị trên bản đồ
+                </span>
+              </h6>
+              <div class="legend-layers" id="${listId}">
+                <div class="empty-state">
+                  <i class="fas fa-clock"></i>
+                  <p>Chọn thời điểm để xem số liệu</p>
+                </div>
+              </div>
+            </div>
+          </div>
+`;
 
-    const [, dd, mm, yyyy] = matched;
-    const day = Number(dd);
-    const month = Number(mm);
-    const year = Number(yyyy);
-    const date = new Date(year, month - 1, day);
-
-    if (
-        Number.isNaN(date.getTime()) ||
-        date.getDate() !== day ||
-        date.getMonth() + 1 !== month ||
-        date.getFullYear() !== year
-    ) {
-        return "";
-    }
-
-    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-};
-
-const createDateInputComponentMarkup = ({ displayId, nativeId, placeholder = "dd/mm/yyyy" }) => {
-    return `
-                 <div class="legend-date-wrap" style="position: relative;">
-                   <input
-                     type="text"
-                     id="${displayId}"
-                     class="legend-date-input"
-                     autocomplete="off"
-                     inputmode="numeric"
-                     placeholder="${placeholder}"
-                   />
-                   <input
-                     type="date"
-                     id="${nativeId}"
-                     tabindex="-1"
-                     aria-hidden="true"
-                     style="position: absolute; inset: 0; opacity: 0; pointer-events: none;"
-                   />
-                 </div>
-    `;
-};
-
-const initializeDateInputComponent = ({ displayInput, nativeInput, defaultIsoDate }) => {
-    if (!displayInput || !nativeInput) return;
-
-    nativeInput.value = defaultIsoDate;
-    displayInput.value = formatIsoDateForDisplay(nativeInput.value);
-
-    nativeInput.addEventListener("change", () => {
-        displayInput.value = formatIsoDateForDisplay(nativeInput.value);
-        displayInput.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-
-    const openPicker = () => {
-        if (typeof nativeInput.showPicker === "function") {
-            nativeInput.showPicker();
-        }
-    };
-
-    displayInput.addEventListener("focus", openPicker);
-    displayInput.addEventListener("click", openPicker);
-
-    displayInput.addEventListener("blur", () => {
-        const isoDate = parseDisplayDateToIso(displayInput.value);
-        if (!isoDate) return;
-
-        nativeInput.value = isoDate;
-        displayInput.value = formatIsoDateForDisplay(isoDate);
-    });
-};
-
+// Bảng "THỐNG KÊ DỮ LIỆU ĐO MẶN" - phần xử lý chọn mốc/tải số liệu nằm ở salinityStatsPanel.js
 export const createLegendControl = () => {
     const legendContainer = L.control({ position: "topright" });
 
@@ -268,7 +217,7 @@ export const createLegendControl = () => {
         <div class="legend-header">
           <div class="legend-title-section">
             <i class="legend-icon fas fa-chart-bar"></i>
-            <h4 class="legend-title">THỐNG KÊ DỮ LIỆU</h4>
+            <h4 class="legend-title">THỐNG KÊ DỮ LIỆU ĐO MẶN</h4>
           </div>
           <button class="legend-toggle" id="legend-toggle" aria-label="Thu gọn bảng điều khiển">
             <span class="toggle-icon">−</span>
@@ -276,28 +225,22 @@ export const createLegendControl = () => {
         </div>
 
         <div class="legend-content" id="legend-content">
-          <div class="legend-search">
-            <div class="search-header">
-              <i class="search-icon fas fa-calendar-alt"></i>
-              <span>Chọn ngày quan trắc</span>
-            </div>
-                        ${createDateInputComponentMarkup({
-                            displayId: "legend-date",
-                            nativeId: "legend-date-native",
-                        })}
+          <div class="stats-filter-bar" id="stats-filter-bar" hidden>
+            <span><i class="fas fa-filter"></i> Bản đồ đang lọc theo thời điểm, các lớp khác tạm ẩn</span>
+            <button type="button" id="stats-filter-clear">Bỏ lọc</button>
           </div>
-
-          <div class="legend-section">
-            <h6 class="legend-section-title">Số liệu quan trắc</h6>
-            <div class="legend-layers">
-              <div class="legend-primary" id="legend-primary">
-                <div class="empty-state">
-                  <i class="fas fa-calendar-day"></i>
-                  <p>Chọn ngày để xem dữ liệu</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          ${createStatsBlockMarkup({
+              selectLabel: "Chọn thời điểm quan trắc",
+              selectId: "stats-observed-time",
+              listTitle: "Số liệu quan trắc",
+              listId: "stats-observed-list",
+          })}
+          ${createStatsBlockMarkup({
+              selectLabel: "Chọn thời điểm dự báo",
+              selectId: "stats-forecast-time",
+              listTitle: "Số liệu dự báo",
+              listId: "stats-forecast-list",
+          })}
         </div>
       </div>
     `;
@@ -318,14 +261,6 @@ export const createLegendControl = () => {
                     toggleBtn.setAttribute("aria-expanded", isCollapsed.toString());
                 });
             }
-
-            const dateInput = document.getElementById("legend-date");
-            const nativeDateInput = document.getElementById("legend-date-native");
-            initializeDateInputComponent({
-                displayInput: dateInput,
-                nativeInput: nativeDateInput,
-                defaultIsoDate: "2025-03-08",
-            });
         }, 100);
 
         return div;

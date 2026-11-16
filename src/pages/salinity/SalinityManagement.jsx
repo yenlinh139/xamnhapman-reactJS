@@ -5,12 +5,19 @@ import Footer from "@pages/themes/footer/Footer";
 import SalinityDetailManagementTab from "./SalinityDetailManagementTab";
 import IoTManagementTab from "./IoTManagementTab";
 import ForecastManagementTab from "./ForecastManagementTab";
+import StationDataManagementTab from "./StationDataManagementTab";
 import "../../styles/components/_salinityManagement.scss";
 
 // Cấp 1: nguồn dữ liệu (loại trạm); cấp 2: loại dữ liệu của nguồn đó
+// `hasForecast`: nguồn có dữ liệu dự báo (cấp 2 "Dự báo"); `layer`: lớp số liệu ngày dùng tab chung
+// StationDataManagementTab (API /station-data/:layer).
 const SOURCES = [
-    { key: "salinity", label: "Điểm đo mặn" },
-    { key: "iot", label: "Trạm IoT" },
+    { key: "salinity", label: "Điểm đo mặn", hasForecast: true },
+    { key: "iot", label: "Trạm IoT", hasForecast: true },
+    { key: "rain", label: "Điểm đo mưa", layer: "rain" },
+    { key: "meteo", label: "Trạm khí tượng", layer: "meteo" },
+    { key: "hydro", label: "Trạm thủy văn", layer: "hydro" },
+    { key: "reservoir", label: "Hồ chứa thượng lưu", layer: "reservoir" },
 ];
 
 const DATA_KINDS = [
@@ -45,10 +52,25 @@ const SalinityManagement = () => {
     const [dataKind, setDataKind] = useState("observed");
 
     const activeSource = SOURCES.find((item) => item.key === source);
-    const activeKind = DATA_KINDS.find((item) => item.key === dataKind);
+    // Nguồn không có dự báo thì chỉ có "Quan trắc" (kể cả khi vừa chuyển sang từ tab đang ở "Dự báo").
+    const availableKinds = activeSource.hasForecast
+        ? DATA_KINDS
+        : DATA_KINDS.filter((item) => item.key === "observed");
+    const effectiveKind = activeSource.hasForecast ? dataKind : "observed";
+    const activeKind = DATA_KINDS.find((item) => item.key === effectiveKind);
 
     const renderContent = () => {
-        if (dataKind === "forecast") {
+        if (activeSource.layer) {
+            // key để đổi lớp thì tạo lại tab (bộ lọc, trang, form) cho đúng lớp mới
+            return (
+                <StationDataManagementTab
+                    key={activeSource.layer}
+                    userInfo={userInfo}
+                    layer={activeSource.layer}
+                />
+            );
+        }
+        if (effectiveKind === "forecast") {
             // key để đổi nguồn thì tải lại đúng nhóm dự báo
             return (
                 <ForecastManagementTab
@@ -82,7 +104,7 @@ const SalinityManagement = () => {
                                     onClick={() => setSource(item.key)}
                                     className="d-flex align-items-center gap-3 text-start"
                                     style={{
-                                        minWidth: 240,
+                                        minWidth: 150,
                                         padding: "10px 18px",
                                         border: `1px solid ${isActive ? PRIMARY : BORDER}`,
                                         borderBottom: "none",
@@ -103,8 +125,13 @@ const SalinityManagement = () => {
                         })}
                     </div>
 
+                    {/* Nguồn chỉ có quan trắc: bỏ hàng tab cấp 2, chỉ giữ đường kẻ chân hàng tab cấp 1 */}
+                    {!activeSource.hasForecast && (
+                        <div className="mb-3" style={{ borderTop: `2px solid ${PRIMARY}` }}></div>
+                    )}
+
                     <div
-                        className="d-flex flex-wrap align-items-center gap-3 mb-3"
+                        className={`flex-wrap align-items-center gap-3 mb-3 ${activeSource.hasForecast ? "d-flex" : "d-none"}`}
                         style={{
                             padding: "10px 14px",
                             background: "#f4f7fc",
@@ -119,8 +146,8 @@ const SalinityManagement = () => {
                             aria-label="Loại dữ liệu"
                             style={{ padding: 3, background: "#e3e9f3", borderRadius: 8, gap: 2 }}
                         >
-                            {DATA_KINDS.map((item) => {
-                                const isActive = dataKind === item.key;
+                            {availableKinds.map((item) => {
+                                const isActive = effectiveKind === item.key;
                                 return (
                                     <button
                                         key={item.key}

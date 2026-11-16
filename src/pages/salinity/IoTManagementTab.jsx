@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import * as XLSX from "xlsx";
 import Loading from "../../components/Loading";
 import ModalConfirm from "../../components/ModalConfirm";
 import PaginationSalinity from "./PaginationSalinity";
@@ -11,6 +10,13 @@ import LocalizedDateInput from "@components/common/LocalizedDateInput";
 import { toVNDateKey } from "@common/vnDateTime";
 import { getRiskBadgeMeta } from "@common/salinityClassification";
 import { useSortableRows } from "@common/useSortableRows";
+import {
+    buildExportFileName,
+    exportToExcel,
+    exportToGeoJSON,
+    fetchAllRows,
+    toPointGeometry,
+} from "@common/dataExport";
 import SortableHeader from "@components/common/SortableHeader";
 
 const formatDateDisplay = (dateString) => {
@@ -198,7 +204,7 @@ const IoTManagementTab = ({ userInfo }) => {
     const [filters, setFilters] = useState(DEFAULT_IOT_FILTERS);
     const [inputDateFilter, setInputDateFilter] = useState(DEFAULT_IOT_INPUT_FILTERS);
     const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0, limit: 20 });
-    const [isExporting, setIsExporting] = useState(false);
+    const [exporting, setExporting] = useState("");
     const [stationOptions, setStationOptions] = useState([]);
 
     const [showDataModal, setShowDataModal] = useState(false);
@@ -498,53 +504,93 @@ const IoTManagementTab = ({ userInfo }) => {
         }
     };
 
-    const exportIotData = async (fileType) => {
+    // Xuất TOÀN BỘ bản ghi theo bộ lọc hiện tại (tải lần lượt từng lô, không chỉ trang đang xem):
+    // Excel = thuộc tính; GeoJSON = thuộc tính + toạ độ trạm IoT.
+    const handleExport = async (type) => {
+        if (exporting) return;
         try {
-            setIsExporting(true);
-            const exportLimit = pagination.total || iotDataRows.length || 1000;
-
-            const result = await fetchAllIoTData({
-                page: 1,
-                limit: exportLimit,
-                serialNumber: filters.serialNumber,
-                startDate: filters.startDate,
-                endDate: filters.endDate,
-                sortBy: "date_time",
-                sortOrder: "desc",
+            setExporting(type);
+            const allRows = await fetchAllRows(async (page, pageSize) => {
+                const result = await fetchAllIoTData({
+                    page,
+                    limit: pageSize,
+                    serialNumber: filters.serialNumber,
+                    startDate: filters.startDate,
+                    endDate: filters.endDate,
+                    sortBy: "date_time",
+                    sortOrder: "desc",
+                });
+                if (result?.success === false) {
+                    throw new Error(result?.message || "Không tải được dữ liệu IoT");
+                }
+                return { rows: asArray(result), total: result?.pagination?.total };
             });
-
-            const rows = asArray(result);
-            if (rows.length === 0) {
+            if (allRows.length === 0) {
                 ToastCommon(TOAST.ERROR, "Không có dữ liệu IoT để xuất theo bộ lọc hiện tại");
                 return;
             }
 
-            const worksheetData = rows.map((row, index) => ({
-                STT: index + 1,
-                "Tên trạm": row.station_name || row.stationName || "Trạm IoT",
-                "Serial Number": row.serial_number || row.serialNumber || row.DeviceSerialNumber || "",
-                "Thời gian": toDisplayDateTime(row.date_time || row.Date || row.timestamp),
-                "Độ mặn (‰)": formatMetric(row.salt_value ?? row.salt_value_avg, 2),
-                "Mực nước (m)": formatMetric(row.distance_value ?? row.distance_value_avg, 2),
-                "Lượng mưa ngày (mm)": formatMetric(
-                    row.daily_rainfall_value ?? row.daily_rainfall_value_sum,
-                    2,
-                ),
-                "Nhiệt độ (°C)": formatMetric(row.temp_value ?? row.temp_value_avg, 2),
-            }));
+            const getSerial = (item) =>
+                item.serial_number || item.serialNumber || item.DeviceSerialNumber || "";
+            const fileName = buildExportFileName(
+                "du_lieu_iot",
+                { station: filters.serialNumber, startDate: filters.startDate, endDate: filters.endDate },
+                type,
+            );
 
-            const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "DuLieuIoT");
-
-            const fileName = `du_lieu_iot_${filters.startDate || "tat_ca"}_${filters.endDate || "tat_ca"}.${fileType}`;
-            XLSX.writeFile(workbook, fileName, { bookType: fileType === "csv" ? "csv" : "xlsx" });
-            ToastCommon(TOAST.SUCCESS, `Xuất file ${fileType.toUpperCase()} thành công`);
+            if (type === "xlsx") {
+                const records = allRows.map((row, index) => ({
+                    STT: index + 1,
+                    "Tên trạm": row.station_name || row.stationName || "Trạm IoT",
+                    "Serial Number": getSerial(row),
+                    "Thời gian": toDisplayDateTime(row.date_time || row.Date || row.timestamp),
+                    "Độ mặn (‰)": roundMetricValue(row.salt_value ?? row.salt_value_avg, 2) ?? "",
+                    "Mực nước (m)": roundMetricValue(row.distance_value ?? row.distance_value_avg, 2) ?? "",
+                    "Lượng mưa ngày (mm)":
+                        roundMetricValue(row.daily_rainfall_value ?? row.daily_rainfall_value_sum, 2) ?? "",
+                    "Nhiệt độ (°C)": roundMetricValue(row.temp_value ?? row.temp_value_avg, 2) ?? "",
+                }));
+                exportToExcel(records, { sheetName: "DuLieuIoT", fileName });
+            } else {
+                const geometryBySerial = {};
+                stationOptions.forEach((station) => {
+                    geometryBySerial[getSerial(station)] = toPointGeometry(
+                        station.longitude,
+                        station.latitude,
+                    );
+                });
+                const items = allRows.map((row) => ({
+                    properties: {
+                        SerialNumber: getSerial(row),
+                        MaTram: row.station_code || null,
+                        Ten: row.station_name || row.stationName || null,
+                        ThoiGian: row.date_time || row.Date || row.timestamp || null,
+                        DoMan_ppt: roundMetricValue(row.salt_value ?? row.salt_value_avg, 2),
+                        MucNuoc_m: roundMetricValue(row.distance_value ?? row.distance_value_avg, 2),
+                        LuongMuaNgay_mm: roundMetricValue(
+                            row.daily_rainfall_value ?? row.daily_rainfall_value_sum,
+                            2,
+                        ),
+                        NhietDo_C: roundMetricValue(row.temp_value ?? row.temp_value_avg, 2),
+                    },
+                    geometry: geometryBySerial[getSerial(row)] || null,
+                }));
+                exportToGeoJSON(items, { name: "TramIoT", fileName });
+            }
+            ToastCommon(
+                TOAST.SUCCESS,
+                `Đã xuất ${allRows.length.toLocaleString("vi-VN")} bản ghi ra file ${type === "xlsx" ? "Excel" : "GeoJSON"}`,
+            );
         } catch (exportError) {
-            console.error(`Error exporting IoT ${fileType}:`, exportError);
-            ToastCommon(TOAST.ERROR, `Không thể xuất file ${fileType.toUpperCase()}`);
+            console.error("Error exporting data:", exportError);
+            ToastCommon(
+                TOAST.ERROR,
+                exportError?.name === "ExportTooLargeError"
+                    ? exportError.message
+                    : exportError?.response?.data?.message || "Không thể xuất dữ liệu",
+            );
         } finally {
-            setIsExporting(false);
+            setExporting("");
         }
     };
 
@@ -636,19 +682,19 @@ const IoTManagementTab = ({ userInfo }) => {
                             </button>
                             <button
                                 className="btn btn-success"
-                                onClick={() => exportIotData("xlsx")}
-                                disabled={dataLoading || isExporting}
+                                onClick={() => handleExport("xlsx")}
+                                disabled={dataLoading || Boolean(exporting)}
                             >
                                 <i className="fas fa-file-excel me-1"></i>
-                                {isExporting ? "Đang xuất..." : "Xuất Excel"}
+                                {exporting === "xlsx" ? "Đang xuất..." : "Xuất Excel"}
                             </button>
                             <button
-                                className="btn btn-outline-primary"
-                                onClick={() => exportIotData("csv")}
-                                disabled={dataLoading || isExporting}
+                                className="btn btn-geojson"
+                                onClick={() => handleExport("geojson")}
+                                disabled={dataLoading || Boolean(exporting)}
                             >
-                                <i className="fas fa-file-csv me-1"></i>
-                                {isExporting ? "Đang xuất..." : "Xuất CSV"}
+                                <i className="fas fa-map-marker-alt me-1"></i>
+                                {exporting === "geojson" ? "Đang xuất..." : "Xuất GeoJSON"}
                             </button>
                         </div>
                     </div>
@@ -657,7 +703,7 @@ const IoTManagementTab = ({ userInfo }) => {
                         {userInfo && (
                             <button className="btn btn-primary" onClick={openCreateDataModal}>
                                 <i className="fas fa-plus me-1"></i>
-                                Thêm dữ liệu IoT
+                                Thêm dữ liệu mới
                             </button>
                         )}
                     </div>
