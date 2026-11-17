@@ -966,6 +966,30 @@ button:hover,
             padding: 10px 0;
         }
 
+        .salinity-stat-summary {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 4px;
+            padding: 2px 0 6px;
+            font-size: 10.5px;
+            color: #475569;
+
+            i {
+                color: var(--blue);
+                margin-right: 2px;
+            }
+
+            strong {
+                color: #1e293b;
+            }
+        }
+
+        .salinity-stat-summary-hint {
+            color: #94a3b8;
+            font-style: italic;
+        }
+
         .salinity-stat-list {
             list-style: none;
             margin: 0;
@@ -980,9 +1004,18 @@ button:hover,
             padding: 4px 0;
             font-size: 11px;
             border-bottom: 1px dashed #eef1f5;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.15s ease;
 
             &:last-child {
                 border-bottom: none;
+            }
+
+            &:hover,
+            &:focus-visible {
+                background-color: #f1f5f9;
+                outline: none;
             }
         }
 

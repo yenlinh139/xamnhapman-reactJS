@@ -73,8 +73,9 @@ const renderLoading = (container) => {
     `;
 };
 
-// rows: [{ code, type: "manual" | "iot", value }]
-const renderRows = (container, rows, stationNames) => {
+// rows: [{ code, type: "manual" | "iot", value }]. totalStations: tổng số điểm/trạm đã biết, để
+// hiện "X/Y trạm có số liệu" - giúp thấy ngay mức độ bao phủ của mốc đang chọn.
+const renderRows = (container, rows, stationNames, totalStations) => {
     const sorted = rows
         .map((row) => ({ ...row, name: stationNames[row.code] || row.code }))
         .sort((a, b) => {
@@ -82,13 +83,24 @@ const renderRows = (container, rows, stationNames) => {
             return a.name.localeCompare(b.name, "vi");
         });
 
+    const summaryHtml = totalStations
+        ? `
+            <div class="salinity-stat-summary">
+                <i class="fas fa-list-check"></i>
+                <strong>${sorted.length}/${totalStations}</strong> điểm/trạm có số liệu
+                <span class="salinity-stat-summary-hint">(bấm vào 1 dòng để xem vị trí trên bản đồ)</span>
+            </div>
+        `
+        : "";
+
     container.innerHTML = `
+        ${summaryHtml}
         <ul class="salinity-stat-list">
             ${sorted
                 .map((row) => {
                     const badge = getRiskBadgeMeta(row.value, toClassificationCode(row.code));
                     return `
-                        <li class="salinity-stat-row">
+                        <li class="salinity-stat-row" data-code="${escapeHtml(row.code)}" tabindex="0" role="button">
                             <span class="salinity-stat-name" title="${escapeHtml(row.name)}">
                                 <i class="fas ${row.type === "iot" ? "fa-tower-broadcast" : "fa-location-dot"}"
                                    title="${row.type === "iot" ? "Trạm IoT" : "Điểm đo mặn"}"></i>
@@ -172,9 +184,12 @@ const buildResultPopup = ({ station, row, classification, sourceLabel, timeLabel
 `;
 
 // Vẽ các điểm/trạm có số liệu ở mốc đang lọc vào layerGroup riêng của bảng thống kê.
+// Trả về Map<code, marker> để bảng danh sách có thể "nhảy" bản đồ tới đúng trạm khi bấm vào 1 dòng.
 const renderResultMarkers = ({ mapInstance, layerGroup, rows, stations, sourceLabel, timeLabel }) => {
     layerGroup.clearLayers();
     ensureResultPanes(mapInstance);
+
+    const markerByCode = new Map();
 
     rows.forEach((row) => {
         const station = stations[row.code];
@@ -192,7 +207,7 @@ const renderResultMarkers = ({ mapInstance, layerGroup, rows, stations, sourceLa
             ? `${getIoTTooltipClass("active", 1, classification.class)} station-tooltip iot-tooltip`
             : `${getSalinityTooltipClass(row.value, classificationCode)} station-tooltip`;
 
-        L.marker([lat, lng], {
+        const marker = L.marker([lat, lng], {
             icon,
             isTimeFilterResult: true,
             pane: isIoT ? "iotMarkerPane" : "salinityMarkerPane",
@@ -210,7 +225,11 @@ const renderResultMarkers = ({ mapInstance, layerGroup, rows, stations, sourceLa
                 className: "custom-popup",
             })
             .addTo(layerGroup);
+
+        markerByCode.set(row.code, marker);
     });
+
+    return markerByCode;
 };
 
 // Trả về hàm cleanup.
@@ -232,6 +251,7 @@ export const initSalinityStatsPanel = (mapInstance, { onFilterActiveChange } = {
     let stationNames = {};
     let stations = {}; // code -> { name, type, latitude, longitude }
     let forecastTimeline = new Map();
+    let markerByCode = new Map(); // code -> marker đang hiển thị, để bấm vào danh sách là nhảy tới bản đồ
     // Số liệu đang hiển thị của từng nguồn + nguồn được chọn SAU CÙNG (nguồn đó quyết định bản đồ).
     const selection = { observed: null, forecast: null, last: null };
     const SOURCE_LABELS = { observed: "QUAN TRẮC", forecast: "DỰ BÁO" };
@@ -245,7 +265,7 @@ export const initSalinityStatsPanel = (mapInstance, { onFilterActiveChange } = {
         const activeSource = order.find((source) => selection[source]) || null;
 
         if (activeSource) {
-            renderResultMarkers({
+            markerByCode = renderResultMarkers({
                 mapInstance,
                 layerGroup: resultLayer,
                 rows: selection[activeSource],
@@ -253,8 +273,13 @@ export const initSalinityStatsPanel = (mapInstance, { onFilterActiveChange } = {
                 sourceLabel: SOURCE_LABELS[activeSource],
                 timeLabel: getTimeLabel(activeSource),
             });
+            // Tự động zoom/fit để thấy hết các điểm/trạm có số liệu ở mốc này, không cần dò tay.
+            if (resultLayer.getLayers().length > 0) {
+                mapInstance.fitBounds(resultLayer.getBounds(), { padding: [60, 60], maxZoom: 16 });
+            }
         } else {
             resultLayer.clearLayers();
+            markerByCode = new Map();
         }
 
         if (filterBar) filterBar.hidden = !activeSource;
@@ -296,7 +321,7 @@ export const initSalinityStatsPanel = (mapInstance, { onFilterActiveChange } = {
             );
         } else {
             selection.observed = rows;
-            renderRows(observedList, rows, stationNames);
+            renderRows(observedList, rows, stationNames, Object.keys(stations).length);
         }
         syncMap();
     };
@@ -314,7 +339,7 @@ export const initSalinityStatsPanel = (mapInstance, { onFilterActiveChange } = {
             renderEmptyState(forecastList, "fa-exclamation-circle", "Không có số liệu dự báo ở mốc này");
         } else {
             selection.forecast = rows;
-            renderRows(forecastList, rows, stationNames);
+            renderRows(forecastList, rows, stationNames, Object.keys(stations).length);
         }
         syncMap();
     };
@@ -330,9 +355,30 @@ export const initSalinityStatsPanel = (mapInstance, { onFilterActiveChange } = {
         syncMap();
     };
 
+    // Bấm (hoặc Enter) vào 1 dòng trong danh sách -> bản đồ pan/zoom tới đúng điểm/trạm đó và mở popup,
+    // giúp xác định ngay vị trí thay vì phải tự dò trên bản đồ.
+    const focusStation = (code) => {
+        const marker = markerByCode.get(code);
+        if (!marker) return;
+        mapInstance.setView(marker.getLatLng(), Math.max(mapInstance.getZoom(), 15), { animate: true });
+        marker.openPopup();
+    };
+
+    const handleListInteraction = (event) => {
+        const row = event.target.closest?.(".salinity-stat-row[data-code]");
+        if (!row) return;
+        if (event.type === "keydown" && event.key !== "Enter" && event.key !== " ") return;
+        if (event.type === "keydown") event.preventDefault();
+        focusStation(row.dataset.code);
+    };
+
     observedSelect.addEventListener("change", handleObservedChange);
     forecastSelect.addEventListener("change", handleForecastChange);
     filterClearButton?.addEventListener("click", handleClearFilter);
+    observedList.addEventListener("click", handleListInteraction);
+    observedList.addEventListener("keydown", handleListInteraction);
+    forecastList.addEventListener("click", handleListInteraction);
+    forecastList.addEventListener("keydown", handleListInteraction);
 
     const loadOptions = async () => {
         const [timeline, salinityForecast, iotForecast] = await Promise.all([
@@ -384,6 +430,10 @@ export const initSalinityStatsPanel = (mapInstance, { onFilterActiveChange } = {
         observedSelect.removeEventListener("change", handleObservedChange);
         forecastSelect.removeEventListener("change", handleForecastChange);
         filterClearButton?.removeEventListener("click", handleClearFilter);
+        observedList.removeEventListener("click", handleListInteraction);
+        observedList.removeEventListener("keydown", handleListInteraction);
+        forecastList.removeEventListener("click", handleListInteraction);
+        forecastList.removeEventListener("keydown", handleListInteraction);
         resultLayer.remove();
         onFilterActiveChange?.(false);
     };
