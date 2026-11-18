@@ -49,6 +49,15 @@ const BulletinSubscribeModal = ({ show, onClose, onSaved }) => {
                 : [...current[group], code],
         }));
 
+    const selectAll = (group) =>
+        setSelected((current) => ({
+            ...current,
+            [group]: options[group].map((option) => option.code),
+        }));
+
+    const deselectAll = (group) =>
+        setSelected((current) => ({ ...current, [group]: [] }));
+
     const totalSelected = GROUPS.reduce((sum, group) => sum + selected[group.key].length, 0);
 
     const handleSubmit = async (event) => {
@@ -92,11 +101,31 @@ const BulletinSubscribeModal = ({ show, onClose, onSaved }) => {
                                 </p>
                                 {GROUPS.map((group) => (
                                     <fieldset key={group.key} className="mb-3">
-                                        <legend className="fs-6 fw-bold mb-2">
-                                            {group.label}{" "}
-                                            <span className="text-muted fw-normal small">
-                                                ({selected[group.key].length}/{options[group.key].length})
+                                        <legend className="fs-6 fw-bold mb-2 d-flex align-items-center flex-wrap gap-2">
+                                            <span>
+                                                {group.label}{" "}
+                                                <span className="text-muted fw-normal small">
+                                                    ({selected[group.key].length}/{options[group.key].length})
+                                                </span>
                                             </span>
+                                            <button
+                                                type="button"
+                                                className="btn btn-link btn-sm p-0 fw-normal"
+                                                onClick={() => selectAll(group.key)}
+                                                disabled={
+                                                    selected[group.key].length === options[group.key].length
+                                                }
+                                            >
+                                                Chọn tất cả
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="btn btn-link btn-sm p-0 fw-normal text-danger"
+                                                onClick={() => deselectAll(group.key)}
+                                                disabled={selected[group.key].length === 0}
+                                            >
+                                                Bỏ chọn tất cả
+                                            </button>
                                         </legend>
                                         <div className="row g-2">
                                             {options[group.key].map((option) => {
