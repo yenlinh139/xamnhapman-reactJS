@@ -2,20 +2,15 @@ import L from "leaflet";
 import axiosInstance from "../../config/axios-config";
 
 // Hàm để lấy thông tin các huyện từ GeoServer
+// Gọi qua backend (/api/map/district-labels) thay vì gọi thẳng GeoServer qua domain công khai:
+// tầng reverse-proxy ngoài chỉ proxy đúng path /wms, không proxy /ows nên gọi thẳng sẽ nhận về
+// HTML thay vì JSON. Backend nằm cùng mạng Docker với GeoServer nên gọi trực tiếp được, không
+// phụ thuộc proxy đó.
 export const getDistrictLabels = async () => {
     try {
-        const response = await fetch(
-            "https://xamnhapman.opengis.vn/m/gsrv/xamnhapman_tphcm/ows?" +
-                "service=WFS&version=1.0.0&request=GetFeature&typeName=xamnhapman_tphcm:DiaPhanHuyen&outputFormat=application/json",
-        );
+        const { data } = await axiosInstance.get("/map/district-labels");
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        return data.features.map((feature) => ({
+        return data.data.features.map((feature) => ({
             name: feature.properties.tenhuyen,
             code: feature.properties.mahuyen,
             coordinates: feature.geometry.coordinates,
@@ -28,21 +23,12 @@ export const getDistrictLabels = async () => {
     }
 };
 
-// Hàm để lấy thông tin các xã từ GeoServer
+// Hàm để lấy thông tin các xã từ GeoServer (qua backend, cùng lý do như getDistrictLabels ở trên)
 export const getCommuneLabels = async () => {
     try {
-        const response = await fetch(
-            "https://xamnhapman.opengis.vn/m/gsrv/xamnhapman_tphcm/ows?" +
-                "service=WFS&version=1.0.0&request=GetFeature&typeName=xamnhapman_tphcm:DiaPhanXa&outputFormat=application/json",
-        );
+        const { data } = await axiosInstance.get("/map/commune-labels");
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        return data.features.map((feature) => ({
+        return data.data.features.map((feature) => ({
             name: feature.properties.tenxa,
             code: feature.properties.maxa,
             district: feature.properties.tenhuyen,

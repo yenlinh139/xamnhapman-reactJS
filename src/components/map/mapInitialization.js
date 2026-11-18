@@ -226,8 +226,8 @@ export const createLegendControl = () => {
 
         <div class="legend-content" id="legend-content">
           <div class="stats-filter-bar" id="stats-filter-bar" hidden>
-            <span><i class="fas fa-filter"></i> Bản đồ đang lọc theo thời điểm, các lớp khác tạm ẩn</span>
-            <button type="button" id="stats-filter-clear">Bỏ lọc</button>
+            <span><i class="fas fa-filter"></i> Đang xem số liệu tại mốc thời gian đã chọn</span>
+            <button type="button" id="stats-filter-clear">Bỏ chọn</button>
           </div>
           ${createStatsBlockMarkup({
               selectLabel: "Chọn thời điểm quan trắc",

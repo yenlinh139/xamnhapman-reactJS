@@ -24,7 +24,6 @@ const DEFAULT_MONITORING_LAYERS = [
     "hydrometMeteorologyStations",
     "hydrometHydrologyStations",
     "HoChuaThuongLuu",
-    "DatSXNN_2020",
 ];
 
 const BASE_MAP_OPTIONS = [

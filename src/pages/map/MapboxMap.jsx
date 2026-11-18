@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef, forwardRef, useImperativeHandle } from "react";
+import React, { useEffect, useState, useRef, forwardRef, useImperativeHandle } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
@@ -27,8 +27,6 @@ import {
     fetchReservoirData,
 } from "@components/map/mapDataServices";
 import { layerStyles, legendNames, updateLegendVisibility } from "@components/map/mapStyles";
-
-const NO_LAYERS = [];
 
 const MapboxMap = forwardRef(
     (
@@ -66,13 +64,7 @@ const MapboxMap = forwardRef(
         const [selectedReservoir, setSelectedReservoir] = useState(null);
         const [reservoirInitialTab, setReservoirInitialTab] = useState("chart");
         const [adminDashboard, setAdminDashboard] = useState(null);
-        // Đang lọc theo mốc thời gian ở bảng "Thống kê dữ liệu đo mặn": tạm ẩn mọi lớp đang bật, bản đồ
-        // chỉ còn các điểm/trạm có số liệu ở mốc đó (do salinityStatsPanel.js tự vẽ).
-        const [timeFilterActive, setTimeFilterActive] = useState(false);
-        const activeLayers = useMemo(
-            () => (timeFilterActive ? NO_LAYERS : selectedLayers),
-            [timeFilterActive, selectedLayers],
-        );
+        const activeLayers = selectedLayers;
         const highlightedLayerRef = useRef(null);
         const highlightedMarkerRef = useRef(null);
         const baseMapsRef = useRef({});
@@ -582,15 +574,7 @@ const MapboxMap = forwardRef(
                 }
             });
 
-            // Khi lọc theo thời gian, chú giải chỉ còn thang rủi ro của điểm đo mặn / trạm IoT.
-            updateLegendVisibility(
-                timeFilterActive
-                    ? {
-                          salinityPoints: getLayerConfig("salinityPoints"),
-                          iotStations: getLayerConfig("iotStations"),
-                      }
-                    : overlayLayers.current,
-            );
+            updateLegendVisibility(overlayLayers.current);
 
             // Handle label display for administrative layers
             const handleLabels = async () => {
@@ -617,7 +601,7 @@ const MapboxMap = forwardRef(
             setTimeout(() => {
                 map.invalidateSize();
             }, 100);
-        }, [activeLayers, timeFilterActive, map]);
+        }, [activeLayers, map]);
 
         // Handle location changes
         useEffect(() => {
@@ -644,11 +628,14 @@ const MapboxMap = forwardRef(
             };
         }, [map, activeLayers]);
 
-        // Bảng "Thống kê dữ liệu đo mặn": chọn mốc quan trắc/dự báo -> liệt kê số liệu, tạm ẩn các lớp
-        // đang bật và chỉ hiển thị các điểm/trạm có số liệu ở mốc đó (màu theo giá trị tại mốc).
+        // Bảng "Thống kê dữ liệu đo mặn": chọn mốc quan trắc/dự báo -> liệt kê số liệu; bấm 1 dòng ->
+        // bật hộ lớp điểm đo mặn/trạm IoT nếu đang tắt rồi mở đúng popup đầy đủ của marker gốc.
         useEffect(() => {
             if (!map) return;
-            return initSalinityStatsPanel(map, { onFilterActiveChange: setTimeFilterActive });
+            return initSalinityStatsPanel(map, {
+                ensureSalinityLayer: () => renderSalinityPoints(map, setSalinityData, setSelectedPoint),
+                ensureIoTLayer: () => renderIoTStations(map, setInternalIotData),
+            });
         }, [map]);
 
         // Handle map resize when sidebar state changes

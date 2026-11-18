@@ -444,6 +444,7 @@ export const renderSalinityPoints = async (mapInstance, setSalinityData, setSele
             const marker = L.marker([lat, lng], {
                 icon,
                 isSalinityPoint: true,
+                pointCode: point.KiHieu,
                 pane: "salinityMarkerPane",
                 zIndexOffset: 2000,
             }).addTo(mapInstance);
