@@ -18,6 +18,22 @@ export const convertDMSToDecimal = (dms) => {
     return decimal;
 };
 
+// Chieu nguoc lai: do thap phan -> chuoi DMS dung dinh dang luu trong DB (vd 106.49917 -> 106°29'57"E).
+// isLatitude = true -> huong N/S, false -> huong E/W.
+export const decimalToDMS = (decimal, isLatitude) => {
+    const value = Number(decimal);
+    if (!Number.isFinite(value)) return null;
+
+    const direction = isLatitude ? (value < 0 ? "S" : "N") : value < 0 ? "W" : "E";
+    const absolute = Math.abs(value);
+    const degrees = Math.floor(absolute);
+    const minutesFull = (absolute - degrees) * 60;
+    const minutes = Math.floor(minutesFull);
+    const seconds = (minutesFull - minutes) * 60;
+
+    return `${degrees}°${minutes}'${seconds.toFixed(2)}"${direction}`;
+};
+
 export const dmsToDecimal = (dms) => {
     if (!dms) return null;
 

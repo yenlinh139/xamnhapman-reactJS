@@ -346,7 +346,12 @@ export const updateLegendVisibility = (overlayLayers) => {
 
         let symbolHTML = "";
         // Skip creating symbol for layers that use custom legend handling
-        if (layerName !== "QuyHoachSDD_2030" && layerName !== "HienTrangSDD_2020" && layerName !== "DEM") {
+        if (
+            layerName !== "QuyHoachSDD_2030" &&
+            layerName !== "HienTrangSDD_2020" &&
+            layerName !== "DatSXNN_2020" &&
+            layerName !== "DEM"
+        ) {
             if (layerName === "salinityPoints") {
                 symbolHTML = `<i class="fa-solid fa-droplet" style="color: ${color}; margin-right: 5px;"></i>`;
             } else if (layerName === "hydrometStations") {
@@ -389,6 +394,12 @@ export const updateLegendVisibility = (overlayLayers) => {
             }
         } else if (layerName === "HienTrangSDD_2020") {
             // HienTrangSDD_2020: only show detailed legend without symbol
+            if (style?.legend) {
+                secondaryLegend.innerHTML += `${style.legend}`;
+            }
+        } else if (layerName === "DatSXNN_2020") {
+            // DatSXNN_2020: legend riêng đã có sẵn tiêu đề + bảng màu, khỏi lặp lại dòng
+            // "biểu tượng + tên lớp" chung ở trên (biểu tượng cũng không có màu nên trông như ô trống).
             if (style?.legend) {
                 secondaryLegend.innerHTML += `${style.legend}`;
             }

@@ -18,6 +18,8 @@ import {
 import SortableHeader from "@components/common/SortableHeader";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
 import LocalizedDateTimeInput from "@components/common/LocalizedDateTimeInput";
+import AddLocationModal from "@components/common/AddLocationModal";
+import { decimalToDMS } from "@components/convertDMSToDecimal";
 
 const STATION_NAMES = {
     CRT: "Cầu Rạch Tra",
@@ -112,6 +114,62 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
 
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [exporting, setExporting] = useState("");
+
+    // Điểm đo mặn MỚI thêm qua "Thêm vị trí" (chưa có trong STATION_NAMES hard-code) - nạp từ
+    // /salinity-points rồi lọc ra những mã không nằm trong STATION_CODES.
+    const [customStations, setCustomStations] = useState([]);
+    const [showLocationModal, setShowLocationModal] = useState(false);
+    const [savingLocation, setSavingLocation] = useState(false);
+
+    const loadCustomStations = useCallback(async () => {
+        try {
+            const res = await axiosInstance.get("/salinity-points");
+            const points = Array.isArray(res.data) ? res.data : [];
+            setCustomStations(
+                points
+                    .filter((point) => !STATION_CODES.includes(point.KiHieu))
+                    .map((point) => ({ code: point.KiHieu, name: point.TenDiem || point.KiHieu })),
+            );
+        } catch (loadError) {
+            console.error("Error loading custom salinity points:", loadError);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadCustomStations();
+    }, [loadCustomStations]);
+
+    const customStationNames = useMemo(
+        () => Object.fromEntries(customStations.map((station) => [station.code, station.name])),
+        [customStations],
+    );
+    const getStationName = useCallback(
+        (code) => STATION_NAMES[code] || customStationNames[code] || code,
+        [customStationNames],
+    );
+
+    const handleCreateLocation = async ({ code, name, lat, lng }, setLocationErrors) => {
+        try {
+            setSavingLocation(true);
+            await axiosInstance.post("/salinity-points", {
+                KiHieu: code,
+                TenDiem: name,
+                KinhDo: decimalToDMS(lng, false),
+                ViDo: decimalToDMS(lat, true),
+            });
+            ToastCommon(TOAST.SUCCESS, "Thêm vị trí thành công");
+            setShowLocationModal(false);
+            await loadCustomStations();
+        } catch (createError) {
+            console.error("Error creating salinity point:", createError);
+            const message =
+                createError?.response?.data?.message || createError?.message || "Không thể thêm vị trí";
+            if (createError?.response?.status === 409) setLocationErrors({ code: message });
+            ToastCommon(TOAST.ERROR, message);
+        } finally {
+            setSavingLocation(false);
+        }
+    };
 
     // Khoảng ngày-giờ hiện có (khóa "Từ ngày"/"Đến ngày" trong khoảng này) - dùng khoảng của
     // đúng trạm đang lọc, hoặc khoảng CHUNG của tất cả trạm khi đang chọn "Tất cả điểm đo". Mặc
@@ -311,7 +369,7 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
                     STT: index + 1,
                     "Thời điểm": formatVNDateTime(row.ThoiDiem),
                     "Ký hiệu": row.KiHieu,
-                    "Điểm đo": STATION_NAMES[row.KiHieu] || row.KiHieu,
+                    "Điểm đo": getStationName(row.KiHieu),
                     "Độ mặn (‰)": toNullableNumber(row.DoMan) ?? "",
                     pH: toNullableNumber(row.pH) ?? "",
                     "EC (S/m)": toNullableNumber(row.DoDanDien) ?? "",
@@ -332,7 +390,7 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
                     return {
                         properties: {
                             KiHieu: row.KiHieu,
-                            Ten: STATION_NAMES[row.KiHieu] || row.KiHieu,
+                            Ten: getStationName(row.KiHieu),
                             ThoiDiem: `${toDateTimeLocalValue(row.ThoiDiem)}:00+07:00`,
                             DoMan_ppt: toNullableNumber(row.DoMan),
                             pH: toNullableNumber(row.pH),
@@ -372,15 +430,18 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
     const formMaxDateTime = formRange.maxTime ? toDateTimeLocalValue(formRange.maxTime) : "";
 
     const stationSortedOptions = useMemo(
-        () => STATION_CODES.map((code) => ({ code, name: STATION_NAMES[code] })),
-        [],
+        () => [...STATION_CODES.map((code) => ({ code, name: STATION_NAMES[code] })), ...customStations],
+        [customStations],
     );
 
-    const getSortValue = useCallback((row, key) => {
-        if (key === "ThoiDiem") return new Date(row.ThoiDiem).getTime();
-        if (key === "KiHieu") return STATION_NAMES[row.KiHieu] || row.KiHieu || "";
-        return Number(row[key]);
-    }, []);
+    const getSortValue = useCallback(
+        (row, key) => {
+            if (key === "ThoiDiem") return new Date(row.ThoiDiem).getTime();
+            if (key === "KiHieu") return getStationName(row.KiHieu) || "";
+            return Number(row[key]);
+        },
+        [getStationName],
+    );
     const { sortedRows, sortConfig, handleSort } = useSortableRows(rows, {
         defaultKey: "ThoiDiem",
         defaultDirection: "desc",
@@ -469,11 +530,20 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
                         </div>
                     </div>
 
-                    <div className="filter-right">
+                    <div className="filter-right d-flex gap-2">
+                        {userInfo && (
+                            <button
+                                className="btn btn-outline-primary"
+                                onClick={() => setShowLocationModal(true)}
+                            >
+                                <i className="fas fa-map-marker-alt me-1"></i>
+                                Thêm vị trí
+                            </button>
+                        )}
                         {userInfo && (
                             <button className="btn btn-primary" onClick={openCreateModal}>
                                 <i className="fas fa-plus me-1"></i>
-                                Thêm dữ liệu mới
+                                Thêm số liệu
                             </button>
                         )}
                     </div>
@@ -552,7 +622,7 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
                                             <td>{(currentPage - 1) * limit + index + 1}</td>
                                             <td>{formatVNDateTime(row.ThoiDiem)}</td>
                                             <td>
-                                                {STATION_NAMES[row.KiHieu] || row.KiHieu} ({row.KiHieu})
+                                                {getStationName(row.KiHieu)} ({row.KiHieu})
                                             </td>
                                             <td>
                                                 {hasValue ? (
@@ -775,7 +845,7 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
             {deleteTarget && (
                 <ModalConfirm
                     title="Xác nhận xóa dữ liệu"
-                    message={`Bạn có chắc chắn muốn xóa bản ghi lúc ${formatVNDateTime(deleteTarget.ThoiDiem)} của ${STATION_NAMES[deleteTarget.KiHieu] || deleteTarget.KiHieu}?`}
+                    message={`Bạn có chắc chắn muốn xóa bản ghi lúc ${formatVNDateTime(deleteTarget.ThoiDiem)} của ${getStationName(deleteTarget.KiHieu)}?`}
                     onConfirm={confirmDelete}
                     onCancel={() => setDeleteTarget(null)}
                     confirmText="Xóa"
@@ -783,6 +853,16 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
                     type="danger"
                 />
             )}
+
+            <AddLocationModal
+                show={showLocationModal}
+                onClose={() => setShowLocationModal(false)}
+                onSubmit={handleCreateLocation}
+                saving={savingLocation}
+                title="Thêm điểm đo mặn mới"
+                codeLabel="Mã/Ký hiệu"
+                nameLabel="Tên điểm đo"
+            />
         </div>
     );
 };

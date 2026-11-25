@@ -55,8 +55,7 @@ const BulletinSubscribeModal = ({ show, onClose, onSaved }) => {
             [group]: options[group].map((option) => option.code),
         }));
 
-    const deselectAll = (group) =>
-        setSelected((current) => ({ ...current, [group]: [] }));
+    const deselectAll = (group) => setSelected((current) => ({ ...current, [group]: [] }));
 
     const totalSelected = GROUPS.reduce((sum, group) => sum + selected[group.key].length, 0);
 

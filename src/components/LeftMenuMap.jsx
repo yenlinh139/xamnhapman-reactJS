@@ -26,6 +26,10 @@ const DEFAULT_MONITORING_LAYERS = [
     "HoChuaThuongLuu",
 ];
 
+// Lớp nền bật mặc định nhưng KHÔNG thuộc nhóm "dữ liệu quan trắc" (không bị ảnh hưởng bởi nút
+// "Hiện/Ẩn dữ liệu quan trắc" ở trên).
+const DEFAULT_LAND_USE_LAYERS = ["DatSXNN_2020"];
+
 const BASE_MAP_OPTIONS = [
     {
         value: "Google Streets",
@@ -56,7 +60,7 @@ function LeftMenuMap({
 }) {
     const [state, setState] = useState({
         openMenuIndex: null,
-        enabledLayers: DEFAULT_MONITORING_LAYERS,
+        enabledLayers: [...DEFAULT_MONITORING_LAYERS, ...DEFAULT_LAND_USE_LAYERS],
         openSalinityDropdown: false,
         openHydrometDropdown: false,
         openIrrigationDropdown: false,
@@ -295,11 +299,11 @@ function LeftMenuMap({
         return () => clearInterval(interval);
     }, []);
 
-    // Apply default monitoring layers once on first load.
+    // Apply default monitoring + land-use layers once on first load.
     useEffect(() => {
         if (hasAppliedDefaultLayersRef.current) return;
 
-        DEFAULT_MONITORING_LAYERS.forEach((layerName) => {
+        [...DEFAULT_MONITORING_LAYERS, ...DEFAULT_LAND_USE_LAYERS].forEach((layerName) => {
             onLayerToggle(layerName, true);
         });
 

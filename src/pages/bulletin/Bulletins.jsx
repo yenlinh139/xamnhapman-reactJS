@@ -42,16 +42,48 @@ const issuedText = (bulletin) => formatSummaryTime(bulletin.issuedAt, bulletin.i
 
 const timeText = (time) => formatSummaryTime(time, String(time).length <= 10 ? "day" : "time");
 
-const hydrologyLines = (bulletin) =>
-    bulletin.hydrology.length === 0
-        ? ["Chưa có số liệu mực nước trong 7 ngày qua"]
-        : bulletin.hydrology.map(
-              (item) =>
-                  `${item.name}: trung bình ${formatNumber(item.mean)} ${item.unit}, lớn nhất ${formatNumber(item.max)} ${item.unit}, nhỏ nhất ${formatNumber(item.min)} ${item.unit}`,
-          );
+// "2026-08-21" -> "21/08/2026"
+const formatDMY = (day) => {
+    const matched = String(day).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return matched ? `${matched[3]}/${matched[2]}/${matched[1]}` : String(day);
+};
+
+const hydrologyLines = (bulletin) => {
+    const intro = bulletin.hydrologyWindow
+        ? `Trong 7 ngày qua từ ${formatDMY(bulletin.hydrologyWindow.start)} đến ngày ${formatDMY(bulletin.hydrologyWindow.end)}, diễn biến mực nước tại các trạm như sau:`
+        : null;
+    const lines =
+        bulletin.hydrology.length === 0
+            ? ["Chưa có số liệu mực nước trong 7 ngày qua"]
+            : bulletin.hydrology.map(
+                  (item) =>
+                      `${item.name}: trung bình ${formatNumber(item.mean)} ${item.unit}, lớn nhất ${formatNumber(item.max)} ${item.unit}, nhỏ nhất ${formatNumber(item.min)} ${item.unit}`,
+              );
+    return intro ? [intro, ...lines] : lines;
+};
 
 const peakText = (peak) =>
     peak ? `${formatNumber(peak.value)} ‰ (${timeText(peak.time)})` : "Chưa có số liệu";
+
+// "Hiện trạng XNM (7 ngày qua)": độ mặn quan trắc lớn nhất trong 7 ngày trước thời điểm dự báo,
+// liệt kê ĐỦ các ngày đạt giá trị đó (có thể lặp lại nhiều ngày).
+const currentXnmText = (bulletin) => {
+    if (!bulletin.current || !bulletin.hydrologyWindow) {
+        return "Chưa có số liệu độ mặn quan trắc trong 7 ngày qua";
+    }
+    const { start, end } = bulletin.hydrologyWindow;
+    const days = bulletin.current.days.map(formatDMY).join(", ");
+    return `Trong 7 ngày qua từ ${formatDMY(start)} đến ngày ${formatDMY(end)}, độ mặn tại điểm đo đạt giá trị lớn nhất là ${formatNumber(bulletin.current.value)} ‰ (ghi nhận vào ngày ${days})`;
+};
+
+// "Dự báo XNM (10 ngày tới)": độ mặn dự báo lớn nhất trong cả chuỗi dự báo, liệt kê ĐỦ các mốc
+// giờ đạt giá trị đó.
+const forecastXnmText = (bulletin) => {
+    if (!bulletin.forecast || !bulletin.forecastWindow) return "Chưa có số liệu dự báo độ mặn";
+    const { start, end } = bulletin.forecastWindow;
+    const times = bulletin.forecast.times.map((time) => formatSummaryTime(time, "time")).join(", ");
+    return `Trong 10 ngày tới từ ${formatDMY(start)} đến ngày ${formatDMY(end)}, độ mặn tại điểm đo dự báo đạt giá trị lớn nhất là ${formatNumber(bulletin.forecast.value)} ‰ (ghi nhận vào lúc ${times})`;
+};
 
 const stationLabel = (bulletin) =>
     `${bulletin.stationType === "iot" ? "Trạm IoT" : "Điểm đo mặn"} ${bulletin.stationName}`;
@@ -74,12 +106,12 @@ const buildColumns = (type) => [
         ? [
               {
                   label: "Hiện trạng XNM (7 ngày qua)",
-                  text: (bulletin) => `Lớn nhất ${peakText(bulletin.current)}`,
+                  text: currentXnmText,
                   sortValue: (bulletin) => bulletin.current?.value ?? null,
               },
               {
                   label: "Dự báo XNM (10 ngày tới)",
-                  text: (bulletin) => `Lớn nhất ${peakText(bulletin.forecast)}`,
+                  text: forecastXnmText,
                   sortValue: (bulletin) => bulletin.forecast?.value ?? null,
               },
           ]
@@ -130,11 +162,11 @@ const bulletinSections = (bulletin) => [
         ? [
               {
                   title: "Hiện trạng xâm nhập mặn (7 ngày qua)",
-                  lines: [`Độ mặn lớn nhất: ${peakText(bulletin.current)}`],
+                  lines: [currentXnmText(bulletin)],
               },
               {
                   title: "Dự báo xâm nhập mặn (10 ngày tới)",
-                  lines: [`Độ mặn lớn nhất: ${peakText(bulletin.forecast)}`],
+                  lines: [forecastXnmText(bulletin)],
               },
           ]
         : [{ title: "Độ mặn quan trắc", lines: [peakText(bulletin.observed)] }]),

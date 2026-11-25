@@ -628,8 +628,9 @@ const MapboxMap = forwardRef(
             };
         }, [map, activeLayers]);
 
-        // Bảng "Thống kê dữ liệu đo mặn": chọn mốc quan trắc/dự báo -> liệt kê số liệu; bấm 1 dòng ->
-        // bật hộ lớp điểm đo mặn/trạm IoT nếu đang tắt rồi mở đúng popup đầy đủ của marker gốc.
+        // Bảng "Báo cáo nhanh độ mặn": luôn hiện số liệu quan trắc gần nhất + dự báo 10 ngày tới của
+        // mọi điểm/trạm; bấm 1 dòng -> bật hộ lớp điểm đo mặn/trạm IoT nếu đang tắt rồi mở đúng popup
+        // đầy đủ của marker gốc.
         useEffect(() => {
             if (!map) return;
             return initSalinityStatsPanel(map, {

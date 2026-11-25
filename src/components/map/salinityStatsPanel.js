@@ -1,18 +1,18 @@
-// Logic cho bảng "THỐNG KÊ DỮ LIỆU ĐO MẶN" (markup ở createLegendControl - mapInitialization.js):
-// - Listbox "thời điểm quan trắc": mọi mốc có số liệu của điểm đo mặn + trạm IoT (mới -> cũ)
-// - Listbox "thời điểm dự báo": mọi mốc của chuỗi dự báo mới nhất (điểm đo mặn + trạm IoT)
-// Chọn 1 mốc -> liệt kê độ mặn kèm mức rủi ro của các điểm/trạm có số liệu ở mốc đó. Bấm vào 1 dòng
-// -> bản đồ pan/zoom tới ĐÚNG marker gốc (điểm đo mặn/trạm IoT đã render bởi SalinityMarkers.jsx /
-// IoTMarkers.jsx - bật lớp tương ứng hộ nếu đang tắt) và mở popup ĐẦY ĐỦ có sẵn của marker đó, chứ
-// không tạo/vẽ lại marker hay popup rút gọn riêng cho bảng này.
+// Logic cho bảng "BÁO CÁO NHANH ĐỘ MẶN" (markup ở createLegendControl - mapInitialization.js):
+// luôn hiện, cho MỌI điểm đo mặn + trạm IoT, không cần chọn mốc thời gian:
+//   - Độ mặn quan trắc GẦN NHẤT của đúng điểm/trạm đó (mốc giờ có thể khác nhau giữa các điểm/trạm).
+//   - Độ mặn dự báo 10 ngày tới: với MỖI cấp rủi ro xuất hiện trong chuỗi dự báo, liệt kê khoảng giá
+//     trị (nhỏ nhất/lớn nhất) và TẤT CẢ khoảng thời gian dự báo rơi vào đúng cấp đó (có thể nhiều
+//     khoảng rời nhau trong 10 ngày).
+// Bấm vào 1 dòng -> bản đồ pan/zoom tới ĐÚNG marker gốc (điểm đo mặn/trạm IoT đã render bởi
+// SalinityMarkers.jsx / IoTMarkers.jsx - bật lớp tương ứng hộ nếu đang tắt) và mở popup ĐẦY ĐỦ có
+// sẵn của marker đó, chứ không tạo/vẽ lại marker hay popup rút gọn riêng cho bảng này.
 import {
     fetchForecastLatest,
     fetchSalinityTimelineTimes,
-    fetchSalinityTimelineValues,
+    fetchSalinityTimelineLatest,
 } from "@components/map/mapDataServices";
-import { getRiskBadgeMeta } from "@common/salinityClassification";
-
-const PLACEHOLDER_OPTION = '<option value="">— Chọn thời điểm —</option>';
+import { getRiskBadgeMeta, getSingleStationClassification } from "@common/salinityClassification";
 
 const escapeHtml = (text) =>
     String(text ?? "").replace(
@@ -20,10 +20,10 @@ const escapeHtml = (text) =>
         (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char],
     );
 
-// "2026-11-13 23:00" -> "13/11/2026 23:00"
+// "2026-11-13 22:00" -> "22:00 13/11/2026"
 const formatObservedTime = (time) => {
     const matched = String(time).match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})$/);
-    return matched ? `${matched[3]}/${matched[2]}/${matched[1]} ${matched[4]}` : String(time);
+    return matched ? `${matched[4]} ${matched[3]}/${matched[2]}/${matched[1]}` : String(time);
 };
 
 const forecastTimeFormatter = new Intl.DateTimeFormat("en-GB", {
@@ -36,8 +36,11 @@ const forecastTimeFormatter = new Intl.DateTimeFormat("en-GB", {
     hourCycle: "h23",
 });
 
-// epoch ms -> "13/11/2026 23:00" (giờ VN)
-const formatForecastTime = (epochMs) => forecastTimeFormatter.format(new Date(epochMs)).replace(",", "");
+// epoch ms -> "02:00 19/11/2026" (giờ VN)
+const formatForecastTime = (epochMs) => {
+    const [datePart, timePart] = forecastTimeFormatter.format(new Date(epochMs)).split(", ");
+    return `${timePart} ${datePart}`;
+};
 
 const formatSalinity = (value) =>
     Number(value).toLocaleString("vi-VN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -45,101 +48,136 @@ const formatSalinity = (value) =>
 // Trạm IoT phân cấp rủi ro theo mã gốc (CKC_IoT -> CKC), giống IoTMarkers.jsx.
 const toClassificationCode = (code) => String(code || "").replace(/_IOT$/i, "");
 
-const renderEmptyState = (container, icon, message) => {
-    container.innerHTML = `
-        <div class="empty-state">
-            <i class="fas ${icon}"></i>
-            <p>${escapeHtml(message)}</p>
-        </div>
-    `;
-};
+// Thứ tự cố định + nhãn cột cho 4 cấp rủi ro (khớp getSingleStationClassification).
+const RISK_LEVELS = [
+    { level: "normal", label: "Bình thường" },
+    { level: "warning", label: "Rủi ro cấp 1" },
+    { level: "high-warning", label: "Rủi ro cấp 2" },
+    { level: "critical", label: "Rủi ro cấp 3" },
+];
 
-const renderLoading = (container) => {
-    container.innerHTML = `
-        <div class="empty-state">
-            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-            <p>Đang tải...</p>
-        </div>
-    `;
-};
+// Gộp chuỗi dự báo (điểm đo mặn + trạm IoT) thành Map<code, [{time, value}]> đã sắp theo thời gian.
+const buildForecastSeriesByCode = (payloads) => {
+    const seriesByCode = new Map();
 
-// rows: [{ code, type: "manual" | "iot", value }]. totalStations: tổng số điểm/trạm đã biết, để
-// hiện "X/Y trạm có số liệu" - giúp thấy ngay mức độ bao phủ của mốc đang chọn.
-const renderRows = (container, rows, stationNames, totalStations) => {
-    const sorted = rows
-        .map((row) => ({ ...row, name: stationNames[row.code] || row.code }))
-        .sort((a, b) => {
-            if (a.type !== b.type) return a.type === "manual" ? -1 : 1;
-            return a.name.localeCompare(b.name, "vi");
-        });
-
-    const summaryHtml = totalStations
-        ? `
-            <div class="salinity-stat-summary">
-                <i class="fas fa-list-check"></i>
-                <strong>${sorted.length}/${totalStations}</strong> điểm/trạm có số liệu
-                <span class="salinity-stat-summary-hint">(bấm vào 1 dòng để xem vị trí trên bản đồ)</span>
-            </div>
-        `
-        : "";
-
-    container.innerHTML = `
-        ${summaryHtml}
-        <ul class="salinity-stat-list">
-            ${sorted
-                .map((row) => {
-                    const badge = getRiskBadgeMeta(row.value, toClassificationCode(row.code));
-                    return `
-                        <li
-                            class="salinity-stat-row"
-                            data-code="${escapeHtml(row.code)}"
-                            data-type="${escapeHtml(row.type)}"
-                            tabindex="0"
-                            role="button"
-                        >
-                            <span class="salinity-stat-name" title="${escapeHtml(row.name)}">
-                                <i class="fas ${row.type === "iot" ? "fa-tower-broadcast" : "fa-location-dot"}"
-                                   title="${row.type === "iot" ? "Trạm IoT" : "Điểm đo mặn"}"></i>
-                                ${escapeHtml(row.name)}
-                            </span>
-                            <span class="salinity-stat-value">${formatSalinity(row.value)} ‰</span>
-                            <span class="salinity-stat-risk"
-                                  style="color: ${badge.textColor}; background-color: ${badge.backgroundColor}">
-                                ${escapeHtml(badge.description)}
-                            </span>
-                        </li>
-                    `;
-                })
-                .join("")}
-        </ul>
-    `;
-};
-
-// Gộp 2 chuỗi dự báo (điểm đo mặn + trạm IoT, lưới thời gian riêng) thành: epoch ms -> rows
-const buildForecastTimeline = (payloads) => {
-    const timeline = new Map();
-
-    payloads.forEach(({ payload, type }) => {
+    payloads.forEach((payload) => {
         if (!Array.isArray(payload?.timeGrid) || !Array.isArray(payload?.stations)) return;
 
-        payload.timeGrid.forEach((isoTime, index) => {
-            const epochMs = new Date(isoTime).getTime();
-            if (Number.isNaN(epochMs)) return;
+        payload.stations.forEach((station) => {
+            const code = station.manualCode;
+            if (!code) return;
+            if (!seriesByCode.has(code)) seriesByCode.set(code, []);
+            const series = seriesByCode.get(code);
 
-            payload.stations.forEach((station) => {
+            payload.timeGrid.forEach((isoTime, index) => {
                 // Giá trị theo mốc 2 giờ; mốc nào thiếu thì dùng giá trị dự báo theo ngày.
                 const rawValue = station.values?.[index] ?? station.dailyValues?.[index];
                 if (rawValue === null || rawValue === undefined || rawValue === "") return;
                 const value = Number(rawValue);
                 if (!Number.isFinite(value)) return;
-
-                if (!timeline.has(epochMs)) timeline.set(epochMs, []);
-                timeline.get(epochMs).push({ code: station.manualCode, type, value });
+                const time = new Date(isoTime).getTime();
+                if (Number.isNaN(time)) return;
+                series.push({ time, value });
             });
         });
     });
 
-    return timeline;
+    seriesByCode.forEach((series) => series.sort((a, b) => a.time - b.time));
+    return seriesByCode;
+};
+
+// Chuỗi dự báo đã sắp theo thời gian -> theo từng cấp rủi ro: {min, max, intervals: [{start,end}]}.
+// Các điểm LIÊN TIẾP cùng cấp được gộp thành 1 khoảng; đổi cấp (hoặc quay lại cấp cũ sau khi đổi) mở
+// khoảng mới - nên 1 cấp có thể có NHIỀU khoảng rời nhau trong 10 ngày.
+const groupForecastByRiskLevel = (series, classificationCode) => {
+    const groups = {};
+    let current = null;
+
+    const flush = () => {
+        if (!current) return;
+        const bucket = groups[current.level] || { min: current.min, max: current.max, intervals: [] };
+        bucket.min = Math.min(bucket.min, current.min);
+        bucket.max = Math.max(bucket.max, current.max);
+        bucket.intervals.push({ start: current.start, end: current.end });
+        groups[current.level] = bucket;
+    };
+
+    series.forEach((point) => {
+        const level = getSingleStationClassification(point.value, classificationCode).level;
+        if (current && current.level === level) {
+            current.end = point.time;
+            current.min = Math.min(current.min, point.value);
+            current.max = Math.max(current.max, point.value);
+        } else {
+            flush();
+            current = { level, start: point.time, end: point.time, min: point.value, max: point.value };
+        }
+    });
+    flush();
+
+    return groups;
+};
+
+const renderEmptyRow = (icon, message) => `
+    <tr>
+        <td colspan="9" class="salinity-report-empty">
+            <i class="fas ${icon}"></i> ${escapeHtml(message)}
+        </td>
+    </tr>
+`;
+
+const renderIntervals = (intervals) =>
+    intervals
+        .map((interval) => `Từ ${formatForecastTime(interval.start)} đến ${formatForecastTime(interval.end)}`)
+        .join("; ");
+
+const renderRiskCell = (bucket) => {
+    if (!bucket) return `<td class="salinity-report-risk-cell salinity-report-risk-empty">-</td>`;
+    return `
+        <td class="salinity-report-risk-cell">
+            <div class="salinity-report-risk-range">Khoảng độ mặn: ${formatSalinity(bucket.min)} - ${formatSalinity(bucket.max)} ‰</div>
+            <div class="salinity-report-risk-time">Khoảng thời gian: ${renderIntervals(bucket.intervals)}</div>
+        </td>
+    `;
+};
+
+// 1 dòng báo cáo của 1 điểm/trạm.
+const renderStationRow = (station) => {
+    const { code, type, name, observed, forecastWindow, groups } = station;
+
+    const observedCells = observed
+        ? (() => {
+              const badge = getRiskBadgeMeta(observed.value, toClassificationCode(code));
+              return `
+                <td>${escapeHtml(formatObservedTime(observed.time))}</td>
+                <td>${formatSalinity(observed.value)} ‰</td>
+                <td>
+                    <span class="salinity-report-badge" style="color: ${badge.textColor}; background-color: ${badge.backgroundColor}">
+                        ${escapeHtml(badge.description)}
+                    </span>
+                </td>
+              `;
+          })()
+        : `<td colspan="3" class="salinity-report-empty-cell">Chưa có số liệu quan trắc</td>`;
+
+    const windowCell = forecastWindow
+        ? `<td>Từ ${formatForecastTime(forecastWindow.start)} đến ${formatForecastTime(forecastWindow.end)}</td>`
+        : `<td class="salinity-report-empty-cell">Chưa có dự báo</td>`;
+
+    const riskCells = RISK_LEVELS.map((item) => renderRiskCell(groups?.[item.level])).join("");
+
+    return `
+        <tr class="salinity-report-row" data-code="${escapeHtml(code)}" data-type="${escapeHtml(type)}" tabindex="0" role="button">
+            <td class="salinity-report-col-station">
+                <i class="fas ${type === "iot" ? "fa-tower-broadcast" : "fa-location-dot"}"
+                   title="${type === "iot" ? "Trạm IoT" : "Điểm đo mặn"}"></i>
+                ${escapeHtml(name)}${type === "iot" ? " (IoT)" : ""}
+            </td>
+            ${observedCells}
+            ${windowCell}
+            ${riskCells}
+        </tr>
+    `;
 };
 
 // Marker gốc (điểm đo mặn/trạm IoT) đã render trên map hay chưa - để không bật/gen lại nếu đã có.
@@ -176,20 +214,15 @@ const findMarkerByCode = (mapInstance, code, type) => {
 // Trả về hàm cleanup. `ensureSalinityLayer`/`ensureIoTLayer`: do MapboxMap.jsx truyền vào, bật hộ lớp
 // tương ứng (render marker + popup đầy đủ y hệt khi người dùng tự bật lớp) nếu đang tắt.
 export const initSalinityStatsPanel = (mapInstance, { ensureSalinityLayer, ensureIoTLayer } = {}) => {
-    const observedSelect = document.getElementById("stats-observed-time");
-    const observedList = document.getElementById("stats-observed-list");
-    const forecastSelect = document.getElementById("stats-forecast-time");
-    const forecastList = document.getElementById("stats-forecast-list");
-    const filterBar = document.getElementById("stats-filter-bar");
-    const filterClearButton = document.getElementById("stats-filter-clear");
-    if (!mapInstance || !observedSelect || !observedList || !forecastSelect || !forecastList) {
+    const summaryEl = document.getElementById("salinity-report-summary");
+    const bodyEl = document.getElementById("salinity-report-body");
+    const refreshButton = document.getElementById("salinity-report-refresh");
+    if (!mapInstance || !bodyEl) {
         return () => {};
     }
 
     let disposed = false;
-    let observedRequestId = 0;
-    let stationNames = {};
-    let forecastTimeline = new Map();
+    let loadRequestId = 0;
     // Trong lúc chờ render lớp gốc (fetch dữ liệu) tránh bấm nhiều lần gây render trùng marker.
     let salinityLayerPromise = null;
     let iotLayerPromise = null;
@@ -212,14 +245,27 @@ export const initSalinityStatsPanel = (mapInstance, { ensureSalinityLayer, ensur
         return salinityLayerPromise;
     };
 
-    const updateFilterBar = () => {
-        if (!filterBar) return;
-        filterBar.hidden = !observedSelect.value && !forecastSelect.value;
+    // Đóng khung overlay lại (y hệt bấm nút thu gọn) - gọi sau khi đã pan/zoom xong để người dùng
+    // thấy ngay vị trí trên bản đồ thay vì bị khung che mất.
+    const closeReportOverlay = () => {
+        const container = document.getElementById("legend-container");
+        const content = document.getElementById("legend-content");
+        const toggleBtn = document.getElementById("legend-toggle");
+        const toggleIcon = toggleBtn?.querySelector(".toggle-icon");
+        const backdrop = document.getElementById("salinity-report-backdrop");
+        if (!container || !content || !toggleBtn || !toggleIcon) return;
+
+        container.classList.add("is-collapsed");
+        content.style.display = "none";
+        toggleIcon.textContent = "+";
+        toggleBtn.setAttribute("aria-expanded", "false");
+        toggleBtn.setAttribute("aria-label", "Xem báo cáo nhanh độ mặn");
+        if (backdrop) backdrop.hidden = true;
     };
 
-    // Bấm (hoặc Enter) vào 1 dòng trong danh sách -> bản đồ pan/zoom tới đúng điểm/trạm đó và mở popup
-    // ĐẦY ĐỦ có sẵn của marker gốc (bật hộ lớp tương ứng nếu đang tắt), giúp xác định ngay vị trí thay
-    // vì phải tự dò trên bản đồ.
+    // Bấm (hoặc Enter) vào 1 dòng -> bản đồ pan/zoom tới đúng điểm/trạm đó, mở popup ĐẦY ĐỦ có
+    // sẵn của marker gốc (bật hộ lớp tương ứng nếu đang tắt), rồi đóng khung overlay lại để thấy
+    // ngay vị trí trên bản đồ.
     const focusStation = async (code, type) => {
         await ensureLayer(type);
         if (disposed) return;
@@ -229,127 +275,83 @@ export const initSalinityStatsPanel = (mapInstance, { ensureSalinityLayer, ensur
 
         mapInstance.setView(marker.getLatLng(), Math.max(mapInstance.getZoom(), 15), { animate: true });
         marker.openPopup();
+        closeReportOverlay();
     };
 
-    const handleObservedChange = async () => {
-        const time = observedSelect.value;
-        const requestId = ++observedRequestId;
-        updateFilterBar();
-
-        if (!time) {
-            renderEmptyState(observedList, "fa-clock", "Chọn thời điểm để xem số liệu");
-            return;
-        }
-
-        renderLoading(observedList);
-        const rows = await fetchSalinityTimelineValues(time);
-        if (disposed || requestId !== observedRequestId) return;
-
-        if (!rows) {
-            renderEmptyState(
-                observedList,
-                "fa-triangle-exclamation",
-                "Không tải được số liệu. Vui lòng thử lại.",
-            );
-        } else if (rows.length === 0) {
-            renderEmptyState(
-                observedList,
-                "fa-exclamation-circle",
-                `Không có số liệu lúc ${formatObservedTime(time)}`,
-            );
-        } else {
-            renderRows(observedList, rows, stationNames, Object.keys(stationNames).length);
-        }
-    };
-
-    const handleForecastChange = () => {
-        const epochMs = forecastSelect.value;
-        updateFilterBar();
-
-        const rows = epochMs ? forecastTimeline.get(Number(epochMs)) || [] : null;
-        if (!rows) {
-            renderEmptyState(forecastList, "fa-clock", "Chọn thời điểm để xem số liệu");
-        } else if (rows.length === 0) {
-            renderEmptyState(forecastList, "fa-exclamation-circle", "Không có số liệu dự báo ở mốc này");
-        } else {
-            renderRows(forecastList, rows, stationNames, Object.keys(stationNames).length);
-        }
-    };
-
-    const handleClearFilter = () => {
-        observedRequestId += 1;
-        observedSelect.value = "";
-        forecastSelect.value = "";
-        renderEmptyState(observedList, "fa-clock", "Chọn thời điểm để xem số liệu");
-        renderEmptyState(forecastList, "fa-clock", "Chọn thời điểm để xem số liệu");
-        updateFilterBar();
-    };
-
-    const handleListInteraction = (event) => {
-        const row = event.target.closest?.(".salinity-stat-row[data-code]");
+    const handleRowInteraction = (event) => {
+        const row = event.target.closest?.(".salinity-report-row[data-code]");
         if (!row) return;
         if (event.type === "keydown" && event.key !== "Enter" && event.key !== " ") return;
         if (event.type === "keydown") event.preventDefault();
         focusStation(row.dataset.code, row.dataset.type);
     };
 
-    observedSelect.addEventListener("change", handleObservedChange);
-    forecastSelect.addEventListener("change", handleForecastChange);
-    filterClearButton?.addEventListener("click", handleClearFilter);
-    observedList.addEventListener("click", handleListInteraction);
-    observedList.addEventListener("keydown", handleListInteraction);
-    forecastList.addEventListener("click", handleListInteraction);
-    forecastList.addEventListener("keydown", handleListInteraction);
+    bodyEl.addEventListener("click", handleRowInteraction);
+    bodyEl.addEventListener("keydown", handleRowInteraction);
 
-    const loadOptions = async () => {
-        const [timeline, salinityForecast, iotForecast] = await Promise.all([
+    const loadReport = async () => {
+        const requestId = ++loadRequestId;
+        bodyEl.innerHTML = renderEmptyRow("fa-spinner fa-spin", "Đang tải...");
+        if (summaryEl) summaryEl.textContent = "";
+
+        const [timeline, latestRows, salinityForecast, iotForecast] = await Promise.all([
             fetchSalinityTimelineTimes(),
+            fetchSalinityTimelineLatest(),
             fetchForecastLatest(),
             fetchForecastLatest("iot"),
         ]);
-        if (disposed) return;
+        if (disposed || requestId !== loadRequestId) return;
 
-        stationNames = timeline.stations.reduce((accumulator, station) => {
-            accumulator[station.code] = station.name;
-            return accumulator;
-        }, {});
-
-        observedSelect.innerHTML =
-            PLACEHOLDER_OPTION +
-            timeline.times
-                .map((time) => `<option value="${escapeHtml(time)}">${formatObservedTime(time)}</option>`)
-                .join("");
-        observedSelect.disabled = timeline.times.length === 0;
-        if (timeline.times.length === 0) {
-            renderEmptyState(observedList, "fa-exclamation-circle", "Chưa có số liệu quan trắc");
+        const stations = timeline.stations || [];
+        if (stations.length === 0) {
+            bodyEl.innerHTML = renderEmptyRow("fa-exclamation-circle", "Chưa có điểm đo mặn/trạm IoT nào");
+            return;
         }
 
-        forecastTimeline = buildForecastTimeline([
-            { payload: salinityForecast, type: "manual" },
-            { payload: iotForecast, type: "iot" },
-        ]);
-        const forecastTimes = [...forecastTimeline.keys()].sort((a, b) => b - a);
-        forecastSelect.innerHTML =
-            PLACEHOLDER_OPTION +
-            forecastTimes
-                .map((epochMs) => `<option value="${epochMs}">${formatForecastTime(epochMs)}</option>`)
-                .join("");
-        forecastSelect.disabled = forecastTimes.length === 0;
-        if (forecastTimes.length === 0) {
-            renderEmptyState(forecastList, "fa-exclamation-circle", "Chưa có dữ liệu dự báo");
+        const observedByCode = new Map(latestRows.map((row) => [row.code, row]));
+        const forecastSeriesByCode = buildForecastSeriesByCode([salinityForecast, iotForecast]);
+
+        const rows = stations
+            .map((station) => {
+                const observed = observedByCode.get(station.code) || null;
+                const series = forecastSeriesByCode.get(station.code) || [];
+                const forecastWindow = series.length
+                    ? { start: series[0].time, end: series[series.length - 1].time }
+                    : null;
+                const groups = series.length
+                    ? groupForecastByRiskLevel(series, toClassificationCode(station.code))
+                    : null;
+
+                return {
+                    code: station.code,
+                    type: station.type,
+                    name: station.name,
+                    observed,
+                    forecastWindow,
+                    groups,
+                };
+            })
+            .sort((a, b) => {
+                if (a.type !== b.type) return a.type === "manual" ? -1 : 1;
+                return a.name.localeCompare(b.name, "vi");
+            });
+
+        bodyEl.innerHTML = rows.map(renderStationRow).join("");
+
+        const observedCount = rows.filter((row) => row.observed).length;
+        if (summaryEl) {
+            summaryEl.innerHTML = `<i class="fas fa-list-check"></i> ${observedCount}/${rows.length} điểm/trạm có số liệu quan trắc <span class="salinity-report-hint">(bấm vào 1 dòng để xem vị trí trên bản đồ)</span>`;
         }
     };
 
-    loadOptions();
+    refreshButton?.addEventListener("click", loadReport);
+
+    loadReport();
 
     return () => {
         disposed = true;
-        observedSelect.removeEventListener("change", handleObservedChange);
-        forecastSelect.removeEventListener("change", handleForecastChange);
-        filterClearButton?.removeEventListener("click", handleClearFilter);
-        observedList.removeEventListener("click", handleListInteraction);
-        observedList.removeEventListener("keydown", handleListInteraction);
-        forecastList.removeEventListener("click", handleListInteraction);
-        forecastList.removeEventListener("keydown", handleListInteraction);
+        bodyEl.removeEventListener("click", handleRowInteraction);
+        bodyEl.removeEventListener("keydown", handleRowInteraction);
+        refreshButton?.removeEventListener("click", loadReport);
     };
 };

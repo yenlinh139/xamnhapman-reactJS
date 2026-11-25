@@ -157,6 +157,18 @@ export const fetchSalinityTimelineValues = async (time) => {
     }
 };
 
+// Giá trị quan trắc GẦN NHẤT của từng điểm/trạm (mốc giờ có thể khác nhau giữa các điểm/trạm) -
+// dùng cho "Báo cáo nhanh độ mặn". [{code, type, time: "YYYY-MM-DD HH:MI", value}]. Trả [] nếu lỗi.
+export const fetchSalinityTimelineLatest = async () => {
+    try {
+        const response = await axiosInstance.get("/salinity-timeline/latest");
+        return Array.isArray(response.data?.data) ? response.data.data : [];
+    } catch (error) {
+        console.error("Error fetching salinity timeline latest:", error);
+        return [];
+    }
+};
+
 export const fetchSalinityData = async (kiHieu) => {
     try {
         const response = await axiosInstance.get(`/salinity-data/${kiHieu}`);

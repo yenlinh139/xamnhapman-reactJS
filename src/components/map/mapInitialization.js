@@ -177,70 +177,62 @@ const setMeasurementInteractionMode = (mapInstance, isActive) => {
     });
 };
 
-const createStatsBlockMarkup = ({ selectLabel, selectId, listTitle, listId }) => `
-          <div class="stats-block">
-            <div class="legend-search">
-              <div class="search-header">
-                <i class="search-icon fas fa-calendar-alt"></i>
-                <span>${selectLabel}</span>
-              </div>
-              <select id="${selectId}" class="legend-date-input legend-time-select" aria-label="${selectLabel}" disabled>
-                <option value="">Đang tải...</option>
-              </select>
-            </div>
-
-            <div class="legend-section">
-              <h6 class="legend-section-title">
-                ${listTitle}
-                <span class="stats-on-map-tag" title="Bản đồ đang hiển thị các điểm/trạm có số liệu ở mốc thời gian này">
-                  <i class="fas fa-map-marker-alt"></i> đang hiển thị trên bản đồ
-                </span>
-              </h6>
-              <div class="legend-layers" id="${listId}">
-                <div class="empty-state">
-                  <i class="fas fa-clock"></i>
-                  <p>Chọn thời điểm để xem số liệu</p>
-                </div>
-              </div>
-            </div>
-          </div>
-`;
-
-// Bảng "THỐNG KÊ DỮ LIỆU ĐO MẶN" - phần xử lý chọn mốc/tải số liệu nằm ở salinityStatsPanel.js
+// Bảng "BÁO CÁO NHANH ĐỘ MẶN" - phần tải/dựng dữ liệu nằm ở salinityStatsPanel.js. Luôn hiện số
+// liệu quan trắc gần nhất + phân tích dự báo 10 ngày tới theo từng cấp rủi ro của TẤT CẢ điểm/trạm
+// (không cần chọn mốc thời gian).
 export const createLegendControl = () => {
     const legendContainer = L.control({ position: "topright" });
 
     legendContainer.onAdd = () => {
         const div = L.DomUtil.create("div");
         div.innerHTML = `
-      <div class="legend-container legend-stats-container" id="legend-container">
+      <div class="salinity-report-backdrop" id="salinity-report-backdrop" hidden></div>
+      <div class="legend-container legend-stats-container legend-report-container is-collapsed" id="legend-container">
         <div class="legend-header">
           <div class="legend-title-section">
             <i class="legend-icon fas fa-chart-bar"></i>
-            <h4 class="legend-title">THỐNG KÊ DỮ LIỆU ĐO MẶN</h4>
+            <h4 class="legend-title">BÁO CÁO NHANH ĐỘ MẶN</h4>
           </div>
-          <button class="legend-toggle" id="legend-toggle" aria-label="Thu gọn bảng điều khiển">
-            <span class="toggle-icon">−</span>
+          <button class="legend-toggle" id="legend-toggle" aria-label="Xem báo cáo nhanh độ mặn" aria-expanded="false">
+            <span class="toggle-icon">+</span>
           </button>
         </div>
 
-        <div class="legend-content" id="legend-content">
-          <div class="stats-filter-bar" id="stats-filter-bar" hidden>
-            <span><i class="fas fa-filter"></i> Đang xem số liệu tại mốc thời gian đã chọn</span>
-            <button type="button" id="stats-filter-clear">Bỏ chọn</button>
+        <div class="legend-content" id="legend-content" style="display: none;">
+          <div class="salinity-report-toolbar">
+            <span class="salinity-report-summary" id="salinity-report-summary"></span>
+            <button type="button" class="salinity-report-refresh" id="salinity-report-refresh">
+              <i class="fas fa-rotate"></i> Làm mới
+            </button>
           </div>
-          ${createStatsBlockMarkup({
-              selectLabel: "Chọn thời điểm quan trắc",
-              selectId: "stats-observed-time",
-              listTitle: "Số liệu quan trắc",
-              listId: "stats-observed-list",
-          })}
-          ${createStatsBlockMarkup({
-              selectLabel: "Chọn thời điểm dự báo",
-              selectId: "stats-forecast-time",
-              listTitle: "Số liệu dự báo",
-              listId: "stats-forecast-list",
-          })}
+          <div class="salinity-report-scroll">
+            <table class="salinity-report-table">
+              <thead>
+                <tr>
+                  <th rowspan="2" class="salinity-report-col-station">Điểm đo mặn/Trạm IoT</th>
+                  <th colspan="3">Độ mặn quan trắc (gần nhất)</th>
+                  <th colspan="5">Độ mặn dự báo (10 ngày tới)</th>
+                </tr>
+                <tr>
+                  <th>Thời điểm</th>
+                  <th>Độ mặn</th>
+                  <th>Cấp độ rủi ro</th>
+                  <th>Khoảng thời gian</th>
+                  <th>Bình thường</th>
+                  <th>Rủi ro cấp 1</th>
+                  <th>Rủi ro cấp 2</th>
+                  <th>Rủi ro cấp 3</th>
+                </tr>
+              </thead>
+              <tbody id="salinity-report-body">
+                <tr>
+                  <td colspan="9" class="salinity-report-empty">
+                    <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     `;
@@ -249,16 +241,45 @@ export const createLegendControl = () => {
         L.DomEvent.disableScrollPropagation(div);
 
         setTimeout(() => {
+            const container = document.getElementById("legend-container");
             const toggleBtn = document.getElementById("legend-toggle");
             const content = document.getElementById("legend-content");
             const toggleIcon = toggleBtn?.querySelector(".toggle-icon");
+            const backdrop = document.getElementById("salinity-report-backdrop");
 
-            if (toggleBtn && content && toggleIcon) {
-                toggleBtn.addEventListener("click", () => {
-                    const isCollapsed = content.style.display === "none";
-                    content.style.display = isCollapsed ? "block" : "none";
-                    toggleIcon.textContent = isCollapsed ? "−" : "+";
-                    toggleBtn.setAttribute("aria-expanded", isCollapsed.toString());
+            if (container && toggleBtn && content && toggleIcon) {
+                // Mặc định chỉ hiện 1 nút nhỏ (thu gọn); bấm vào mở báo cáo dạng overlay chiếm phần
+                // bản đồ (từ mép phải menu trái tới mép phải màn hình), không đè lên menu trái.
+                // CSS dùng var(--sidebar-width) làm mốc mặc định, nhưng menu có thể đang thu gọn
+                // (width 0) nên đo lại đúng mép phải thực tế của menu mỗi lần mở, phòng khi menu
+                // đang ở trạng thái khác mặc định.
+                const syncOverlayLeftOffset = () => {
+                    const sidebar = document.querySelector(".sidebar");
+                    if (!sidebar) return;
+                    const right = sidebar.getBoundingClientRect().right;
+                    container.style.left = `${right + 16}px`;
+                    if (backdrop) backdrop.style.left = `${right}px`;
+                };
+
+                const setOpen = (open) => {
+                    container.classList.toggle("is-collapsed", !open);
+                    content.style.display = open ? "block" : "none";
+                    toggleIcon.textContent = open ? "−" : "+";
+                    toggleBtn.setAttribute("aria-expanded", open.toString());
+                    toggleBtn.setAttribute(
+                        "aria-label",
+                        open ? "Thu gọn báo cáo" : "Xem báo cáo nhanh độ mặn",
+                    );
+                    if (backdrop) backdrop.hidden = !open;
+                    if (open) syncOverlayLeftOffset();
+                };
+
+                toggleBtn.addEventListener("click", () =>
+                    setOpen(container.classList.contains("is-collapsed")),
+                );
+                backdrop?.addEventListener("click", () => setOpen(false));
+                window.addEventListener("resize", () => {
+                    if (!container.classList.contains("is-collapsed")) syncOverlayLeftOffset();
                 });
             }
         }, 100);
