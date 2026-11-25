@@ -55,6 +55,44 @@ const RISK_LEVELS = [
     { level: "high-warning", label: "Rủi ro cấp 2" },
     { level: "critical", label: "Rủi ro cấp 3" },
 ];
+const RISK_RANK = { normal: 0, warning: 1, "high-warning": 2, critical: 3 };
+
+// Thứ tự mặc định (chưa bấm sort cột nào): trạm IoT lên trước, rồi tới điểm đo mặn, mỗi nhóm xếp
+// theo tên (vi).
+const compareDefault = (a, b) => {
+    if (a.type !== b.type) return a.type === "iot" ? -1 : 1;
+    return a.name.localeCompare(b.name, "vi");
+};
+
+// Giá trị dùng để so sánh khi bấm sort 1 cột. Trạm chưa có số liệu quan trắc luôn bị đẩy xuống cuối
+// (coi như "nhỏ nhất") bất kể đang sort tăng hay giảm, để không lẫn vào giữa danh sách.
+const getSortValue = (row, key) => {
+    if (key === "station") return row.name;
+    if (key === "time") return row.observed?.time || null;
+    if (key === "value") return row.observed ? Number(row.observed.value) : null;
+    if (key === "risk") {
+        if (!row.observed) return null;
+        const level = getSingleStationClassification(row.observed.value, toClassificationCode(row.code)).level;
+        return RISK_RANK[level] ?? null;
+    }
+    return null;
+};
+
+const applySort = (rows, sortState) => {
+    if (!sortState.key) return [...rows].sort(compareDefault);
+
+    const direction = sortState.direction === "desc" ? -1 : 1;
+    return [...rows].sort((a, b) => {
+        const va = getSortValue(a, sortState.key);
+        const vb = getSortValue(b, sortState.key);
+        if (va === null && vb === null) return compareDefault(a, b);
+        if (va === null) return 1;
+        if (vb === null) return -1;
+        if (va < vb) return -1 * direction;
+        if (va > vb) return 1 * direction;
+        return compareDefault(a, b);
+    });
+};
 
 // Gộp chuỗi dự báo (điểm đo mặn + trạm IoT) thành Map<code, [{time, value}]> đã sắp theo thời gian.
 const buildForecastSeriesByCode = (payloads) => {
@@ -226,6 +264,10 @@ export const initSalinityStatsPanel = (mapInstance, { ensureSalinityLayer, ensur
     // Trong lúc chờ render lớp gốc (fetch dữ liệu) tránh bấm nhiều lần gây render trùng marker.
     let salinityLayerPromise = null;
     let iotLayerPromise = null;
+    // Dữ liệu đã tải (chưa sắp xếp) + trạng thái sort hiện tại, để bấm cột chỉ sắp lại chứ không
+    // phải gọi lại API.
+    let currentRows = [];
+    const sortState = { key: null, direction: "asc" };
 
     const ensureLayer = (type) => {
         if (hasLayerOfType(mapInstance, type)) return Promise.resolve();
@@ -289,6 +331,48 @@ export const initSalinityStatsPanel = (mapInstance, { ensureSalinityLayer, ensur
     bodyEl.addEventListener("click", handleRowInteraction);
     bodyEl.addEventListener("keydown", handleRowInteraction);
 
+    // Vẽ lại <tbody> theo currentRows + sortState hiện tại (không gọi lại API).
+    const renderRows = () => {
+        const sorted = applySort(currentRows, sortState);
+        bodyEl.innerHTML = sorted.length
+            ? sorted.map(renderStationRow).join("")
+            : renderEmptyRow("fa-exclamation-circle", "Chưa có điểm đo mặn/trạm IoT nào");
+
+        const observedCount = sorted.filter((row) => row.observed).length;
+        if (summaryEl) {
+            summaryEl.innerHTML = `<i class="fas fa-list-check"></i> ${observedCount}/${sorted.length} điểm/trạm có số liệu quan trắc <span class="salinity-report-hint">(bấm vào 1 dòng để xem vị trí trên bản đồ)</span>`;
+        }
+    };
+
+    const sortHeaders = [...document.querySelectorAll(".salinity-report-sortable")];
+    const updateSortIcons = () => {
+        sortHeaders.forEach((th) => {
+            const icon = th.querySelector(".salinity-report-sort-icon");
+            if (!icon) return;
+            if (th.dataset.sort !== sortState.key) {
+                icon.className = "fas fa-sort salinity-report-sort-icon";
+                return;
+            }
+            icon.className = `fas ${sortState.direction === "desc" ? "fa-sort-down" : "fa-sort-up"} salinity-report-sort-icon`;
+        });
+    };
+
+    const handleHeaderClick = (event) => {
+        const th = event.target.closest?.(".salinity-report-sortable");
+        if (!th) return;
+        const key = th.dataset.sort;
+        if (sortState.key === key) {
+            sortState.direction = sortState.direction === "asc" ? "desc" : "asc";
+        } else {
+            sortState.key = key;
+            sortState.direction = "asc";
+        }
+        updateSortIcons();
+        renderRows();
+    };
+
+    sortHeaders.forEach((th) => th.addEventListener("click", handleHeaderClick));
+
     const loadReport = async () => {
         const requestId = ++loadRequestId;
         bodyEl.innerHTML = renderEmptyRow("fa-spinner fa-spin", "Đang tải...");
@@ -311,37 +395,27 @@ export const initSalinityStatsPanel = (mapInstance, { ensureSalinityLayer, ensur
         const observedByCode = new Map(latestRows.map((row) => [row.code, row]));
         const forecastSeriesByCode = buildForecastSeriesByCode([salinityForecast, iotForecast]);
 
-        const rows = stations
-            .map((station) => {
-                const observed = observedByCode.get(station.code) || null;
-                const series = forecastSeriesByCode.get(station.code) || [];
-                const forecastWindow = series.length
-                    ? { start: series[0].time, end: series[series.length - 1].time }
-                    : null;
-                const groups = series.length
-                    ? groupForecastByRiskLevel(series, toClassificationCode(station.code))
-                    : null;
+        currentRows = stations.map((station) => {
+            const observed = observedByCode.get(station.code) || null;
+            const series = forecastSeriesByCode.get(station.code) || [];
+            const forecastWindow = series.length
+                ? { start: series[0].time, end: series[series.length - 1].time }
+                : null;
+            const groups = series.length
+                ? groupForecastByRiskLevel(series, toClassificationCode(station.code))
+                : null;
 
-                return {
-                    code: station.code,
-                    type: station.type,
-                    name: station.name,
-                    observed,
-                    forecastWindow,
-                    groups,
-                };
-            })
-            .sort((a, b) => {
-                if (a.type !== b.type) return a.type === "manual" ? -1 : 1;
-                return a.name.localeCompare(b.name, "vi");
-            });
+            return {
+                code: station.code,
+                type: station.type,
+                name: station.name,
+                observed,
+                forecastWindow,
+                groups,
+            };
+        });
 
-        bodyEl.innerHTML = rows.map(renderStationRow).join("");
-
-        const observedCount = rows.filter((row) => row.observed).length;
-        if (summaryEl) {
-            summaryEl.innerHTML = `<i class="fas fa-list-check"></i> ${observedCount}/${rows.length} điểm/trạm có số liệu quan trắc <span class="salinity-report-hint">(bấm vào 1 dòng để xem vị trí trên bản đồ)</span>`;
-        }
+        renderRows();
     };
 
     refreshButton?.addEventListener("click", loadReport);
@@ -353,5 +427,6 @@ export const initSalinityStatsPanel = (mapInstance, { ensureSalinityLayer, ensur
         bodyEl.removeEventListener("click", handleRowInteraction);
         bodyEl.removeEventListener("keydown", handleRowInteraction);
         refreshButton?.removeEventListener("click", loadReport);
+        sortHeaders.forEach((th) => th.removeEventListener("click", handleHeaderClick));
     };
 };

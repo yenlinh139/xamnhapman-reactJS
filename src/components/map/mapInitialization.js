@@ -209,14 +209,22 @@ export const createLegendControl = () => {
             <table class="salinity-report-table">
               <thead>
                 <tr>
-                  <th rowspan="2" class="salinity-report-col-station">Điểm đo mặn/Trạm IoT</th>
+                  <th rowspan="2" class="salinity-report-col-station salinity-report-sortable" data-sort="station">
+                    Điểm đo mặn/Trạm IoT <i class="fas fa-sort salinity-report-sort-icon"></i>
+                  </th>
                   <th colspan="3">Độ mặn quan trắc (gần nhất)</th>
                   <th colspan="5">Độ mặn dự báo (10 ngày tới)</th>
                 </tr>
                 <tr>
-                  <th>Thời điểm</th>
-                  <th>Độ mặn</th>
-                  <th>Cấp độ rủi ro</th>
+                  <th class="salinity-report-sortable" data-sort="time">
+                    Thời điểm <i class="fas fa-sort salinity-report-sort-icon"></i>
+                  </th>
+                  <th class="salinity-report-sortable" data-sort="value">
+                    Độ mặn <i class="fas fa-sort salinity-report-sort-icon"></i>
+                  </th>
+                  <th class="salinity-report-sortable" data-sort="risk">
+                    Cấp độ rủi ro <i class="fas fa-sort salinity-report-sort-icon"></i>
+                  </th>
                   <th>Khoảng thời gian</th>
                   <th>Bình thường</th>
                   <th>Rủi ro cấp 1</th>
