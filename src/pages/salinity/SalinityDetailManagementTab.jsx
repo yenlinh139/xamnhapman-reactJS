@@ -18,8 +18,6 @@ import {
 import SortableHeader from "@components/common/SortableHeader";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
 import LocalizedDateTimeInput from "@components/common/LocalizedDateTimeInput";
-import AddLocationModal from "@components/common/AddLocationModal";
-import { decimalToDMS } from "@components/convertDMSToDecimal";
 
 const STATION_NAMES = {
     CRT: "Cầu Rạch Tra",
@@ -115,11 +113,9 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [exporting, setExporting] = useState("");
 
-    // Điểm đo mặn MỚI thêm qua "Thêm vị trí" (chưa có trong STATION_NAMES hard-code) - nạp từ
-    // /salinity-points rồi lọc ra những mã không nằm trong STATION_CODES.
+    // Điểm đo mặn MỚI thêm qua "Thêm vị trí" (ở sub-tab "Vị trí" - không thêm ở đây nữa, chỉ đọc
+    // tên hiển thị) - nạp từ /salinity-points rồi lọc ra những mã không nằm trong STATION_CODES.
     const [customStations, setCustomStations] = useState([]);
-    const [showLocationModal, setShowLocationModal] = useState(false);
-    const [savingLocation, setSavingLocation] = useState(false);
 
     const loadCustomStations = useCallback(async () => {
         try {
@@ -147,29 +143,6 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
         (code) => STATION_NAMES[code] || customStationNames[code] || code,
         [customStationNames],
     );
-
-    const handleCreateLocation = async ({ code, name, lat, lng }, setLocationErrors) => {
-        try {
-            setSavingLocation(true);
-            await axiosInstance.post("/salinity-points", {
-                KiHieu: code,
-                TenDiem: name,
-                KinhDo: decimalToDMS(lng, false),
-                ViDo: decimalToDMS(lat, true),
-            });
-            ToastCommon(TOAST.SUCCESS, "Thêm vị trí thành công");
-            setShowLocationModal(false);
-            await loadCustomStations();
-        } catch (createError) {
-            console.error("Error creating salinity point:", createError);
-            const message =
-                createError?.response?.data?.message || createError?.message || "Không thể thêm vị trí";
-            if (createError?.response?.status === 409) setLocationErrors({ code: message });
-            ToastCommon(TOAST.ERROR, message);
-        } finally {
-            setSavingLocation(false);
-        }
-    };
 
     // Khoảng ngày-giờ hiện có (khóa "Từ ngày"/"Đến ngày" trong khoảng này) - dùng khoảng của
     // đúng trạm đang lọc, hoặc khoảng CHUNG của tất cả trạm khi đang chọn "Tất cả điểm đo". Mặc
@@ -532,15 +505,6 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
 
                     <div className="filter-right d-flex gap-2">
                         {userInfo && (
-                            <button
-                                className="btn btn-outline-primary"
-                                onClick={() => setShowLocationModal(true)}
-                            >
-                                <i className="fas fa-map-marker-alt me-1"></i>
-                                Thêm vị trí
-                            </button>
-                        )}
-                        {userInfo && (
                             <button className="btn btn-primary" onClick={openCreateModal}>
                                 <i className="fas fa-plus me-1"></i>
                                 Thêm số liệu
@@ -853,16 +817,6 @@ const SalinityDetailManagementTab = ({ userInfo }) => {
                     type="danger"
                 />
             )}
-
-            <AddLocationModal
-                show={showLocationModal}
-                onClose={() => setShowLocationModal(false)}
-                onSubmit={handleCreateLocation}
-                saving={savingLocation}
-                title="Thêm điểm đo mặn mới"
-                codeLabel="Mã/Ký hiệu"
-                nameLabel="Tên điểm đo"
-            />
         </div>
     );
 };

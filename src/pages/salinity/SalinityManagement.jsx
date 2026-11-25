@@ -6,23 +6,36 @@ import SalinityDetailManagementTab from "./SalinityDetailManagementTab";
 import IoTManagementTab from "./IoTManagementTab";
 import ForecastManagementTab from "./ForecastManagementTab";
 import StationDataManagementTab from "./StationDataManagementTab";
+import LocationManagementPanel from "./LocationManagementPanel";
+import IoTLocationPanel from "./IoTLocationPanel";
 import "../../styles/components/_salinityManagement.scss";
 
-// Cấp 1: nguồn dữ liệu (loại trạm); cấp 2: loại dữ liệu của nguồn đó
-// `hasForecast`: nguồn có dữ liệu dự báo (cấp 2 "Dự báo"); `layer`: lớp số liệu ngày dùng tab chung
-// StationDataManagementTab (API /station-data/:layer).
-const SOURCES = [
-    { key: "salinity", label: "Điểm đo mặn", hasForecast: true },
-    { key: "iot", label: "Trạm IoT", hasForecast: true },
-    { key: "rain", label: "Điểm đo mưa", layer: "rain" },
-    { key: "meteo", label: "Trạm khí tượng", layer: "meteo" },
-    { key: "hydro", label: "Trạm thủy văn", layer: "hydro" },
-    { key: "reservoir", label: "Hồ chứa thượng lưu", layer: "reservoir" },
-];
-
-const DATA_KINDS = [
+// Cấp 2 (loại dữ liệu) của từng nguồn: Điểm đo mặn/Trạm IoT có Quan trắc+Dự báo+Vị trí; 4 nguồn
+// còn lại (dùng chung StationDataManagementTab qua `layer`) có Số liệu+Vị trí.
+const SALINITY_KINDS = [
     { key: "observed", label: "Quan trắc" },
     { key: "forecast", label: "Dự báo" },
+    { key: "locations", label: "Vị trí" },
+];
+const IOT_KINDS = [
+    { key: "observed", label: "Quan trắc" },
+    { key: "forecast", label: "Dự báo" },
+    { key: "locations", label: "Vị trí" },
+];
+const LAYER_KINDS = [
+    { key: "data", label: "Số liệu" },
+    { key: "locations", label: "Vị trí" },
+];
+
+// Cấp 1: nguồn dữ liệu (loại trạm). `layer`: lớp số liệu ngày dùng tab chung StationDataManagementTab
+// (API /station-data/:layer) khi cấp 2 đang là "data".
+const SOURCES = [
+    { key: "salinity", label: "Điểm đo mặn", kinds: SALINITY_KINDS },
+    { key: "iot", label: "Trạm IoT", kinds: IOT_KINDS },
+    { key: "rain", label: "Điểm đo mưa", layer: "rain", kinds: LAYER_KINDS },
+    { key: "meteo", label: "Trạm khí tượng", layer: "meteo", kinds: LAYER_KINDS },
+    { key: "hydro", label: "Trạm thủy văn", layer: "hydro", kinds: LAYER_KINDS },
+    { key: "reservoir", label: "Hồ chứa thượng lưu", layer: "reservoir", kinds: LAYER_KINDS },
 ];
 
 const PRIMARY = "#1a56a8";
@@ -52,14 +65,28 @@ const SalinityManagement = () => {
     const [dataKind, setDataKind] = useState("observed");
 
     const activeSource = SOURCES.find((item) => item.key === source);
-    // Nguồn không có dự báo thì chỉ có "Quan trắc" (kể cả khi vừa chuyển sang từ tab đang ở "Dự báo").
-    const availableKinds = activeSource.hasForecast
-        ? DATA_KINDS
-        : DATA_KINDS.filter((item) => item.key === "observed");
-    const effectiveKind = activeSource.hasForecast ? dataKind : "observed";
-    const activeKind = DATA_KINDS.find((item) => item.key === effectiveKind);
+    const availableKinds = activeSource.kinds;
+    // Đổi nguồn mà cấp 2 đang chọn không tồn tại ở nguồn mới (vd đang "Vị trí" rồi chuyển sang
+    // Trạm IoT - không có "Vị trí") thì rơi về cấp 2 đầu tiên của nguồn đó.
+    const effectiveKind = availableKinds.some((item) => item.key === dataKind)
+        ? dataKind
+        : availableKinds[0].key;
+    const activeKind = availableKinds.find((item) => item.key === effectiveKind);
 
     const renderContent = () => {
+        if (effectiveKind === "locations") {
+            // Trạm IoT dùng bảng/API riêng (iot_system.iot_stations, toạ độ độ thập phân) nên có
+            // panel vị trí riêng, không dùng chung LocationManagementPanel (DiemDoMan/TramKTTV/HoChua).
+            if (source === "iot") return <IoTLocationPanel userInfo={userInfo} />;
+            // key để đổi loại thì tạo lại tab (bộ lọc, trang, form) cho đúng loại mới
+            return (
+                <LocationManagementPanel
+                    key={activeSource.layer || source}
+                    userInfo={userInfo}
+                    type={activeSource.layer || "salinity"}
+                />
+            );
+        }
         if (activeSource.layer) {
             // key để đổi lớp thì tạo lại tab (bộ lọc, trang, form) cho đúng lớp mới
             return (
@@ -125,13 +152,8 @@ const SalinityManagement = () => {
                         })}
                     </div>
 
-                    {/* Nguồn chỉ có quan trắc: bỏ hàng tab cấp 2, chỉ giữ đường kẻ chân hàng tab cấp 1 */}
-                    {!activeSource.hasForecast && (
-                        <div className="mb-3" style={{ borderTop: `2px solid ${PRIMARY}` }}></div>
-                    )}
-
                     <div
-                        className={`flex-wrap align-items-center gap-3 mb-3 ${activeSource.hasForecast ? "d-flex" : "d-none"}`}
+                        className="flex-wrap align-items-center gap-3 mb-3 d-flex"
                         style={{
                             padding: "10px 14px",
                             background: "#f4f7fc",

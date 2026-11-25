@@ -16,8 +16,6 @@ import {
 } from "@common/dataExport";
 import SortableHeader from "@components/common/SortableHeader";
 import LocalizedDateInput from "@components/common/LocalizedDateInput";
-import AddLocationModal from "@components/common/AddLocationModal";
-import { decimalToDMS } from "@components/convertDMSToDecimal";
 
 // Tab quản trị dùng chung cho các lớp SỐ LIỆU NGÀY theo trạm (API /station-data/:layer):
 // Điểm đo mưa, Trạm khí tượng, Trạm thủy văn, Hồ chứa thượng lưu. Mỗi bản ghi = 1 trạm + 1 ngày
@@ -149,9 +147,6 @@ const StationDataManagementTab = ({ userInfo, layer }) => {
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [exporting, setExporting] = useState("");
 
-    const [showLocationModal, setShowLocationModal] = useState(false);
-    const [savingLocation, setSavingLocation] = useState(false);
-
     const requestIdRef = useRef(0);
     const todayIso = toVNDateKey(new Date());
 
@@ -269,32 +264,6 @@ const StationDataManagementTab = ({ userInfo, layer }) => {
         setForm({ KiHieu: filterStation || "", Ngay: "" });
         setFormErrors({});
         setShowModal(true);
-    };
-
-    // Them 1 vi tri MOI (chi ten + toa do) - chua co cot rieng trong bang chinh thuc nen "Thêm số
-    // liệu" cho vi tri nay se duoc luu tam, hien thi y nhu tram cu cho den khi dev chuyen sang cot
-    // chinh thuc.
-    const handleCreateLocation = async ({ code, name, lat, lng }, setLocationErrors) => {
-        try {
-            setSavingLocation(true);
-            await axiosInstance.post(`${apiPath}/stations`, {
-                KiHieu: code,
-                Ten: name,
-                KinhDo: decimalToDMS(lng, false),
-                ViDo: decimalToDMS(lat, true),
-            });
-            ToastCommon(TOAST.SUCCESS, "Thêm vị trí thành công");
-            setShowLocationModal(false);
-            await loadStations();
-        } catch (createError) {
-            console.error("Error creating location:", createError);
-            const message =
-                createError?.response?.data?.message || createError?.message || "Không thể thêm vị trí";
-            if (createError?.response?.status === 409) setLocationErrors({ code: message });
-            ToastCommon(TOAST.ERROR, message);
-        } finally {
-            setSavingLocation(false);
-        }
     };
 
     // Các cột trạm của bảng pivot: mọi trạm, hoặc chỉ trạm đang lọc.
@@ -661,15 +630,6 @@ const StationDataManagementTab = ({ userInfo, layer }) => {
 
                     <div className="filter-right d-flex gap-2">
                         {userInfo && (
-                            <button
-                                className="btn btn-outline-primary"
-                                onClick={() => setShowLocationModal(true)}
-                            >
-                                <i className="fas fa-map-marker-alt me-1"></i>
-                                Thêm vị trí
-                            </button>
-                        )}
-                        {userInfo && (
                             <button className="btn btn-primary" onClick={openCreateModal}>
                                 <i className="fas fa-plus me-1"></i>
                                 Thêm số liệu
@@ -1011,16 +971,6 @@ const StationDataManagementTab = ({ userInfo, layer }) => {
                     type="danger"
                 />
             )}
-
-            <AddLocationModal
-                show={showLocationModal}
-                onClose={() => setShowLocationModal(false)}
-                onSubmit={handleCreateLocation}
-                saving={savingLocation}
-                title={`Thêm ${stationLabelLower} mới`}
-                codeLabel="Mã/Ký hiệu"
-                nameLabel={config.stationLabel}
-            />
         </div>
     );
 };

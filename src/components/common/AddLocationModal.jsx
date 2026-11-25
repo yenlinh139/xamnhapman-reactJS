@@ -9,9 +9,13 @@ const parseCoordinate = (value) => {
     return Number.isFinite(normalized) ? normalized : NaN;
 };
 
-// Modal dùng chung cho mọi tab "Quản trị dữ liệu" để thêm 1 điểm/trạm/hồ MỚI (chỉ thông tin vị trí:
-// mã, tên, toạ độ) - KHÔNG phải thêm số liệu. Toạ độ nhập là độ thập phân (gõ tay hoặc bấm chọn
-// trên bản đồ); nơi gọi modal quy đổi sang định dạng lưu DB (DMS) khi gửi lên server.
+// Modal dùng chung cho mọi tab "Quản trị dữ liệu" để thêm MỚI hoặc SỬA 1 điểm/trạm/hồ - vị trí
+// (mã, tên, toạ độ) + các thuộc tính khác tuỳ loại (`extraFields`, vd Phân loại/Yếu tố đo/Thời gian
+// hoạt động/Tần suất/Ghi chú) - KHÔNG phải thêm/sửa số liệu đo. Toạ độ nhập là độ thập phân (gõ tay
+// hoặc bấm chọn trên bản đồ); nơi gọi modal quy đổi sang định dạng lưu DB (DMS) khi gửi lên server.
+// `initialValues` có giá trị -> mở ở chế độ SỬA (khoá ô mã, điền sẵn các trường hiện tại).
+// `extraFields`: [{ key, label, multiline? }] - giá trị các trường này nằm phẳng trong form/payload
+// theo đúng `key`, cùng cấp với code/name/lat/lng.
 const AddLocationModal = ({
     show,
     onClose,
@@ -21,17 +25,41 @@ const AddLocationModal = ({
     codeLabel = "Mã/Ký hiệu",
     nameLabel = "Tên",
     note,
+    initialValues = null,
+    extraFields = [],
 }) => {
+    const isEditMode = Boolean(initialValues);
     const [form, setForm] = useState(DEFAULT_FORM);
     const [errors, setErrors] = useState({});
     const [showPicker, setShowPicker] = useState(false);
 
     useEffect(() => {
         if (show) {
-            setForm(DEFAULT_FORM);
+            const extraDefaults = Object.fromEntries(extraFields.map((field) => [field.key, ""]));
+            setForm(
+                initialValues
+                    ? {
+                          code: initialValues.code ?? "",
+                          name: initialValues.name ?? "",
+                          lat:
+                              initialValues.lat !== null && initialValues.lat !== undefined
+                                  ? String(initialValues.lat)
+                                  : "",
+                          lng:
+                              initialValues.lng !== null && initialValues.lng !== undefined
+                                  ? String(initialValues.lng)
+                                  : "",
+                          ...extraDefaults,
+                          ...Object.fromEntries(
+                              extraFields.map((field) => [field.key, initialValues[field.key] ?? ""]),
+                          ),
+                      }
+                    : { ...DEFAULT_FORM, ...extraDefaults },
+            );
             setErrors({});
             setShowPicker(false);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [show]);
 
     if (!show) return null;
@@ -68,7 +96,10 @@ const AddLocationModal = ({
             return;
         }
 
-        await onSubmit({ code, name, lat, lng }, setErrors);
+        const extraValues = Object.fromEntries(
+            extraFields.map((field) => [field.key, form[field.key] ?? ""]),
+        );
+        await onSubmit({ code, name, lat, lng, ...extraValues }, setErrors);
     };
 
     const pickedLat = parseCoordinate(form.lat);
@@ -92,6 +123,7 @@ const AddLocationModal = ({
                                         type="text"
                                         className={`form-control ${errors.code ? "is-invalid" : ""}`}
                                         value={form.code}
+                                        disabled={isEditMode}
                                         onChange={(e) => setField("code", e.target.value)}
                                     />
                                     {errors.code && <div className="error-text">{errors.code}</div>}
@@ -150,6 +182,26 @@ const AddLocationModal = ({
                                         </div>
                                     )}
                                 </div>
+                                {extraFields.map((field) => (
+                                    <div key={field.key} className={field.multiline ? "col-12" : "col-md-6"}>
+                                        <label className="form-label">{field.label}</label>
+                                        {field.multiline ? (
+                                            <textarea
+                                                className="form-control"
+                                                rows={2}
+                                                value={form[field.key] ?? ""}
+                                                onChange={(e) => setField(field.key, e.target.value)}
+                                            />
+                                        ) : (
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                value={form[field.key] ?? ""}
+                                                onChange={(e) => setField(field.key, e.target.value)}
+                                            />
+                                        )}
+                                    </div>
+                                ))}
                             </div>
                         </div>
                         <div className="modal-footer">
@@ -157,7 +209,7 @@ const AddLocationModal = ({
                                 Hủy
                             </button>
                             <button type="submit" className="btn btn-primary" disabled={saving}>
-                                {saving ? "Đang lưu..." : "Thêm vị trí"}
+                                {saving ? "Đang lưu..." : isEditMode ? "Lưu thay đổi" : "Thêm vị trí"}
                             </button>
                         </div>
                     </form>

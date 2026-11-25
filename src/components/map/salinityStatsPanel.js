@@ -72,7 +72,10 @@ const getSortValue = (row, key) => {
     if (key === "value") return row.observed ? Number(row.observed.value) : null;
     if (key === "risk") {
         if (!row.observed) return null;
-        const level = getSingleStationClassification(row.observed.value, toClassificationCode(row.code)).level;
+        const level = getSingleStationClassification(
+            row.observed.value,
+            toClassificationCode(row.code),
+        ).level;
         return RISK_RANK[level] ?? null;
     }
     return null;
