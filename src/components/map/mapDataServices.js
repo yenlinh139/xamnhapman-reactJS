@@ -526,7 +526,7 @@ export const useHydrometData = (kiHieu, page = 1, limit = 100, filters = {}) => 
 // không cache data cũ từ frontend nữa.
 const iotStationsRequestCache = new Map();
 
-const getIoTStationsCacheKey = (status) => status || "__all__";
+const getIoTStationsCacheKey = (status, basic) => `${status || "__all__"}${basic ? "__basic__" : ""}`;
 
 export const clearIoTStationsCache = () => {
     iotStationsRequestCache.clear();
@@ -642,9 +642,12 @@ const normalizeIoTStationsResponse = (payload) => {
     };
 };
 
+// `basic: true` - chi lay metadata (ma/ten/toa do), bo qua thong ke do man theo gio (2 LEFT JOIN
+// LATERAL quet toan bo iot_data, co the mat hang giay voi tram co hang tram nghin ban ghi) - dung
+// cho noi chi can danh sach de quan ly vi tri, tranh timeout (vd tab "Vi tri" cua Tram IoT).
 export const fetchIoTStations = async (status = null, options = {}) => {
-    const { forceRefresh = false } = options;
-    const cacheKey = getIoTStationsCacheKey(status);
+    const { forceRefresh = false, basic = false } = options;
+    const cacheKey = getIoTStationsCacheKey(status, basic);
     const cachedEntry = iotStationsRequestCache.get(cacheKey);
 
     if (!forceRefresh && cachedEntry?.promise) {
@@ -658,6 +661,7 @@ export const fetchIoTStations = async (status = null, options = {}) => {
     try {
         const params = new URLSearchParams();
         if (status) params.append("status", status);
+        if (basic) params.append("basic", "1");
 
         const url = `/iot/stations${params.toString() ? `?${params.toString()}` : ""}`;
 

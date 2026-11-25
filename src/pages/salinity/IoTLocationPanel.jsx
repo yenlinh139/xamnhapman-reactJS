@@ -7,10 +7,11 @@ import AddLocationModal from "@components/common/AddLocationModal";
 import { fetchIoTStations } from "@components/map/mapDataServices";
 import SortableHeader from "@components/common/SortableHeader";
 import { useSortableRows } from "@common/useSortableRows";
+import { toDecimalCoordinate } from "@common/dataExport";
 
 const EXTRA_FIELDS = [{ key: "station_code", label: "Mã trạm" }];
 
-const formatCoordinate = (value) => (Number.isFinite(Number(value)) ? Number(value).toFixed(6) : "-");
+const formatCoordinate = (value) => (Number.isFinite(value) ? value.toFixed(6) : "-");
 
 // Sub-tab "Vị trí" của Trạm IoT - CÙNG 1 kiểu bảng/hành vi (thêm/sửa/xoá) với các loại điểm/trạm
 // khác (xem LocationManagementPanel.jsx), nhưng nói chuyện với API /iot/stations riêng vì IoT dùng
@@ -31,14 +32,16 @@ const IoTLocationPanel = ({ userInfo }) => {
         try {
             setLoading(true);
             setError("");
-            const result = await fetchIoTStations(null, { forceRefresh: true });
+            const result = await fetchIoTStations(null, { forceRefresh: true, basic: true });
             const list = Array.isArray(result?.data) ? result.data : [];
             setRows(
                 list.map((item) => ({
                     code: item.serial_number,
                     name: item.station_name,
-                    lat: Number.isFinite(Number(item.latitude)) ? Number(item.latitude) : null,
-                    lng: Number.isFinite(Number(item.longitude)) ? Number(item.longitude) : null,
+                    // Toa do cu co the dang luu DMS (vd 106°29'56"E) - quy doi ve do thap phan de
+                    // hien thi/sua thong nhat voi cac loai diem/tram khac (dung chung toDecimalCoordinate).
+                    lat: toDecimalCoordinate(item.latitude),
+                    lng: toDecimalCoordinate(item.longitude),
                     extra: { station_code: item.station_code || "" },
                 })),
             );

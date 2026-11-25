@@ -241,7 +241,7 @@ export const createSalinityPopup = (
     const previousDateText = previousDate || formatPopupDateValue(point?.previous_date, "Chưa có dữ liệu");
     const startDateText = formatPopupDateValue(point?.start_date, "Không xác định");
     const endDateText = formatPopupDateValue(point?.end_date, "Không xác định");
-    const frequencyText = point?.TanSuat || "Không xác định";
+    const frequencyText = point?.TanSuat || "";
     const totalRecordsText = Number.isFinite(Number(point?.total_records))
         ? Number(point.total_records).toLocaleString("vi-VN")
         : "--";
@@ -332,7 +332,7 @@ export const createSalinityPopup = (
     const actualTrend = buildTrendMeta(salinityValue, point?.previous_value);
     const actualValueBoxHtml = buildValueBoxHtml({
         boxClass: "popup-main-value",
-        label: `ĐỘ MẶN QUAN TRẮC (${frequencyText})`,
+        label: frequencyText ? `ĐỘ MẶN QUAN TRẮC (${frequencyText})` : "ĐỘ MẶN QUAN TRẮC",
         valueText: `${formattedSalinity} ‰`,
         statusColor: actualStatusColor,
         dateText: latestDateText,

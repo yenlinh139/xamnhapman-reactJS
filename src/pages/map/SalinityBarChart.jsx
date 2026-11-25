@@ -85,6 +85,23 @@ const SalinityBarChart = ({ data, height, kiHieu }) => {
         (year) => formattedData.find((d) => new Date(d.date).getFullYear() === year)?.date,
     );
 
+    // Du lieu trai dai nhieu nam (cac tram chinh thuc, hang chuc nam) -> moi nam 1 tick (nhu cu,
+    // tranh day dac ticks). Du lieu chi nam trong 1 nam (vd diem MOI chi co vai ngay so lieu) ->
+    // hien tick theo TUNG NGAY (dd/MM/yyyy) de thay duoc ngay thuc su thay vi chi "2026".
+    const isMultiYear = uniqueYears.length > 1;
+    const MAX_DATE_TICKS = 12;
+    const uniqueDates = [...new Set(formattedData.map((d) => d.date))];
+    const dateTicks =
+        uniqueDates.length <= MAX_DATE_TICKS
+            ? uniqueDates
+            : (() => {
+                  const step = Math.ceil(uniqueDates.length / MAX_DATE_TICKS);
+                  const picked = uniqueDates.filter((_, i) => i % step === 0);
+                  const lastDate = uniqueDates[uniqueDates.length - 1];
+                  if (picked[picked.length - 1] !== lastDate) picked.push(lastDate);
+                  return picked;
+              })();
+
     return (
         <>
             {isLoading ? (
@@ -101,8 +118,8 @@ const SalinityBarChart = ({ data, height, kiHieu }) => {
 
                         <XAxis
                             dataKey="date"
-                            tickFormatter={(d) => new Date(d).getFullYear()}
-                            ticks={ticksByYear}
+                            tickFormatter={(d) => (isMultiYear ? new Date(d).getFullYear() : formatVNDate(d))}
+                            ticks={isMultiYear ? ticksByYear : dateTicks}
                             tick={{ fontSize: 10 }}
                         />
 
