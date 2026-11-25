@@ -90,17 +90,21 @@ const stationLabel = (bulletin) =>
 
 // Các cột của danh sách theo mẫu; dùng chung cho bảng, CSV và bản in.
 // `sortValue` trả về giá trị đã chuẩn hoá (số/ngày) để sort đúng, khác với `text` (chuỗi hiển thị).
+// `width`: tỉ lệ cột trên bảng (colgroup) - cố định tỉ lệ thay vì để trình duyệt tự co giãn theo độ
+// dài nội dung (cột "Dự báo XNM" vốn có đoạn văn dài nhất nên dễ bị kéo rộng mất cân đối các cột khác).
 const buildColumns = (type) => [
-    { label: "Vị trí", text: stationLabel, sortValue: stationLabel },
+    { label: "Vị trí", text: stationLabel, sortValue: stationLabel, width: "10%" },
     {
         label: "Khu vực",
         text: (bulletin) => bulletin.tenHuyen || "-",
         sortValue: (bulletin) => bulletin.tenHuyen || "",
+        width: "8%",
     },
     {
         label: "Hiện trạng thủy văn (7 ngày qua)",
         text: (bulletin) => hydrologyLines(bulletin).join("; "),
         sortValue: (bulletin) => bulletin.hydrology[0]?.mean ?? null,
+        width: type === "forecast" ? "16%" : "36%",
     },
     ...(type === "forecast"
         ? [
@@ -108,11 +112,13 @@ const buildColumns = (type) => [
                   label: "Hiện trạng XNM (7 ngày qua)",
                   text: currentXnmText,
                   sortValue: (bulletin) => bulletin.current?.value ?? null,
+                  width: "16%",
               },
               {
                   label: "Dự báo XNM (10 ngày tới)",
                   text: forecastXnmText,
                   sortValue: (bulletin) => bulletin.forecast?.value ?? null,
+                  width: "28%",
               },
           ]
         : [
@@ -120,14 +126,21 @@ const buildColumns = (type) => [
                   label: "Độ mặn quan trắc",
                   text: (bulletin) => peakText(bulletin.observed),
                   sortValue: (bulletin) => bulletin.observed?.value ?? null,
+                  width: "16%",
               },
           ]),
     {
         label: "Cảnh báo cấp độ rủi ro thiên tai do XNM",
         text: (bulletin) => bulletin.risk.label,
         sortValue: (bulletin) => bulletin.risk.level,
+        width: type === "forecast" ? "12%" : "20%",
     },
-    { label: "Thời gian ban hành", text: issuedText, sortValue: (bulletin) => bulletin.issuedAt },
+    {
+        label: "Thời gian ban hành",
+        text: issuedText,
+        sortValue: (bulletin) => bulletin.issuedAt,
+        width: "10%",
+    },
 ];
 
 const escapeHtml = (value) =>
@@ -461,7 +474,15 @@ const Bulletins = () => {
                             một dòng để xem bản tin.
                         </div>
                         <div className="table-responsive">
-                            <table className="table table-bordered table-hover table-sm align-middle bg-white">
+                            <table
+                                className="bulletin-table table table-bordered table-hover table-sm align-middle bg-white"
+                                style={{ tableLayout: "fixed" }}
+                            >
+                                <colgroup>
+                                    {columns.map((column) => (
+                                        <col key={column.label} style={{ width: column.width }} />
+                                    ))}
+                                </colgroup>
                                 <thead className="table-light">
                                     <tr>
                                         {columns.map((column) => (

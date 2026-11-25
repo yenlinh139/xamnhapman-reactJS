@@ -1,3 +1,11 @@
+// Bảng danh sách bản tin dùng table-layout: fixed (xem Bulletins.jsx, colgroup theo column.width) để
+// giữ tỉ lệ cột cố định - không cho cột có nội dung dài (vd "Dự báo XNM") tự kéo giãn làm lệch các
+// cột khác; chữ dài/không có khoảng trắng vẫn ngắt dòng gọn trong đúng bề rộng cột.
+.bulletin-table td,
+.bulletin-table th {
+    overflow-wrap: break-word;
+}
+
 // Trang "Bản tin dự báo, cảnh báo xâm nhập mặn" (Bulletins.jsx):
 //   - bulletin-primary-tabs-row: 2 tab chính "Quan trắc" / "Cảnh báo, dự báo".
 //   - bulletin-toolbar-row: chỉ hiện ở tab "Cảnh báo, dự báo" - toggle con (Cảnh báo/Dự báo) bên
