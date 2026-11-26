@@ -76,16 +76,6 @@ const Home = () => {
                 />
             </section>
 
-            <section className="container py-4">
-                <div className="d-flex flex-wrap justify-content-center gap-3">
-                    <button type="button" className="btn btn-primary btn-lg" onClick={handleSubscribeClick}>
-                        Đăng kí nhận bản tin
-                    </button>
-                    <Link to={ROUTES.bulletins} className="btn btn-outline-primary btn-lg">
-                        Bản tin dự báo, cảnh báo xâm nhập mặn
-                    </Link>
-                </div>
-            </section>
             <BulletinSubscribeModal show={showSubscribe} onClose={() => setShowSubscribe(false)} />
 
             {/* System Overview */}
@@ -96,8 +86,8 @@ const Home = () => {
                     </div>
 
                     <div className="overview-grid">
-                        {/* 1. Bản đồ tương tác WebGIS */}
-                        <div className="overview-card">
+                        {/* 1. Bản đồ tương tác WebGIS - bấm vào cả thẻ để qua trang bản đồ */}
+                        <Link to={ROUTES.map} className="overview-card overview-card-link">
                             <div className="card-content">
                                 <h3>Hiển thị dữ liệu về xâm nhập mặn</h3>
                                 <p>
@@ -106,10 +96,10 @@ const Home = () => {
                                     trình thủy lợi
                                 </p>
                             </div>
-                        </div>
+                        </Link>
 
-                        {/* 2. Truy vấn dữ liệu về xâm nhập mặn */}
-                        <div className="overview-card">
+                        {/* 2. Truy vấn dữ liệu về xâm nhập mặn - bấm vào cả thẻ để qua trang bản đồ (nơi có truy vấn/tìm kiếm) */}
+                        <Link to={ROUTES.map} className="overview-card overview-card-link">
                             <div className="card-content">
                                 <h3>Truy vấn dữ liệu về xâm nhập mặn</h3>
                                 <p>
@@ -117,10 +107,10 @@ const Home = () => {
                                     hành chính; Tìm kiếm địa điểm theo từ khóa.
                                 </p>
                             </div>
-                        </div>
+                        </Link>
 
-                        {/* 3. Xem bản tin dự báo, cảnh báo xâm nhập mặn */}
-                        <div className="overview-card">
+                        {/* 3. Xem bản tin dự báo, cảnh báo xâm nhập mặn - bấm vào cả thẻ để qua trang bản tin */}
+                        <Link to={ROUTES.bulletins} className="overview-card overview-card-link">
                             <div className="card-content">
                                 <h3>Xem bản tin dự báo, cảnh báo xâm nhập mặn</h3>
                                 <p>
@@ -129,10 +119,10 @@ const Home = () => {
                                     thời gian, khoảng cách chịu ảnh hưởng của xâm nhập mặn
                                 </p>
                             </div>
-                        </div>
+                        </Link>
 
-                        {/* 4. Liên hệ hỗ trợ, góp ý */}
-                        <div className="overview-card">
+                        {/* 4. Liên hệ hỗ trợ, góp ý - bấm vào cả thẻ để qua trang góp ý/đánh giá */}
+                        <Link to={ROUTES.feedback} className="overview-card overview-card-link">
                             <div className="card-content">
                                 <h3>Liên hệ hỗ trợ, góp ý</h3>
                                 <p>
@@ -140,10 +130,10 @@ const Home = () => {
                                     thống.
                                 </p>
                             </div>
-                        </div>
+                        </Link>
 
-                        {/* 5. Quản trị tài khoản, dữ liệu */}
-                        <div className="overview-card">
+                        {/* 5. Quản trị tài khoản, dữ liệu - bấm vào cả thẻ để qua trang quản lý dữ liệu độ mặn */}
+                        <Link to={ROUTES.salinity} className="overview-card overview-card-link">
                             <div className="card-content">
                                 <h3>Quản trị tài khoản, dữ liệu</h3>
                                 <p>
@@ -151,7 +141,7 @@ const Home = () => {
                                     trắc khí tượng, thủy văn, xâm nhập mặn, vận hành công trình thủy lợi.
                                 </p>
                             </div>
-                        </div>
+                        </Link>
                     </div>
                 </div>
             </section>

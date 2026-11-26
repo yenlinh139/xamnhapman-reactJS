@@ -32,9 +32,9 @@ const RESEARCH_GROUP_INFO = [
     { label: "Cơ quan chủ trì", value: "Trường Đại học Nông Lâm TP. Hồ Chí Minh" },
     {
         label: "Địa chỉ",
-        value: "Khu phố 6, phường Linh Xuân, TP. Hồ Chí Minh",
+        value: "Khu phố 9, phường Linh Xuân, TP. Hồ Chí Minh",
         href: "https://maps.app.goo.gl/n5B9inxjUXu1aUio7",
-        display: "Khu phố 6, phường Linh Xuân, TP. Hồ Chí Minh",
+        display: "Khu phố 9, phường Linh Xuân, TP. Hồ Chí Minh",
     },
     { label: "Cán bộ kĩ thuật", value: "ThS. Nguyễn Duy Liêm" },
     {
