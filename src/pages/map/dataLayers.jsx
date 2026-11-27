@@ -8,8 +8,8 @@ export const mapLayers = {
         },
         {
             name: "Địa hình",
-            layers: ["DiemDoCao", "", "DEM"],
-            nameItem: ["Điểm độ cao", "Mặt cắt địa hình", "Mô hình độ cao số"],
+            layers: ["DiemDoCao", "DEM"],
+            nameItem: ["Điểm độ cao", "Mô hình độ cao số"],
         },
         {
             name: "Giao thông",

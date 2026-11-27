@@ -172,10 +172,11 @@ const renderIntervals = (intervals) =>
         .map((interval) => `Từ ${formatForecastTime(interval.start)} đến ${formatForecastTime(interval.end)}`)
         .join("; ");
 
-const renderRiskCell = (bucket) => {
-    if (!bucket) return `<td class="salinity-report-risk-cell salinity-report-risk-empty">-</td>`;
+const renderRiskCell = (bucket, level) => {
+    if (!bucket)
+        return `<td class="salinity-report-risk-cell salinity-report-risk-empty salinity-report-risk-col--${level}" data-risk-col="${level}">-</td>`;
     return `
-        <td class="salinity-report-risk-cell">
+        <td class="salinity-report-risk-cell salinity-report-risk-col--${level}" data-risk-col="${level}">
             <div class="salinity-report-risk-range">Khoảng độ mặn: ${formatSalinity(bucket.min)} - ${formatSalinity(bucket.max)} ‰</div>
             <div class="salinity-report-risk-time">Khoảng thời gian: ${renderIntervals(bucket.intervals)}</div>
         </td>
@@ -205,7 +206,7 @@ const renderStationRow = (station) => {
         ? `<td>Từ ${formatForecastTime(forecastWindow.start)} đến ${formatForecastTime(forecastWindow.end)}</td>`
         : `<td class="salinity-report-empty-cell">Chưa có dự báo</td>`;
 
-    const riskCells = RISK_LEVELS.map((item) => renderRiskCell(groups?.[item.level])).join("");
+    const riskCells = RISK_LEVELS.map((item) => renderRiskCell(groups?.[item.level], item.level)).join("");
 
     return `
         <tr class="salinity-report-row" data-code="${escapeHtml(code)}" data-type="${escapeHtml(type)}" tabindex="0" role="button">
@@ -271,6 +272,23 @@ export const initSalinityStatsPanel = (mapInstance, { ensureSalinityLayer, ensur
     // phải gọi lại API.
     let currentRows = [];
     const sortState = { key: null, direction: "asc" };
+
+    // Ẩn hẳn cột cấp rủi ro (dự báo) nếu KHÔNG điểm/trạm nào rơi vào cấp đó trong 10 ngày tới - ẩn cả
+    // header lẫn các ô dữ liệu tương ứng (cùng data-risk-col) để bảng không còn cột trống toàn bộ.
+    const forecastHeaderEl = document.getElementById("salinity-report-forecast-header");
+    const updateRiskColumnVisibility = (rows) => {
+        const visibleLevels = RISK_LEVELS.filter((item) => rows.some((row) => row.groups?.[item.level]));
+        const visibleSet = new Set(visibleLevels.map((item) => item.level));
+
+        RISK_LEVELS.forEach((item) => {
+            const visible = visibleSet.has(item.level);
+            document
+                .querySelectorAll(`.salinity-report-table [data-risk-col="${item.level}"]`)
+                .forEach((el) => el.classList.toggle("salinity-report-col-hidden", !visible));
+        });
+
+        if (forecastHeaderEl) forecastHeaderEl.colSpan = 1 + visibleLevels.length;
+    };
 
     const ensureLayer = (type) => {
         if (hasLayerOfType(mapInstance, type)) return Promise.resolve();
@@ -340,6 +358,7 @@ export const initSalinityStatsPanel = (mapInstance, { ensureSalinityLayer, ensur
         bodyEl.innerHTML = sorted.length
             ? sorted.map(renderStationRow).join("")
             : renderEmptyRow("fa-exclamation-circle", "Chưa có điểm đo mặn/trạm IoT nào");
+        updateRiskColumnVisibility(sorted);
 
         const observedCount = sorted.filter((row) => row.observed).length;
         if (summaryEl) {

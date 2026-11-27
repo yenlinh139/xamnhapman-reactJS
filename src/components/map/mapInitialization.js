@@ -213,7 +213,7 @@ export const createLegendControl = () => {
                     Điểm đo mặn/Trạm IoT <i class="fas fa-sort salinity-report-sort-icon"></i>
                   </th>
                   <th colspan="3">Độ mặn quan trắc (gần nhất)</th>
-                  <th colspan="5">Độ mặn dự báo (10 ngày tới)</th>
+                  <th colspan="5" id="salinity-report-forecast-header">Độ mặn dự báo (10 ngày tới)</th>
                 </tr>
                 <tr>
                   <th class="salinity-report-sortable" data-sort="time">
@@ -226,10 +226,10 @@ export const createLegendControl = () => {
                     Cấp độ rủi ro <i class="fas fa-sort salinity-report-sort-icon"></i>
                   </th>
                   <th>Khoảng thời gian</th>
-                  <th>Bình thường</th>
-                  <th>Rủi ro cấp 1</th>
-                  <th>Rủi ro cấp 2</th>
-                  <th>Rủi ro cấp 3</th>
+                  <th class="salinity-report-risk-col--normal" data-risk-col="normal">Bình thường</th>
+                  <th class="salinity-report-risk-col--warning" data-risk-col="warning">Rủi ro cấp 1</th>
+                  <th class="salinity-report-risk-col--high-warning" data-risk-col="high-warning">Rủi ro cấp 2</th>
+                  <th class="salinity-report-risk-col--critical" data-risk-col="critical">Rủi ro cấp 3</th>
                 </tr>
               </thead>
               <tbody id="salinity-report-body">
